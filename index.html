@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Athoce</title>
+    <style>
+      :root {
+        color: #171717;
+        background: #fafafa;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      #status {
+        min-height: 24px;
+        color: #5f6368;
+        font-size: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 18px;
+      }
+
+      .product {
+        display: grid;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .thumb {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        background: #f1f1f1;
+      }
+
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 160ms ease;
+      }
+
+      .product:hover img {
+        transform: scale(1.025);
+      }
+
+      .name {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+
+      .price {
+        margin: 0;
+        color: #303030;
+        font-size: 14px;
+      }
+
+      .empty,
+      .error {
+        padding: 28px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .error {
+        color: #b3261e;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Athoce</h1>
+        <div id="status" aria-live="polite"></div>
+      </header>
+      <section id="products" class="grid" aria-label="상품 목록"></section>
+    </main>
+
+    <script>
+      const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
+      const productGrid = document.querySelector('#products');
+      const statusEl = document.querySelector('#status');
+      const priceFormatter = new Intl.NumberFormat('ko-KR');
+
+      function pickFirst(...values) {
+        return values.find((value) => value !== undefined && value !== null && value !== '');
+      }
+
+      function getProductId(product) {
+        return pickFirst(product.idx, product.id, product.productNo, product.product_no, product.code);
+      }
+
+      function getProductName(product) {
+        return pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품');
+      }
+
+      function getProductPrice(product) {
+        return Number(
+          pickFirst(product.price, product.salePrice, product.sale_price, product.originPrice, 0),
+        );
+      }
+
+      function getProductImage(product) {
+        const images = pickFirst(product.images, product.imageList, product.image_list, []);
+        const firstImage = Array.isArray(images) ? images[0] : null;
+
+        return pickFirst(
+          product.image_url,
+          product.imageUrl,
+          product.thumbnail_url,
+          product.thumbnailUrl,
+          product.thumbnail,
+          firstImage?.url,
+          firstImage?.image_url,
+          firstImage,
+          '',
+        );
+      }
+
+      function getOriginalProductUrl(product) {
+        const productId = getProductId(product);
+
+        return pickFirst(
+          product.url,
+          product.productUrl,
+          product.product_url,
+          productId ? `${ORIGINAL_SHOP_BASE_URL}/shop_view/?idx=${encodeURIComponent(productId)}` : null,
+          ORIGINAL_SHOP_BASE_URL,
+        );
+      }
+
+      function renderProduct(product) {
+        const link = document.createElement('a');
+        link.className = 'product';
+        link.href = getOriginalProductUrl(product);
+        link.rel = 'noopener';
+
+        const imageUrl = getProductImage(product);
+        const name = getProductName(product);
+        const price = getProductPrice(product);
+
+        const thumb = document.createElement('div');
+        thumb.className = 'thumb';
+
+        if (imageUrl) {
+          const image = document.createElement('img');
+          image.src = imageUrl;
+          image.alt = name;
+          image.loading = 'lazy';
+          thumb.append(image);
+        }
+
+        const info = document.createElement('div');
+        const nameEl = document.createElement('p');
+        const priceEl = document.createElement('p');
+
+        nameEl.className = 'name';
+        nameEl.textContent = name;
+        priceEl.className = 'price';
+        priceEl.textContent = price ? `${priceFormatter.format(price)}원` : '가격 문의';
+
+        info.append(nameEl, priceEl);
+        link.append(thumb, info);
+
+        return link;
+      }
+
+      async function loadProducts() {
+        statusEl.textContent = '상품을 불러오는 중';
+        productGrid.innerHTML = '';
+
+        try {
+          const response = await fetch('/api/products', {
+            headers: { accept: 'application/json' },
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload?.error?.message || '상품 목록을 불러오지 못했습니다.');
+          }
+
+          const products = Array.isArray(payload.items) ? payload.items : [];
+          statusEl.textContent = `${products.length}개 상품`;
+
+          if (!products.length) {
+            productGrid.className = '';
+            productGrid.innerHTML = '<div class="empty">표시할 상품이 없습니다.</div>';
+            return;
+          }
+
+          productGrid.className = 'grid';
+          productGrid.replaceChildren(...products.map(renderProduct));
+        } catch (error) {
+          statusEl.textContent = '';
+          productGrid.className = '';
+          productGrid.innerHTML = `<div class="error">${error.message}</div>`;
+        }
+      }
+
+      loadProducts();
+    </script>
+  </body>
+</html>
