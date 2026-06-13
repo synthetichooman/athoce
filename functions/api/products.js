@@ -1,4 +1,5 @@
 import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
+import { getAdminConfig } from '../_config.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
 
@@ -73,6 +74,96 @@ function normalizeProductsPayload(payload) {
   };
 }
 
+function getProductNo(product) {
+  const value = Number(product?.prodNo || product?.idx || product?.id || product?.productNo);
+  return Number.isFinite(value) ? value : null;
+}
+
+function getPrice(product) {
+  const value = Number(product?.price || product?.salePrice || product?.sale_price || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getSortNo(product) {
+  const value = Number(product?.sortNo || product?.sort_no || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getAddTime(product) {
+  const time = new Date(product?.addTime || product?.createdAt || product?.created_at || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function productHasCategory(product, categoryCodes) {
+  if (!categoryCodes.length) {
+    return true;
+  }
+
+  const productCategories = Array.isArray(product?.categories) ? product.categories : [];
+  return productCategories.some((categoryCode) => categoryCodes.includes(String(categoryCode)));
+}
+
+function applyPinnedOrder(items, pinnedProductNos) {
+  if (!pinnedProductNos.length) {
+    return items;
+  }
+
+  const rank = new Map(pinnedProductNos.map((prodNo, index) => [prodNo, index]));
+
+  return [...items].sort((a, b) => {
+    const aRank = rank.has(getProductNo(a)) ? rank.get(getProductNo(a)) : Infinity;
+    const bRank = rank.has(getProductNo(b)) ? rank.get(getProductNo(b)) : Infinity;
+
+    if (aRank !== bRank) {
+      return aRank - bRank;
+    }
+
+    return 0;
+  });
+}
+
+function sortProducts(items, sortMode) {
+  const sorted = [...items];
+
+  if (sortMode === 'newest') {
+    return sorted.sort((a, b) => getAddTime(b) - getAddTime(a));
+  }
+
+  if (sortMode === 'price-low') {
+    return sorted.sort((a, b) => getPrice(a) - getPrice(b));
+  }
+
+  if (sortMode === 'price-high') {
+    return sorted.sort((a, b) => getPrice(b) - getPrice(a));
+  }
+
+  if (sortMode === 'name') {
+    return sorted.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'ko'));
+  }
+
+  return sorted.sort((a, b) => getSortNo(b) - getSortNo(a));
+}
+
+function applyAdminConfig(items, config) {
+  const hidden = new Set(config.hiddenProductNos);
+  const statusFilter = new Set(config.statusFilter);
+  const filtered = items.filter((product) => {
+    const productNo = getProductNo(product);
+    const status = String(product?.prodStatus || '');
+
+    return (
+      !hidden.has(productNo) &&
+      productHasCategory(product, config.categoryCodes) &&
+      (!statusFilter.size || statusFilter.has(status))
+    );
+  });
+
+  return applyPinnedOrder(sortProducts(filtered, config.sortMode), config.pinnedProductNos).slice(
+    0,
+    config.maxItems,
+  );
+}
+
 async function fetchProducts({ env, unitCode, categoryCode }) {
   const url = new URL(IMWEB_PRODUCTS_URL);
   url.searchParams.set('unitCode', unitCode);
@@ -90,6 +181,7 @@ async function fetchProducts({ env, unitCode, categoryCode }) {
 
 export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
+  const adminConfig = await getAdminConfig(env);
   const requestUrl = new URL(request.url);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
   const envCategoryCodes = clean(env.IMWEB_CATEGORY_CODES)
@@ -100,7 +192,7 @@ export async function onRequestGet({ env, request }) {
     ? [requestedCategoryCode]
     : envCategoryCodes.length
       ? envCategoryCodes
-      : [];
+      : adminConfig.categoryCodes;
 
   let results;
 
@@ -182,17 +274,24 @@ export async function onRequestGet({ env, request }) {
     }
   }
 
+  const displayItems = applyAdminConfig(mergedItems, adminConfig);
+
   return jsonResponse({
     ok: true,
     unitCode,
-    categoryCodes,
+    categoryCodes: adminConfig.categoryCodes,
+    requestedCategoryCodes: categoryCodes,
+    display: {
+      blurUnavailable: adminConfig.blurUnavailable,
+      hideUnavailablePrice: adminConfig.hideUnavailablePrice,
+    },
     tokenRefreshed: results.some((result) => result.tokenRefreshed),
     tokenSource: results.find((result) => result.tokenSource)?.tokenSource || 'unknown',
     storedInKv: results.some((result) => result.refreshed?.storedInKv),
     fetchedAt: new Date().toISOString(),
-    items: mergedItems,
+    items: displayItems,
     page: 1,
     limit: 100,
-    total: mergedItems.length,
+    total: displayItems.length,
   });
 }

@@ -59,6 +59,10 @@
         display: block;
       }
 
+      .detail.is-unavailable .gallery img {
+        filter: blur(8px) grayscale(0.35);
+      }
+
       .summary {
         position: sticky;
         top: 24px;
@@ -75,6 +79,12 @@
         margin: 0 0 24px;
         font-size: 18px;
         font-weight: 650;
+      }
+
+      .status {
+        margin: -12px 0 24px;
+        color: #777;
+        font-size: 14px;
       }
 
       .description {
@@ -98,6 +108,11 @@
         color: #fff;
         text-decoration: none;
         font-weight: 650;
+      }
+
+      .buy[aria-disabled="true"] {
+        pointer-events: none;
+        background: #b8b8b8;
       }
 
       .error,
@@ -159,6 +174,19 @@
         return [images].filter(Boolean);
       }
 
+      function isUnavailable(product) {
+        const status = String(product.prodStatus || '').toLowerCase();
+        const stockUse = String(product.stockUse || '').toUpperCase() === 'Y';
+        const stockUnlimit = String(product.stockUnlimit || '').toUpperCase() === 'Y';
+        const stock = Number(product.stockNoOption ?? product.stock ?? product.stockCount);
+
+        return (
+          status === 'soldout' ||
+          status === 'nosale' ||
+          (stockUse && !stockUnlimit && Number.isFinite(stock) && stock <= 0)
+        );
+      }
+
       function getOriginalProductUrl(product) {
         const id = pickFirst(product.prodNo, product.idx, prodNo);
         return pickFirst(
@@ -174,10 +202,11 @@
         const images = getProductImages(product);
         const name = getProductName(product);
         const price = getProductPrice(product);
+        const unavailable = isUnavailable(product);
         const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
 
         const wrapper = document.createElement('div');
-        wrapper.className = 'detail';
+        wrapper.className = `detail${unavailable ? ' is-unavailable' : ''}`;
 
         const gallery = document.createElement('div');
         gallery.className = 'gallery';
@@ -202,19 +231,27 @@
 
         const priceEl = document.createElement('p');
         priceEl.className = 'price';
-        priceEl.textContent = price ? `${priceFormatter.format(price)}원` : '가격 문의';
+        priceEl.textContent = unavailable ? '' : price ? `${priceFormatter.format(price)}원` : '가격 문의';
+
+        const statusEl = document.createElement('p');
+        statusEl.className = 'status';
+        statusEl.textContent = unavailable ? 'Sold out' : '';
 
         const buy = document.createElement('a');
         buy.className = 'buy';
         buy.href = getOriginalProductUrl(product);
         buy.rel = 'noopener';
-        buy.textContent = '원본 상품 보기';
+        buy.textContent = unavailable ? '판매 완료' : '원본 상품 보기';
+
+        if (unavailable) {
+          buy.setAttribute('aria-disabled', 'true');
+        }
 
         const description = document.createElement('div');
         description.className = 'description';
         description.innerHTML = content;
 
-        summary.append(title, priceEl, buy, description);
+        summary.append(title, priceEl, statusEl, buy, description);
         wrapper.append(gallery, summary);
         detailEl.replaceChildren(wrapper);
       }
