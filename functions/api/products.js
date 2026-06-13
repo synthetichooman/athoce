@@ -1,5 +1,5 @@
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
-const UNIT_CODE = 'S20251229dc44ec3ff128b';
+const DEFAULT_UNIT_CODE = 'S20251229dc44ec3ff128b';
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -14,6 +14,10 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
       ...extraHeaders,
     },
   });
+}
+
+function clean(value, fallback = '') {
+  return String(value || fallback).trim();
 }
 
 function getImwebError(payload, fallbackStatus) {
@@ -72,6 +76,8 @@ function normalizeProductsPayload(payload) {
 }
 
 export async function onRequestGet({ env }) {
+  const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
+
   if (!env.IMWEB_ACCESS_TOKEN) {
     return jsonResponse(
       {
@@ -87,7 +93,7 @@ export async function onRequestGet({ env }) {
   }
 
   const url = new URL(IMWEB_PRODUCTS_URL);
-  url.searchParams.set('unitCode', UNIT_CODE);
+  url.searchParams.set('unitCode', unitCode);
   url.searchParams.set('page', '1');
   url.searchParams.set('limit', '100');
 
@@ -146,7 +152,7 @@ export async function onRequestGet({ env }) {
           ...parsedError,
           hint:
             String(parsedError.code) === '30104'
-              ? 'unitCode/siteCode가 올바른지, 해당 토큰이 이 사이트 권한을 갖는지 확인하세요.'
+              ? `unitCode "${unitCode}"가 올바른지, OAuth 승인 때 사용한 siteCode와 같은지 확인하세요.`
               : undefined,
         },
       },
@@ -159,7 +165,7 @@ export async function onRequestGet({ env }) {
 
   return jsonResponse({
     ok: true,
-    unitCode: UNIT_CODE,
+    unitCode,
     fetchedAt: new Date().toISOString(),
     ...products,
   });
