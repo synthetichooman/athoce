@@ -1,4 +1,4 @@
-const DEFAULT_CLIENT_ID = 'c5135d66-34ad-4635-b668-d458f86a2a3e';
+const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 
 function clean(value, fallback = '') {
   return String(value || fallback).trim();
