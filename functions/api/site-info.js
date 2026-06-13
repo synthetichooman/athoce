@@ -1,3 +1,5 @@
+import { clean, fetchImwebJson } from '../_imweb.js';
+
 const IMWEB_SITE_INFO_URL = 'https://openapi.imweb.me/site-info';
 
 function jsonResponse(body, status = 200) {
@@ -8,10 +10,6 @@ function jsonResponse(body, status = 200) {
       'cache-control': 'no-store',
     },
   });
-}
-
-function clean(value) {
-  return String(value || '').trim();
 }
 
 export async function onRequestGet({ env }) {
@@ -30,29 +28,18 @@ export async function onRequestGet({ env }) {
     );
   }
 
-  const imwebResponse = await fetch(IMWEB_SITE_INFO_URL, {
+  const { response, payload, tokenRefreshed, refreshError } = await fetchImwebJson(env, IMWEB_SITE_INFO_URL, {
     method: 'GET',
-    headers: {
-      accept: 'application/json',
-      authorization: `Bearer ${accessToken}`,
-    },
   });
-
-  const text = await imwebResponse.text();
-  let payload;
-
-  try {
-    payload = text ? JSON.parse(text) : {};
-  } catch {
-    payload = { message: text };
-  }
 
   return jsonResponse(
     {
-      ok: imwebResponse.ok,
-      status: imwebResponse.status,
+      ok: response.ok,
+      status: response.status,
+      tokenRefreshed,
+      refreshError,
       payload,
     },
-    imwebResponse.ok ? 200 : imwebResponse.status,
+    response.ok ? 200 : response.status,
   );
 }

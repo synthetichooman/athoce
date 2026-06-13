@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Athoce 상품 상세</title>
+    <style>
+      :root {
+        color: #171717;
+        background: #fafafa;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 64px;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .back {
+        display: inline-block;
+        margin-bottom: 24px;
+        color: #5f6368;
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      .detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 36px;
+        align-items: start;
+      }
+
+      .gallery {
+        display: grid;
+        gap: 12px;
+      }
+
+      .gallery img {
+        width: 100%;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        background: #f1f1f1;
+        display: block;
+      }
+
+      .summary {
+        position: sticky;
+        top: 24px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .price {
+        margin: 0 0 24px;
+        font-size: 18px;
+        font-weight: 650;
+      }
+
+      .description {
+        color: #444;
+        line-height: 1.65;
+      }
+
+      .description img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .buy {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 8px;
+        background: #171717;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 650;
+      }
+
+      .error,
+      .empty {
+        padding: 28px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .error {
+        color: #b3261e;
+      }
+
+      @media (max-width: 780px) {
+        .detail {
+          grid-template-columns: 1fr;
+        }
+
+        .summary {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./">목록으로</a>
+      <section id="detail" aria-live="polite"></section>
+    </main>
+
+    <script>
+      const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
+      const detailEl = document.querySelector('#detail');
+      const priceFormatter = new Intl.NumberFormat('ko-KR');
+      const params = new URLSearchParams(window.location.search);
+      const prodNo = params.get('prodNo');
+
+      function pickFirst(...values) {
+        return values.find((value) => value !== undefined && value !== null && value !== '');
+      }
+
+      function getProductName(product) {
+        return pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품');
+      }
+
+      function getProductPrice(product) {
+        return Number(pickFirst(product.price, product.salePrice, product.sale_price, 0));
+      }
+
+      function getProductImages(product) {
+        const images = pickFirst(product.productImages, product.images, product.imageList, []);
+        if (Array.isArray(images)) {
+          return images
+            .map((image) => pickFirst(image?.url, image?.image_url, image))
+            .filter(Boolean);
+        }
+
+        return [images].filter(Boolean);
+      }
+
+      function getOriginalProductUrl(product) {
+        const id = pickFirst(product.prodNo, product.idx, prodNo);
+        return pickFirst(
+          product.url,
+          product.productUrl,
+          product.product_url,
+          id ? `${ORIGINAL_SHOP_BASE_URL}/shop_view/?idx=${encodeURIComponent(id)}` : null,
+          ORIGINAL_SHOP_BASE_URL,
+        );
+      }
+
+      function render(product) {
+        const images = getProductImages(product);
+        const name = getProductName(product);
+        const price = getProductPrice(product);
+        const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'detail';
+
+        const gallery = document.createElement('div');
+        gallery.className = 'gallery';
+
+        if (images.length) {
+          for (const imageUrl of images) {
+            const image = document.createElement('img');
+            image.src = imageUrl;
+            image.alt = name;
+            image.referrerPolicy = 'no-referrer';
+            gallery.append(image);
+          }
+        } else {
+          gallery.innerHTML = '<div class="empty">등록된 상품 이미지가 없습니다.</div>';
+        }
+
+        const summary = document.createElement('aside');
+        summary.className = 'summary';
+
+        const title = document.createElement('h1');
+        title.textContent = name;
+
+        const priceEl = document.createElement('p');
+        priceEl.className = 'price';
+        priceEl.textContent = price ? `${priceFormatter.format(price)}원` : '가격 문의';
+
+        const buy = document.createElement('a');
+        buy.className = 'buy';
+        buy.href = getOriginalProductUrl(product);
+        buy.rel = 'noopener';
+        buy.textContent = '원본 상품 보기';
+
+        const description = document.createElement('div');
+        description.className = 'description';
+        description.innerHTML = content;
+
+        summary.append(title, priceEl, buy, description);
+        wrapper.append(gallery, summary);
+        detailEl.replaceChildren(wrapper);
+      }
+
+      async function loadProduct() {
+        if (!prodNo) {
+          detailEl.innerHTML = '<div class="error">상품 번호가 없습니다.</div>';
+          return;
+        }
+
+        detailEl.innerHTML = '<div class="empty">상품을 불러오는 중</div>';
+
+        try {
+          const response = await fetch(`/api/product?prodNo=${encodeURIComponent(prodNo)}`, {
+            headers: { accept: 'application/json' },
+          });
+          const text = await response.text();
+          const payload = text ? JSON.parse(text) : {};
+
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload?.error?.message || `상품 상세 요청 실패: HTTP ${response.status}`);
+          }
+
+          render(payload.item);
+        } catch (error) {
+          detailEl.innerHTML = `<div class="error">${error.message}</div>`;
+        }
+      }
+
+      loadProduct();
+    </script>
+  </body>
+</html>

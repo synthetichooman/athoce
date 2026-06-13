@@ -27,8 +27,9 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function renderResult({ title, body, token }) {
+function renderResult({ title, body, token, refreshToken }) {
   const escapedToken = token ? escapeHtml(token) : '';
+  const escapedRefreshToken = refreshToken ? escapeHtml(refreshToken) : '';
 
   return `<!doctype html>
 <html lang="ko">
@@ -86,6 +87,15 @@ function renderResult({ title, body, token }) {
               <p><strong>Cloudflare Pages 환경변수에 넣을 값</strong></p>
               <p><code>IMWEB_ACCESS_TOKEN</code>의 Value에 아래 문자열만 넣으세요. <code>Bearer</code>는 붙이지 않습니다.</p>
               <textarea readonly>${escapedToken}</textarea>
+            </div>`
+          : ''
+      }
+      ${
+        refreshToken
+          ? `<div class="box">
+              <p><strong>자동 갱신용 refreshToken</strong></p>
+              <p><code>IMWEB_REFRESH_TOKEN</code>의 Value에 아래 문자열을 넣으세요.</p>
+              <textarea readonly>${escapedRefreshToken}</textarea>
             </div>`
           : ''
       }
@@ -166,6 +176,7 @@ export async function onRequestGet({ env, request }) {
   }
 
   const accessToken = payload?.data?.accessToken || payload?.accessToken;
+  const refreshToken = payload?.data?.refreshToken || payload?.refreshToken;
 
   if (!tokenResponse.ok || !accessToken) {
     return htmlResponse(
@@ -196,6 +207,7 @@ export async function onRequestGet({ env, request }) {
           <p><strong>redirectUri</strong>: <code>${escapeHtml(redirectUri)}</code></p>
         </div>`,
       token: accessToken,
+      refreshToken,
     }),
   );
 }

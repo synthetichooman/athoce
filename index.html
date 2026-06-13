@@ -128,7 +128,14 @@
       }
 
       function getProductId(product) {
-        return pickFirst(product.idx, product.id, product.productNo, product.product_no, product.code);
+        return pickFirst(
+          product.prodNo,
+          product.idx,
+          product.id,
+          product.productNo,
+          product.product_no,
+          product.code,
+        );
       }
 
       function getProductName(product) {
@@ -142,7 +149,13 @@
       }
 
       function getProductImage(product) {
-        const images = pickFirst(product.images, product.imageList, product.image_list, []);
+        const images = pickFirst(
+          product.productImages,
+          product.images,
+          product.imageList,
+          product.image_list,
+          [],
+        );
         const firstImage = Array.isArray(images) ? images[0] : null;
 
         return pickFirst(
@@ -151,6 +164,8 @@
           product.thumbnail_url,
           product.thumbnailUrl,
           product.thumbnail,
+          product.mainImage,
+          product.main_image,
           firstImage?.url,
           firstImage?.image_url,
           firstImage,
@@ -158,23 +173,15 @@
         );
       }
 
-      function getOriginalProductUrl(product) {
+      function getDetailUrl(product) {
         const productId = getProductId(product);
-
-        return pickFirst(
-          product.url,
-          product.productUrl,
-          product.product_url,
-          productId ? `${ORIGINAL_SHOP_BASE_URL}/shop_view/?idx=${encodeURIComponent(productId)}` : null,
-          ORIGINAL_SHOP_BASE_URL,
-        );
+        return productId ? `detail.html?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
       }
 
       function renderProduct(product) {
         const link = document.createElement('a');
         link.className = 'product';
-        link.href = getOriginalProductUrl(product);
-        link.rel = 'noopener';
+        link.href = getDetailUrl(product);
 
         const imageUrl = getProductImage(product);
         const name = getProductName(product);
@@ -186,6 +193,7 @@
         if (imageUrl) {
           const image = document.createElement('img');
           image.src = imageUrl;
+          image.referrerPolicy = 'no-referrer';
           image.alt = name;
           image.loading = 'lazy';
           thumb.append(image);
@@ -211,7 +219,15 @@
         productGrid.innerHTML = '';
 
         try {
-          const response = await fetch('/api/products', {
+          const pageParams = new URLSearchParams(window.location.search);
+          const categoryCode = pageParams.get('categoryCode');
+          const apiUrl = new URL('/api/products', window.location.origin);
+
+          if (categoryCode) {
+            apiUrl.searchParams.set('categoryCode', categoryCode);
+          }
+
+          const response = await fetch(apiUrl.pathname + apiUrl.search, {
             headers: { accept: 'application/json' },
           });
           const text = await response.text();

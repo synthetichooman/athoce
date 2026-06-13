@@ -1,5 +1,6 @@
+import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
+
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
-const DEFAULT_UNIT_CODE = 'S20251229dc44ec3ff128b';
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -14,10 +15,6 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
       ...extraHeaders,
     },
   });
-}
-
-function clean(value, fallback = '') {
-  return String(value || fallback).trim();
 }
 
 function getImwebError(payload, fallbackStatus) {
@@ -54,8 +51,8 @@ function getImwebError(payload, fallbackStatus) {
 
 function normalizeProductsPayload(payload) {
   const items =
-    payload?.data?.items ||
     payload?.data?.list ||
+    payload?.data?.items ||
     payload?.data?.products ||
     payload?.items ||
     payload?.list ||
@@ -69,14 +66,41 @@ function normalizeProductsPayload(payload) {
     total:
       payload?.data?.total ||
       payload?.data?.totalCount ||
+      payload?.data?.totalCount ||
       payload?.total ||
       payload?.totalCount ||
       null,
   };
 }
 
-export async function onRequestGet({ env }) {
+async function fetchProducts({ env, unitCode, categoryCode }) {
+  const url = new URL(IMWEB_PRODUCTS_URL);
+  url.searchParams.set('unitCode', unitCode);
+  url.searchParams.set('page', '1');
+  url.searchParams.set('limit', '100');
+
+  if (categoryCode) {
+    url.searchParams.set('categoryCode', categoryCode);
+  }
+
+  return fetchImwebJson(env, url.toString(), {
+    method: 'GET',
+  });
+}
+
+export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
+  const requestUrl = new URL(request.url);
+  const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
+  const envCategoryCodes = clean(env.IMWEB_CATEGORY_CODES)
+    .split(',')
+    .map((categoryCode) => categoryCode.trim())
+    .filter(Boolean);
+  const categoryCodes = requestedCategoryCode
+    ? [requestedCategoryCode]
+    : envCategoryCodes.length
+      ? envCategoryCodes
+      : [];
 
   if (!env.IMWEB_ACCESS_TOKEN) {
     return jsonResponse(
@@ -92,21 +116,20 @@ export async function onRequestGet({ env }) {
     );
   }
 
-  const url = new URL(IMWEB_PRODUCTS_URL);
-  url.searchParams.set('unitCode', unitCode);
-  url.searchParams.set('page', '1');
-  url.searchParams.set('limit', '100');
-
-  let imwebResponse;
+  let results;
 
   try {
-    imwebResponse = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        accept: 'application/json',
-        authorization: `Bearer ${env.IMWEB_ACCESS_TOKEN}`,
-      },
-    });
+    const targets = categoryCodes.length ? categoryCodes : [null];
+
+    results = await Promise.all(
+      targets.map((categoryCode) =>
+        fetchProducts({
+          env,
+          unitCode,
+          categoryCode,
+        }),
+      ),
+    );
   } catch (error) {
     return jsonResponse(
       {
@@ -121,29 +144,25 @@ export async function onRequestGet({ env }) {
     );
   }
 
-  const text = await imwebResponse.text();
-  let payload = null;
+  const failedResult = results.find(({ response, payload }) => {
+    const businessCode =
+      payload?.errorCode ||
+      payload?.code ||
+      payload?.error?.errorCode ||
+      payload?.error?.code ||
+      payload?.data?.errorCode ||
+      payload?.data?.code;
+    const statusCode = payload?.statusCode || payload?.status;
 
-  try {
-    payload = text ? JSON.parse(text) : null;
-  } catch {
-    payload = { message: text || 'Empty response from Imweb API.' };
-  }
+    return (
+      !response.ok ||
+      (businessCode && Number(businessCode) !== 200) ||
+      (statusCode && Number(statusCode) >= 400)
+    );
+  });
 
-  const businessCode =
-    payload?.errorCode ||
-    payload?.code ||
-    payload?.error?.errorCode ||
-    payload?.error?.code ||
-    payload?.data?.errorCode ||
-    payload?.data?.code;
-  const statusCode = payload?.statusCode || payload?.status;
-  const hasBusinessError =
-    (businessCode && Number(businessCode) !== 200) ||
-    (statusCode && Number(statusCode) >= 400);
-
-  if (!imwebResponse.ok || hasBusinessError) {
-    const parsedError = getImwebError(payload, imwebResponse.status);
+  if (failedResult) {
+    const parsedError = getImwebError(failedResult.payload, failedResult.response.status);
 
     return jsonResponse(
       {
@@ -156,17 +175,36 @@ export async function onRequestGet({ env }) {
               : undefined,
         },
       },
-      imwebResponse.ok ? 400 : imwebResponse.status,
+      failedResult.response.ok ? 400 : failedResult.response.status,
       { 'cache-control': 'no-store' },
     );
   }
 
-  const products = normalizeProductsPayload(payload);
+  const mergedItems = [];
+  const seen = new Set();
+
+  for (const result of results) {
+    const products = normalizeProductsPayload(result.payload);
+
+    for (const item of products.items) {
+      const key = item?.prodNo || item?.prodCode || item?.id || JSON.stringify(item);
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        mergedItems.push(item);
+      }
+    }
+  }
 
   return jsonResponse({
     ok: true,
     unitCode,
+    categoryCodes,
+    tokenRefreshed: results.some((result) => result.tokenRefreshed),
     fetchedAt: new Date().toISOString(),
-    ...products,
+    items: mergedItems,
+    page: 1,
+    limit: 100,
+    total: mergedItems.length,
   });
 }
