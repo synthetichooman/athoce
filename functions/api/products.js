@@ -116,6 +116,22 @@ function getImageUrl(product) {
   );
 }
 
+function getOptimizedImwebImageUrl(imageUrl, width = 750) {
+  try {
+    const url = new URL(imageUrl);
+
+    if (!['cdn.imweb.me', 'cdn-optimized.imweb.me'].includes(url.hostname)) {
+      return imageUrl;
+    }
+
+    url.hostname = 'cdn-optimized.imweb.me';
+    url.searchParams.set('w', String(width));
+    return url.toString();
+  } catch {
+    return imageUrl;
+  }
+}
+
 function getSortNo(product) {
   const value = Number(product?.sortNo || product?.sort_no || 0);
   return Number.isFinite(value) ? value : 0;
@@ -206,7 +222,7 @@ function compactProduct(product) {
     stockUse: product?.stockUse || '',
     stockUnlimit: product?.stockUnlimit || '',
     stockNoOption: product?.stockNoOption ?? null,
-    imageUrl: getImageUrl(product),
+    imageUrl: getOptimizedImwebImageUrl(getImageUrl(product), 750),
     categories: Array.isArray(product?.categories) ? product.categories : [],
     sortNo: getSortNo(product),
     addTime: product?.addTime || null,

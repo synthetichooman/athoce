@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://cdn-optimized.imweb.me" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn-optimized.imweb.me" />
     <title>Athoce 상품 상세</title>
     <style>
       :root {
@@ -174,6 +176,28 @@
         return [images].filter(Boolean);
       }
 
+      function getOptimizedImwebImageUrl(imageUrl, width = 1200) {
+        try {
+          const url = new URL(imageUrl);
+
+          if (!['cdn.imweb.me', 'cdn-optimized.imweb.me'].includes(url.hostname)) {
+            return imageUrl;
+          }
+
+          url.hostname = 'cdn-optimized.imweb.me';
+          url.searchParams.set('w', String(width));
+          return url.toString();
+        } catch {
+          return imageUrl;
+        }
+      }
+
+      function getImageSrcSet(imageUrl) {
+        return [750, 1200, 1600]
+          .map((width) => `${getOptimizedImwebImageUrl(imageUrl, width)} ${width}w`)
+          .join(', ');
+      }
+
       function isUnavailable(product) {
         const status = String(product.prodStatus || '').toLowerCase();
         const stockUse = String(product.stockUse || '').toUpperCase() === 'Y';
@@ -212,13 +236,18 @@
         gallery.className = 'gallery';
 
         if (images.length) {
-          for (const imageUrl of images) {
+          images.forEach((imageUrl, index) => {
             const image = document.createElement('img');
-            image.src = imageUrl;
+            image.src = getOptimizedImwebImageUrl(imageUrl, 1200);
+            image.srcset = getImageSrcSet(imageUrl);
+            image.sizes = '(max-width: 780px) calc(100vw - 32px), 640px';
             image.alt = name;
             image.referrerPolicy = 'no-referrer';
+            image.loading = index === 0 ? 'eager' : 'lazy';
+            image.decoding = 'async';
+            image.fetchPriority = index === 0 ? 'high' : 'auto';
             gallery.append(image);
-          }
+          });
         } else {
           gallery.innerHTML = '<div class="empty">등록된 상품 이미지가 없습니다.</div>';
         }
@@ -250,6 +279,21 @@
         const description = document.createElement('div');
         description.className = 'description';
         description.innerHTML = content;
+        description.querySelectorAll('img').forEach((image, index) => {
+          const source = image.getAttribute('src');
+
+          if (!source) {
+            return;
+          }
+
+          image.src = getOptimizedImwebImageUrl(source, 1200);
+          image.srcset = getImageSrcSet(source);
+          image.sizes = '(max-width: 780px) calc(100vw - 32px), 640px';
+          image.loading = index === 0 ? 'eager' : 'lazy';
+          image.decoding = 'async';
+          image.fetchPriority = index === 0 ? 'high' : 'auto';
+          image.referrerPolicy = 'no-referrer';
+        });
 
         summary.append(title, priceEl, statusEl, buy, description);
         wrapper.append(gallery, summary);
