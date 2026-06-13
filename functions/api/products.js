@@ -26,13 +26,20 @@ function getImwebError(payload, fallbackStatus) {
 
   if (typeof error === 'string') {
     return {
-      code: payload?.code || payload?.status || fallbackStatus,
+      code: payload?.errorCode || payload?.code || payload?.statusCode || payload?.status || fallbackStatus,
       message: error,
     };
   }
 
   return {
-    code: error?.code || payload?.code || payload?.status || fallbackStatus,
+    code:
+      error?.errorCode ||
+      error?.code ||
+      payload?.errorCode ||
+      payload?.code ||
+      payload?.statusCode ||
+      payload?.status ||
+      fallbackStatus,
     message:
       error?.message ||
       error?.detail ||
@@ -61,7 +68,6 @@ function normalizeProductsPayload(payload) {
       payload?.total ||
       payload?.totalCount ||
       null,
-    raw: payload,
   };
 }
 
@@ -118,8 +124,17 @@ export async function onRequestGet({ env }) {
     payload = { message: text || 'Empty response from Imweb API.' };
   }
 
-  const businessCode = payload?.code || payload?.error?.code || payload?.data?.code;
-  const hasBusinessError = businessCode && Number(businessCode) !== 200;
+  const businessCode =
+    payload?.errorCode ||
+    payload?.code ||
+    payload?.error?.errorCode ||
+    payload?.error?.code ||
+    payload?.data?.errorCode ||
+    payload?.data?.code;
+  const statusCode = payload?.statusCode || payload?.status;
+  const hasBusinessError =
+    (businessCode && Number(businessCode) !== 200) ||
+    (statusCode && Number(statusCode) >= 400);
 
   if (!imwebResponse.ok || hasBusinessError) {
     const parsedError = getImwebError(payload, imwebResponse.status);
