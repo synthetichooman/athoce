@@ -4,6 +4,10 @@ function clean(value, fallback = '') {
   return String(value || fallback).trim();
 }
 
+function looksLikeUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 function htmlResponse(body, status = 200) {
   return new Response(body, {
     status,
@@ -173,6 +177,8 @@ export async function onRequestGet({ env, request }) {
             <p><strong>clientId</strong>: <code>${escapeHtml(clientId)}</code></p>
             <p><strong>clientSecret configured</strong>: ${clientSecret ? 'yes' : 'no'}</p>
             <p><strong>clientSecret length</strong>: ${clientSecret.length}</p>
+            <p><strong>clientSecret equals clientId</strong>: ${clientSecret === clientId ? 'yes' : 'no'}</p>
+            <p><strong>clientSecret looks like UUID</strong>: ${looksLikeUuid(clientSecret) ? 'yes' : 'no'}</p>
             <p><strong>redirectUri</strong>: <code>${escapeHtml(redirectUri)}</code></p>
             <pre>${escapeHtml(JSON.stringify(payload, null, 2))}</pre>
           </div>`,
