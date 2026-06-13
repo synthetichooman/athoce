@@ -1,5 +1,9 @@
 const DEFAULT_CLIENT_ID = 'c5135d66-34ad-4635-b668-d458f86a2a3e';
 
+function clean(value, fallback = '') {
+  return String(value || fallback).trim();
+}
+
 function htmlResponse(body, status = 200) {
   return new Response(body, {
     status,
@@ -116,7 +120,10 @@ export async function onRequestGet({ env, request }) {
     );
   }
 
-  if (!env.IMWEB_CLIENT_SECRET) {
+  const clientId = clean(env.IMWEB_CLIENT_ID, DEFAULT_CLIENT_ID);
+  const clientSecret = clean(env.IMWEB_CLIENT_SECRET);
+
+  if (!clientSecret) {
     return htmlResponse(
       renderResult({
         title: 'clientSecret 환경변수가 없습니다',
@@ -127,11 +134,11 @@ export async function onRequestGet({ env, request }) {
   }
 
   const origin = requestUrl.origin;
-  const redirectUri = env.IMWEB_REDIRECT_URI || `${origin}/api/oauth/callback`;
+  const redirectUri = clean(env.IMWEB_REDIRECT_URI, `${origin}/api/oauth/callback`);
   const form = new URLSearchParams();
 
-  form.set('clientId', env.IMWEB_CLIENT_ID || DEFAULT_CLIENT_ID);
-  form.set('clientSecret', env.IMWEB_CLIENT_SECRET);
+  form.set('clientId', clientId);
+  form.set('clientSecret', clientSecret);
   form.set('redirectUri', redirectUri);
   form.set('code', code);
   form.set('grantType', 'authorization_code');
@@ -160,9 +167,12 @@ export async function onRequestGet({ env, request }) {
     return htmlResponse(
       renderResult({
         title: 'accessToken 발급 실패',
-        body: `<p>아임웹 토큰 교환 요청이 실패했습니다. redirectUri가 아임웹 앱 설정과 정확히 같은지 확인하세요.</p>
+        body: `<p>아임웹 토큰 교환 요청이 실패했습니다. <code>30098</code>이면 대개 clientId 또는 clientSecret이 올바르지 않은 상태입니다.</p>
           <div class="box">
             <p><strong>HTTP status</strong>: ${tokenResponse.status}</p>
+            <p><strong>clientId</strong>: <code>${escapeHtml(clientId)}</code></p>
+            <p><strong>clientSecret configured</strong>: ${clientSecret ? 'yes' : 'no'}</p>
+            <p><strong>clientSecret length</strong>: ${clientSecret.length}</p>
             <p><strong>redirectUri</strong>: <code>${escapeHtml(redirectUri)}</code></p>
             <pre>${escapeHtml(JSON.stringify(payload, null, 2))}</pre>
           </div>`,
