@@ -22,7 +22,7 @@ function toStringArray(value) {
 function toNumberArray(value) {
   return toStringArray(value)
     .map((item) => Number(item))
-    .filter((item) => Number.isFinite(item));
+    .filter((item) => Number.isFinite(item) && item > 0);
 }
 
 function clampMaxItems(value) {
