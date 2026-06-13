@@ -14,25 +14,17 @@ function jsonResponse(body, status = 200) {
 
 export async function onRequestGet({ env }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
-  if (!clean(env.IMWEB_ACCESS_TOKEN)) {
-    return jsonResponse(
-      {
-        ok: false,
-        error: {
-          code: 'MISSING_IMWEB_ACCESS_TOKEN',
-          message: 'Cloudflare Pages 환경 변수 IMWEB_ACCESS_TOKEN이 설정되지 않았습니다.',
-        },
-      },
-      500,
-    );
-  }
 
   const url = new URL(IMWEB_CATEGORIES_URL);
   url.searchParams.set('unitCode', unitCode);
 
-  const { response, payload, tokenRefreshed } = await fetchImwebJson(env, url.toString(), {
-    method: 'GET',
-  });
+  const { response, payload, tokenRefreshed, tokenSource, refreshed } = await fetchImwebJson(
+    env,
+    url.toString(),
+    {
+      method: 'GET',
+    },
+  );
 
   if (!response.ok || payload?.statusCode >= 400 || payload?.error) {
     return jsonResponse(
@@ -51,6 +43,8 @@ export async function onRequestGet({ env }) {
     ok: true,
     unitCode,
     tokenRefreshed,
+    tokenSource,
+    storedInKv: Boolean(refreshed?.storedInKv),
     items: Array.isArray(payload?.data) ? payload.data : [],
   });
 }

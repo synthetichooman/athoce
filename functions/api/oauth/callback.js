@@ -1,3 +1,5 @@
+import { storeImwebTokens } from '../../_imweb.js';
+
 const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 
 function clean(value, fallback = '') {
@@ -27,7 +29,7 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function renderResult({ title, body, token, refreshToken }) {
+function renderResult({ title, body, token, refreshToken, storedInKv }) {
   const escapedToken = token ? escapeHtml(token) : '';
   const escapedRefreshToken = refreshToken ? escapeHtml(refreshToken) : '';
 
@@ -82,7 +84,7 @@ function renderResult({ title, body, token, refreshToken }) {
       <h1>${escapeHtml(title)}</h1>
       ${body}
       ${
-        token
+        token && !storedInKv
           ? `<div class="box">
               <p><strong>Cloudflare Pages 환경변수에 넣을 값</strong></p>
               <p><code>IMWEB_ACCESS_TOKEN</code>의 Value에 아래 문자열만 넣으세요. <code>Bearer</code>는 붙이지 않습니다.</p>
@@ -91,7 +93,7 @@ function renderResult({ title, body, token, refreshToken }) {
           : ''
       }
       ${
-        refreshToken
+        refreshToken && !storedInKv
           ? `<div class="box">
               <p><strong>자동 갱신용 refreshToken</strong></p>
               <p><code>IMWEB_REFRESH_TOKEN</code>의 Value에 아래 문자열을 넣으세요.</p>
@@ -198,16 +200,24 @@ export async function onRequestGet({ env, request }) {
     );
   }
 
+  const storedInKv = await storeImwebTokens(env, {
+    accessToken,
+    refreshToken,
+    scope: payload?.data?.scope || payload?.scope,
+  });
+
   return htmlResponse(
     renderResult({
       title: 'accessToken 발급 성공',
-      body: `<p>아래 토큰을 Cloudflare Pages의 <code>IMWEB_ACCESS_TOKEN</code> 값으로 저장하고, Pages 프로젝트를 재배포하세요.</p>
+      body: `<p>${storedInKv ? '토큰이 Cloudflare KV에 저장되었습니다. 이제 환경변수 토큰을 손으로 갱신하지 않아도 됩니다.' : 'KV 바인딩이 없어 아래 토큰을 Cloudflare Pages 환경변수에 직접 저장해야 합니다.'}</p>
         <div class="box">
           <p><strong>scope</strong>: ${escapeHtml(payload?.data?.scope || payload?.scope || '-')}</p>
           <p><strong>redirectUri</strong>: <code>${escapeHtml(redirectUri)}</code></p>
+          <p><strong>storedInKv</strong>: ${storedInKv ? 'yes' : 'no'}</p>
         </div>`,
       token: accessToken,
       refreshToken,
+      storedInKv,
     }),
   );
 }

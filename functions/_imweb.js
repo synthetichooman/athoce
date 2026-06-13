@@ -1,5 +1,6 @@
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
-export const DEFAULT_UNIT_CODE = 'S20251229dc44ec3ff128b';
+export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
+export const TOKEN_STORAGE_KEY = 'imweb_tokens';
 
 export function clean(value, fallback = '') {
   return String(value || fallback).trim();
@@ -31,10 +32,45 @@ export async function parseJsonResponse(response) {
   }
 }
 
+export async function getStoredImwebTokens(env) {
+  let stored = null;
+
+  if (env.ATHOCE_KV) {
+    stored = await env.ATHOCE_KV.get(TOKEN_STORAGE_KEY, 'json');
+  }
+
+  return {
+    accessToken: clean(stored?.accessToken || env.IMWEB_ACCESS_TOKEN),
+    refreshToken: clean(stored?.refreshToken || env.IMWEB_REFRESH_TOKEN),
+    scope: stored?.scope || '',
+    updatedAt: stored?.updatedAt || '',
+    source: stored?.accessToken ? 'kv' : 'env',
+  };
+}
+
+export async function storeImwebTokens(env, tokens) {
+  if (!env.ATHOCE_KV) {
+    return false;
+  }
+
+  const current = (await env.ATHOCE_KV.get(TOKEN_STORAGE_KEY, 'json')) || {};
+  const next = {
+    ...current,
+    accessToken: clean(tokens.accessToken, current.accessToken),
+    refreshToken: clean(tokens.refreshToken, current.refreshToken),
+    scope: tokens.scope || current.scope || '',
+    updatedAt: new Date().toISOString(),
+  };
+
+  await env.ATHOCE_KV.put(TOKEN_STORAGE_KEY, JSON.stringify(next));
+  return true;
+}
+
 export async function refreshImwebToken(env) {
   const clientId = clean(env.IMWEB_CLIENT_ID, DEFAULT_CLIENT_ID);
   const clientSecret = clean(env.IMWEB_CLIENT_SECRET);
-  const refreshToken = clean(env.IMWEB_REFRESH_TOKEN);
+  const storedTokens = await getStoredImwebTokens(env);
+  const refreshToken = storedTokens.refreshToken;
 
   if (!clientSecret || !refreshToken) {
     return {
@@ -74,16 +110,21 @@ export async function refreshImwebToken(env) {
     };
   }
 
-  return {
+  const nextTokens = {
     ok: true,
     accessToken,
     refreshToken: payload?.data?.refreshToken || payload?.refreshToken || refreshToken,
     scope: payload?.data?.scope || payload?.scope,
   };
+
+  nextTokens.storedInKv = await storeImwebTokens(env, nextTokens);
+
+  return nextTokens;
 }
 
 export async function fetchImwebJson(env, url, init = {}) {
-  const accessToken = clean(env.IMWEB_ACCESS_TOKEN);
+  const storedTokens = await getStoredImwebTokens(env);
+  const accessToken = storedTokens.accessToken;
 
   if (!accessToken) {
     return {
@@ -95,6 +136,7 @@ export async function fetchImwebJson(env, url, init = {}) {
         },
       },
       tokenRefreshed: false,
+      tokenSource: storedTokens.source,
     };
   }
 
@@ -107,13 +149,19 @@ export async function fetchImwebJson(env, url, init = {}) {
   let payload = await parseJsonResponse(response);
 
   if (!isAuthTokenError(payload, response)) {
-    return { response, payload, tokenRefreshed: false };
+    return { response, payload, tokenRefreshed: false, tokenSource: storedTokens.source };
   }
 
   const refreshed = await refreshImwebToken(env);
 
   if (!refreshed.ok) {
-    return { response, payload, tokenRefreshed: false, refreshError: refreshed.error };
+    return {
+      response,
+      payload,
+      tokenRefreshed: false,
+      tokenSource: storedTokens.source,
+      refreshError: refreshed.error,
+    };
   }
 
   response = await fetch(url, {
@@ -129,6 +177,7 @@ export async function fetchImwebJson(env, url, init = {}) {
     response,
     payload,
     tokenRefreshed: true,
+    tokenSource: 'refresh',
     refreshed,
   };
 }

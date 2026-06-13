@@ -102,20 +102,6 @@ export async function onRequestGet({ env, request }) {
       ? envCategoryCodes
       : [];
 
-  if (!env.IMWEB_ACCESS_TOKEN) {
-    return jsonResponse(
-      {
-        ok: false,
-        error: {
-          code: 'MISSING_IMWEB_ACCESS_TOKEN',
-          message: 'Cloudflare Pages 환경 변수 IMWEB_ACCESS_TOKEN이 설정되지 않았습니다.',
-        },
-      },
-      500,
-      { 'cache-control': 'no-store' },
-    );
-  }
-
   let results;
 
   try {
@@ -201,6 +187,8 @@ export async function onRequestGet({ env, request }) {
     unitCode,
     categoryCodes,
     tokenRefreshed: results.some((result) => result.tokenRefreshed),
+    tokenSource: results.find((result) => result.tokenSource)?.tokenSource || 'unknown',
+    storedInKv: results.some((result) => result.refreshed?.storedInKv),
     fetchedAt: new Date().toISOString(),
     items: mergedItems,
     page: 1,
