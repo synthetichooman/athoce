@@ -79,6 +79,8 @@ export async function onRequestPost({ env, request }) {
 
   try {
     const config = await setAdminConfig(env, payload?.config || payload || {});
+    const url = new URL(request.url);
+    await caches.default.delete(new Request(`${url.origin}/api/products`));
 
     return jsonResponse({
       ok: true,

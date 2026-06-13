@@ -2,6 +2,7 @@ import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
 import { getAdminConfig } from '../_config.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
+const EDGE_CACHE_SECONDS = 300;
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -84,6 +85,37 @@ function getPrice(product) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function pickFirst(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function getImageUrl(product) {
+  const images = pickFirst(
+    product?.productImages,
+    product?.images,
+    product?.imageList,
+    product?.image_list,
+    [],
+  );
+  const firstImage = Array.isArray(images) ? images[0] : null;
+
+  return String(
+    pickFirst(
+      product?.imageUrl,
+      product?.image_url,
+      product?.thumbnailUrl,
+      product?.thumbnail_url,
+      product?.thumbnail,
+      product?.mainImage,
+      product?.main_image,
+      firstImage?.url,
+      firstImage?.image_url,
+      firstImage,
+      '',
+    ),
+  );
+}
+
 function getSortNo(product) {
   const value = Number(product?.sortNo || product?.sort_no || 0);
   return Number.isFinite(value) ? value : 0;
@@ -164,6 +196,23 @@ function applyAdminConfig(items, config) {
   );
 }
 
+function compactProduct(product) {
+  return {
+    prodNo: product?.prodNo,
+    prodCode: product?.prodCode,
+    name: product?.name || product?.productName || product?.product_name || '',
+    price: getPrice(product),
+    prodStatus: product?.prodStatus || '',
+    stockUse: product?.stockUse || '',
+    stockUnlimit: product?.stockUnlimit || '',
+    stockNoOption: product?.stockNoOption ?? null,
+    imageUrl: getImageUrl(product),
+    categories: Array.isArray(product?.categories) ? product.categories : [],
+    sortNo: getSortNo(product),
+    addTime: product?.addTime || null,
+  };
+}
+
 async function fetchProducts({ env, unitCode, categoryCode }) {
   const url = new URL(IMWEB_PRODUCTS_URL);
   url.searchParams.set('unitCode', unitCode);
@@ -180,9 +229,18 @@ async function fetchProducts({ env, unitCode, categoryCode }) {
 }
 
 export async function onRequestGet({ env, request }) {
+  const requestUrl = new URL(request.url);
+  const cache = caches.default;
+  const cacheKey = new Request(request.url, request);
+  const shouldBypassCache = requestUrl.searchParams.get('cache') === 'refresh';
+  const cached = shouldBypassCache ? null : await cache.match(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
-  const requestUrl = new URL(request.url);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
   const envCategoryCodes = clean(env.IMWEB_CATEGORY_CODES)
     .split(',')
@@ -274,9 +332,9 @@ export async function onRequestGet({ env, request }) {
     }
   }
 
-  const displayItems = applyAdminConfig(mergedItems, adminConfig);
+  const displayItems = applyAdminConfig(mergedItems, adminConfig).map(compactProduct);
 
-  return jsonResponse({
+  const response = jsonResponse({
     ok: true,
     unitCode,
     categoryCodes: adminConfig.categoryCodes,
@@ -293,5 +351,13 @@ export async function onRequestGet({ env, request }) {
     page: 1,
     limit: 100,
     total: displayItems.length,
+  }, 200, {
+    'cache-control': `public, max-age=60, s-maxage=${EDGE_CACHE_SECONDS}`,
   });
+
+  if (!shouldBypassCache) {
+    await cache.put(cacheKey, response.clone());
+  }
+
+  return response;
 }

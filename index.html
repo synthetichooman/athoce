@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://cdn.imweb.me" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.imweb.me" />
     <title>Athoce</title>
     <style>
       :root {
@@ -121,6 +123,28 @@
       .error {
         color: #b3261e;
       }
+
+      .more {
+        display: flex;
+        justify-content: center;
+        margin-top: 28px;
+      }
+
+      .more[hidden] {
+        display: none;
+      }
+
+      button {
+        min-height: 42px;
+        padding: 0 18px;
+        border: 1px solid #d8d8d8;
+        border-radius: 8px;
+        background: #fff;
+        color: #171717;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -130,13 +154,24 @@
         <div id="status" aria-live="polite"></div>
       </header>
       <section id="products" class="grid" aria-label="상품 목록"></section>
+      <div class="more" id="moreWrap" hidden>
+        <button type="button" id="loadMore">더 보기</button>
+      </div>
     </main>
 
     <script>
       const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
+      const INITIAL_RENDER_COUNT = 24;
+      const RENDER_BATCH_SIZE = 24;
+      const HIGH_PRIORITY_IMAGE_COUNT = 8;
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
+      const moreWrap = document.querySelector('#moreWrap');
+      const loadMoreButton = document.querySelector('#loadMore');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
+      let productsState = [];
+      let displayState = {};
+      let renderedCount = 0;
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -206,7 +241,7 @@
         return productId ? `detail.html?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
       }
 
-      function renderProduct(product, display = {}) {
+      function renderProduct(product, display = {}, index = 0) {
         const unavailable = isUnavailable(product);
         const link = document.createElement('a');
         link.className = `product${unavailable && display.blurUnavailable !== false ? ' is-unavailable' : ''}`;
@@ -224,7 +259,9 @@
           image.src = imageUrl;
           image.referrerPolicy = 'no-referrer';
           image.alt = name;
-          image.loading = 'lazy';
+          image.loading = index < HIGH_PRIORITY_IMAGE_COUNT ? 'eager' : 'lazy';
+          image.decoding = 'async';
+          image.fetchPriority = index < HIGH_PRIORITY_IMAGE_COUNT ? 'high' : 'auto';
           thumb.append(image);
         }
 
@@ -251,9 +288,29 @@
         return link;
       }
 
+      function updateStatus() {
+        statusEl.textContent = `${Math.min(renderedCount, productsState.length)} / ${productsState.length}개 상품`;
+        moreWrap.hidden = renderedCount >= productsState.length;
+      }
+
+      function renderNextBatch() {
+        const start = renderedCount;
+        const nextCount = start ? RENDER_BATCH_SIZE : INITIAL_RENDER_COUNT;
+        const nextProducts = productsState.slice(start, start + nextCount);
+        const nodes = nextProducts.map((product, index) =>
+          renderProduct(product, displayState, start + index),
+        );
+
+        productGrid.append(...nodes);
+        renderedCount += nodes.length;
+        updateStatus();
+      }
+
       async function loadProducts() {
         statusEl.textContent = '상품을 불러오는 중';
         productGrid.innerHTML = '';
+        moreWrap.hidden = true;
+        renderedCount = 0;
 
         try {
           const pageParams = new URLSearchParams(window.location.search);
@@ -277,18 +334,18 @@
             );
           }
 
-          const products = Array.isArray(payload.items) ? payload.items : [];
-          const display = payload.display || {};
-          statusEl.textContent = `${products.length}개 상품`;
+          productsState = Array.isArray(payload.items) ? payload.items : [];
+          displayState = payload.display || {};
+          statusEl.textContent = `${productsState.length}개 상품`;
 
-          if (!products.length) {
+          if (!productsState.length) {
             productGrid.className = '';
             productGrid.innerHTML = '<div class="empty">표시할 상품이 없습니다.</div>';
             return;
           }
 
           productGrid.className = 'grid';
-          productGrid.replaceChildren(...products.map((product) => renderProduct(product, display)));
+          renderNextBatch();
         } catch (error) {
           statusEl.textContent = '';
           productGrid.className = '';
@@ -296,6 +353,7 @@
         }
       }
 
+      loadMoreButton.addEventListener('click', renderNextBatch);
       loadProducts();
     </script>
   </body>
