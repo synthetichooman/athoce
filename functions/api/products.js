@@ -3,6 +3,13 @@ import { getAdminConfig } from '../_config.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
 const EDGE_CACHE_SECONDS = 300;
+const ATHOCE_CATEGORY_CODES = [
+  's202606130219c191c0d3e',
+  's20260613114d8f3179b7b',
+  's2026061356787cc1788a8',
+  's20260613e8746a4f236be',
+  's20260613cf1433ba877ee',
+];
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -282,15 +289,9 @@ export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
-  const envCategoryCodes = clean(env.IMWEB_CATEGORY_CODES)
-    .split(',')
-    .map((categoryCode) => categoryCode.trim())
-    .filter(Boolean);
-  const categoryCodes = requestedCategoryCode
+  const categoryCodes = requestedCategoryCode && ATHOCE_CATEGORY_CODES.includes(requestedCategoryCode)
     ? [requestedCategoryCode]
-    : envCategoryCodes.length
-      ? envCategoryCodes
-      : adminConfig.categoryCodes;
+    : ATHOCE_CATEGORY_CODES;
 
   let results;
 
@@ -383,7 +384,7 @@ export async function onRequestGet({ env, request }) {
       blurUnavailable: adminConfig.blurUnavailable,
       hideUnavailablePrice: adminConfig.hideUnavailablePrice,
       excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
-      homeCategoryCodes: adminConfig.categoryCodes,
+      homeCategoryCodes: categoryCodes,
       categoryButtonOrder: adminConfig.categoryButtonOrder,
     },
     tokenRefreshed: results.some((result) => result.tokenRefreshed),
