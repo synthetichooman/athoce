@@ -1,5 +1,6 @@
 import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
 import { getAdminConfig } from '../_config.js';
+import { RENTAL_CATEGORY_CODE, isRentalAuthorized } from '../_rental.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
 const EDGE_CACHE_SECONDS = 300;
@@ -7,7 +8,7 @@ const ATHOCE_CATEGORY_CODES = [
   's202606130219c191c0d3e',
   's20260613114d8f3179b7b',
   's2026061356787cc1788a8',
-  's20260613e8746a4f236be',
+  RENTAL_CATEGORY_CODE,
   's20260613cf1433ba877ee',
 ];
 
@@ -222,17 +223,33 @@ function sortProducts(items, sortMode) {
   return sorted.sort((a, b) => getSortNo(b) - getSortNo(a));
 }
 
+function productMatchesStatusFilter(product, statusFilter) {
+  if (!statusFilter.size) {
+    return true;
+  }
+
+  const status = String(product?.prodStatus || '');
+
+  if (statusFilter.has(status)) {
+    return true;
+  }
+
+  // Imweb often represents "on sale but sold out" as prodStatus=soldout.
+  // For storefront loading, treat it as part of the sale group and let the
+  // client-side "hide sold products" toggle decide whether to display it.
+  return status === 'soldout' && statusFilter.has('sale');
+}
+
 function applyAdminConfig(items, config, categoryCodes) {
   const hidden = new Set(config.hiddenProductNos);
   const statusFilter = new Set(config.statusFilter);
   const filtered = items.filter((product) => {
     const productNo = getProductNo(product);
-    const status = String(product?.prodStatus || '');
 
     return (
       !hidden.has(productNo) &&
       productHasCategory(product, categoryCodes) &&
-      (!statusFilter.size || statusFilter.has(status))
+      productMatchesStatusFilter(product, statusFilter)
     );
   });
 
@@ -301,7 +318,8 @@ export async function onRequestGet({ env, request }) {
   const cache = caches.default;
   const cacheKey = new Request(request.url, request);
   const shouldBypassCache = requestUrl.searchParams.get('cache') === 'refresh';
-  const cached = shouldBypassCache ? null : await cache.match(cacheKey);
+  const rentalAuthorized = await isRentalAuthorized(request, env);
+  const cached = shouldBypassCache || rentalAuthorized ? null : await cache.match(cacheKey);
 
   if (cached) {
     return cached;
@@ -310,11 +328,14 @@ export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
+  const visibleCategoryCodes = rentalAuthorized
+    ? ATHOCE_CATEGORY_CODES
+    : ATHOCE_CATEGORY_CODES.filter((categoryCode) => categoryCode !== RENTAL_CATEGORY_CODE);
   const categoryCodes = requestedCategoryCode
-    ? ATHOCE_CATEGORY_CODES.includes(requestedCategoryCode)
+    ? visibleCategoryCodes.includes(requestedCategoryCode)
       ? [requestedCategoryCode]
       : []
-    : ATHOCE_CATEGORY_CODES;
+    : visibleCategoryCodes;
 
   if (!categoryCodes.length) {
     return jsonResponse({
@@ -328,6 +349,7 @@ export async function onRequestGet({ env, request }) {
         excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
         homeCategoryCodes: ATHOCE_CATEGORY_CODES,
         categoryButtonOrder: adminConfig.categoryButtonOrder,
+        lockedCategoryCodes: rentalAuthorized ? [] : [RENTAL_CATEGORY_CODE],
       },
       tokenRefreshed: false,
       tokenSource: 'not_requested',
@@ -423,8 +445,9 @@ export async function onRequestGet({ env, request }) {
       blurUnavailable: adminConfig.blurUnavailable,
       hideUnavailablePrice: adminConfig.hideUnavailablePrice,
       excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
-      homeCategoryCodes: categoryCodes,
+      homeCategoryCodes: ATHOCE_CATEGORY_CODES,
       categoryButtonOrder: adminConfig.categoryButtonOrder,
+      lockedCategoryCodes: rentalAuthorized ? [] : [RENTAL_CATEGORY_CODE],
     },
     tokenRefreshed: results.some((result) => result.tokenRefreshed),
     tokenSource: results.find((result) => result.tokenSource)?.tokenSource || 'unknown',
@@ -435,10 +458,12 @@ export async function onRequestGet({ env, request }) {
     limit: 100,
     total: displayItems.length,
   }, 200, {
-    'cache-control': `public, max-age=60, s-maxage=${EDGE_CACHE_SECONDS}`,
+    'cache-control': rentalAuthorized
+      ? 'no-store'
+      : `public, max-age=60, s-maxage=${EDGE_CACHE_SECONDS}`,
   });
 
-  if (!shouldBypassCache) {
+  if (!shouldBypassCache && !rentalAuthorized) {
     await cache.put(cacheKey, response.clone());
   }
 

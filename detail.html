@@ -585,6 +585,7 @@
 
         try {
           const response = await fetch(`/api/product?prodNo=${encodeURIComponent(prodNo)}`, {
+            credentials: 'same-origin',
             headers: { accept: 'application/json' },
           });
           const text = await response.text();

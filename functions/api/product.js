@@ -1,4 +1,5 @@
 import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
+import { RENTAL_CATEGORY_CODE, isRentalAuthorized } from '../_rental.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
 
@@ -10,6 +11,28 @@ function jsonResponse(body, status = 200) {
       'cache-control': status === 200 ? 'public, max-age=60, s-maxage=300' : 'no-store',
     },
   });
+}
+
+function pickFirst(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function normalizeProductCategories(product) {
+  const categories = Array.isArray(product?.categories) ? product.categories : [];
+
+  return categories
+    .map((category) =>
+      String(
+        pickFirst(
+          category?.categoryCode,
+          category?.code,
+          category?.category_code,
+          category,
+          '',
+        ),
+      ),
+    )
+    .filter(Boolean);
 }
 
 export async function onRequestGet({ env, request }) {
@@ -53,12 +76,28 @@ export async function onRequestGet({ env, request }) {
     );
   }
 
+  const item = payload?.data || payload;
+  const isRentalProduct = normalizeProductCategories(item).includes(RENTAL_CATEGORY_CODE);
+
+  if (isRentalProduct && !(await isRentalAuthorized(request, env))) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'RENTAL_LOCKED',
+          message: 'rental password is required.',
+        },
+      },
+      401,
+    );
+  }
+
   return jsonResponse({
     ok: true,
     unitCode,
     tokenRefreshed,
     tokenSource,
     storedInKv: Boolean(refreshed?.storedInKv),
-    item: payload?.data || payload,
+    item,
   });
 }

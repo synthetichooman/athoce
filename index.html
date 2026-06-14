@@ -47,12 +47,17 @@
       }
 
       .brand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         color: inherit;
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
         text-decoration: none;
-        text-transform: lowercase;
+      }
+
+      .brand img {
+        display: block;
+        width: auto;
+        height: 22px;
       }
 
       main {
@@ -61,16 +66,11 @@
         padding: 22px 0 64px;
       }
 
-      .collection-head {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 12px;
-      }
-
-      .collection-meta {
+      .filter-top {
         display: grid;
-        gap: 8px;
-        justify-items: end;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 16px;
       }
 
       .filters {
@@ -227,6 +227,53 @@
         display: none;
       }
 
+      .rental-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.84);
+        backdrop-filter: blur(10px);
+      }
+
+      .rental-gate[hidden] {
+        display: none;
+      }
+
+      .rental-gate form {
+        width: min(360px, 100%);
+        display: grid;
+        gap: 12px;
+        border: 1px solid #e8e8e8;
+        background: #fff;
+        padding: 18px;
+      }
+
+      .rental-gate label,
+      .rental-gate p {
+        margin: 0;
+        color: #555;
+        font-size: 13px;
+        text-transform: lowercase;
+      }
+
+      .rental-gate input {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid #d8d8d8;
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .rental-gate-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
       button {
         min-height: 34px;
         padding: 0 14px;
@@ -242,24 +289,13 @@
       }
 
       @media (max-width: 860px) {
-        .site-header-inner {
-          grid-template-columns: 1fr auto;
-        }
-
-        .brand {
-          justify-self: center;
-        }
-
-        .collection-head {
-          justify-content: flex-start;
-        }
-
-        .collection-meta {
-          justify-items: start;
-        }
-
         .filters {
           gap: 14px;
+        }
+
+        .filter-top {
+          grid-template-columns: 1fr;
+          gap: 10px;
         }
 
         #status {
@@ -288,17 +324,17 @@
   <body>
     <header class="site-header">
       <div class="site-header-inner">
-        <a class="brand" href="./">athoce</a>
+        <a class="brand" href="./" aria-label="athoce home">
+          <img src="assets/athoce-symbol.svg" alt="" />
+        </a>
       </div>
     </header>
     <main>
-      <section class="collection-head">
-        <div class="collection-meta">
+      <section class="filters" aria-label="상품 필터">
+        <div class="filter-top">
+          <nav id="categoryFilters" class="category-filters" aria-label="카테고리"></nav>
           <div id="status" aria-live="polite"></div>
         </div>
-      </section>
-      <section class="filters" aria-label="상품 필터">
-        <nav id="categoryFilters" class="category-filters" aria-label="카테고리"></nav>
         <label class="soldout-filter">
           <input id="excludeUnavailable" type="checkbox" />
           hide sold products
@@ -309,9 +345,21 @@
         <button type="button" id="loadMore">더 보기</button>
       </div>
     </main>
+    <div id="rentalGate" class="rental-gate" hidden>
+      <form id="rentalGateForm">
+        <label for="rentalPassword">rental password</label>
+        <input id="rentalPassword" type="password" autocomplete="current-password" />
+        <p id="rentalGateStatus" aria-live="polite"></p>
+        <div class="rental-gate-actions">
+          <button type="button" id="rentalGateCancel">cancel</button>
+          <button type="submit">enter</button>
+        </div>
+      </form>
+    </div>
 
     <script>
       const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
+      const RENTAL_CATEGORY_CODE = 's20260613e8746a4f236be';
       const INITIAL_RENDER_COUNT = 18;
       const RENDER_BATCH_SIZE = 24;
       const HIGH_PRIORITY_IMAGE_COUNT = 8;
@@ -322,6 +370,11 @@
       const loadMoreButton = document.querySelector('#loadMore');
       const categoryFiltersEl = document.querySelector('#categoryFilters');
       const excludeUnavailableEl = document.querySelector('#excludeUnavailable');
+      const rentalGate = document.querySelector('#rentalGate');
+      const rentalGateForm = document.querySelector('#rentalGateForm');
+      const rentalPasswordEl = document.querySelector('#rentalPassword');
+      const rentalGateStatusEl = document.querySelector('#rentalGateStatus');
+      const rentalGateCancelButton = document.querySelector('#rentalGateCancel');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
       let allProductsState = [];
       let productsState = [];
@@ -329,6 +382,8 @@
       let renderedCount = 0;
       let categoriesState = [];
       let activeCategoryCode = '';
+      let pendingRentalCategoryCode = '';
+      let lockedCategoryCodes = new Set();
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -494,6 +549,25 @@
         return categories.includes(String(categoryCode));
       }
 
+      function isLockedCategory(categoryCode) {
+        return lockedCategoryCodes.has(String(categoryCode));
+      }
+
+      function showRentalGate(categoryCode) {
+        pendingRentalCategoryCode = categoryCode;
+        rentalGate.hidden = false;
+        rentalGateStatusEl.textContent = '';
+        rentalPasswordEl.value = '';
+        rentalPasswordEl.focus();
+      }
+
+      function hideRentalGate() {
+        rentalGate.hidden = true;
+        rentalGateStatusEl.textContent = '';
+        rentalPasswordEl.value = '';
+        pendingRentalCategoryCode = '';
+      }
+
       function getDetailUrl(product) {
         const productId = getProductId(product);
         return productId ? `detail.html?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
@@ -585,6 +659,11 @@
           button.dataset.categoryCode = category.categoryCode;
           button.className = category.categoryCode === activeCategoryCode ? 'is-active' : '';
           button.addEventListener('click', () => {
+            if (isLockedCategory(category.categoryCode)) {
+              showRentalGate(category.categoryCode);
+              return;
+            }
+
             activeCategoryCode = category.categoryCode;
             applyFilters();
           });
@@ -649,6 +728,7 @@
           }
 
           const response = await fetch(apiUrl.pathname + apiUrl.search, {
+            credentials: 'same-origin',
             headers: { accept: 'application/json' },
           });
           const categoriesRequest = fetch('/api/categories', {
@@ -677,6 +757,7 @@
 
           allProductsState = Array.isArray(payload.items) ? payload.items : [];
           displayState = payload.display || {};
+          lockedCategoryCodes = new Set((displayState.lockedCategoryCodes || []).map(String));
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
           excludeUnavailableEl.checked = displayState.excludeUnavailableByDefault !== false;
           statusEl.textContent = `${allProductsState.length}개 상품`;
@@ -693,6 +774,36 @@
 
       loadMoreButton.addEventListener('click', renderNextBatch);
       excludeUnavailableEl.addEventListener('change', applyFilters);
+      rentalGateCancelButton.addEventListener('click', hideRentalGate);
+      rentalGateForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        rentalGateStatusEl.textContent = 'checking';
+
+        try {
+          const response = await fetch('/api/rental/login', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ password: rentalPasswordEl.value }),
+          });
+          const text = await response.text();
+          const payload = text ? JSON.parse(text) : {};
+
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload?.error?.message || 'password is not correct.');
+          }
+
+          const targetCategoryCode = pendingRentalCategoryCode || RENTAL_CATEGORY_CODE;
+          hideRentalGate();
+          activeCategoryCode = targetCategoryCode;
+          await loadProducts();
+        } catch (error) {
+          rentalGateStatusEl.textContent = formatDisplayText(error.message);
+        }
+      });
       loadProducts();
     </script>
   </body>
