@@ -24,6 +24,13 @@
         min-width: 320px;
       }
 
+      body.rental-gate-open .site-header,
+      body.rental-gate-open main {
+        filter: blur(7px) grayscale(0.28);
+        transform: scale(1.01);
+        pointer-events: none;
+      }
+
       a {
         color: inherit;
       }
@@ -35,6 +42,9 @@
         border-bottom: 1px solid #e8e8e8;
         background: rgba(255, 255, 255, 0.94);
         backdrop-filter: blur(14px);
+        transition:
+          filter 160ms ease,
+          transform 160ms ease;
       }
 
       .site-header-inner {
@@ -64,6 +74,9 @@
         width: min(1440px, calc(100% - 28px));
         margin: 0 auto;
         padding: 22px 0 64px;
+        transition:
+          filter 160ms ease,
+          transform 160ms ease;
       }
 
       .filter-top {
@@ -123,6 +136,25 @@
         font-size: 13px;
         line-height: 1.25;
         text-align: right;
+      }
+
+      .rental-disclaimer {
+        display: grid;
+        gap: 14px;
+        margin: 0 0 28px;
+        padding-top: 2px;
+        color: #555;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .rental-disclaimer[hidden] {
+        display: none;
+      }
+
+      .rental-disclaimer p {
+        margin: 0;
+        white-space: pre-line;
       }
 
       .grid {
@@ -234,8 +266,7 @@
         display: grid;
         place-items: center;
         padding: 20px;
-        background: rgba(255, 255, 255, 0.84);
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.18);
       }
 
       .rental-gate[hidden] {
@@ -340,6 +371,18 @@
           hide sold products
         </label>
       </section>
+      <section id="rentalDisclaimer" class="rental-disclaimer" aria-label="rental disclaimer" hidden>
+        <p>대여는 작업 및 상업적 목적에 한해 가능합니다
+3일 기준 명기된 가격의 15%를 대여료로 책정합니다
+대여용 제품은 판매하지 않습니다
+일부 대여용 제품은 파손이 있습니다
+사용 시 주의사항은 제품 상세에서 확인해주세요</p>
+        <p>rentals are available for production and commercial use only
+the rental fee is 15% of the listed price for 3 days
+rental items are not for sale
+some rental items may be damaged
+please check each product detail for handling notes before use</p>
+      </section>
       <section id="products" class="grid" aria-label="상품 목록"></section>
       <div class="more" id="moreWrap" hidden>
         <button type="button" id="loadMore">더 보기</button>
@@ -366,6 +409,7 @@
       const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'athoce made'];
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
+      const rentalDisclaimerEl = document.querySelector('#rentalDisclaimer');
       const moreWrap = document.querySelector('#moreWrap');
       const loadMoreButton = document.querySelector('#loadMore');
       const categoryFiltersEl = document.querySelector('#categoryFilters');
@@ -556,6 +600,7 @@
       function showRentalGate(categoryCode) {
         pendingRentalCategoryCode = categoryCode;
         rentalGate.hidden = false;
+        document.body.classList.add('rental-gate-open');
         rentalGateStatusEl.textContent = '';
         rentalPasswordEl.value = '';
         rentalPasswordEl.focus();
@@ -563,6 +608,7 @@
 
       function hideRentalGate() {
         rentalGate.hidden = true;
+        document.body.classList.remove('rental-gate-open');
         rentalGateStatusEl.textContent = '';
         rentalPasswordEl.value = '';
         pendingRentalCategoryCode = '';
@@ -676,6 +722,7 @@
 
       function applyFilters() {
         const excludeUnavailable = excludeUnavailableEl.checked;
+        rentalDisclaimerEl.hidden = activeCategoryCode !== RENTAL_CATEGORY_CODE;
 
         productsState = allProductsState.filter((product) => {
           return (
