@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="preconnect" href="https://cdn-optimized.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn-optimized.imweb.me" />
-    <title>Athoce 상품 상세</title>
+    <title>athoce product</title>
     <style>
       :root {
-        color: #171717;
-        background: #fafafa;
+        color: #111;
+        background: #fff;
         font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Arial, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
       }
 
@@ -21,128 +21,266 @@
 
       body {
         margin: 0;
-      }
-
-      main {
-        width: min(1120px, calc(100% - 32px));
-        margin: 0 auto;
-        padding: 28px 0 64px;
+        min-width: 320px;
       }
 
       a {
         color: inherit;
       }
 
-      .back {
-        display: inline-block;
-        margin-bottom: 24px;
-        color: #5f6368;
-        font-size: 14px;
-        text-decoration: none;
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid #e8e8e8;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(14px);
       }
 
-      .detail {
+      .site-header-inner {
         display: grid;
-        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-        gap: 36px;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        width: min(1440px, calc(100% - 28px));
+        min-height: 54px;
+        margin: 0 auto;
+        gap: 18px;
+      }
+
+      .brand {
+        justify-self: center;
+        color: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        text-transform: lowercase;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .nav.end {
+        justify-content: flex-end;
+      }
+
+      .nav a {
+        color: inherit;
+        font-size: 13px;
+        line-height: 1;
+        text-decoration: none;
+        text-transform: lowercase;
+      }
+
+      main {
+        width: min(1440px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 22px 0 72px;
+      }
+
+      .product-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+        gap: 10px;
         align-items: start;
       }
 
       .gallery {
         display: grid;
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
 
-      .gallery img {
+      .media {
         width: 100%;
-        border: 1px solid #e5e5e5;
-        border-radius: 8px;
-        background: #f1f1f1;
-        display: block;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        background: #f5f5f5;
       }
 
-      .detail.is-unavailable .gallery img {
-        filter: blur(8px) grayscale(0.35);
+      .media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .product-layout.is-unavailable .media img {
+        filter: blur(7px) grayscale(0.28);
+        transform: scale(1.032);
       }
 
       .summary {
         position: sticky;
-        top: 24px;
+        top: 76px;
+        display: grid;
+        gap: 24px;
+        padding-left: 20px;
+      }
+
+      .summary-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 8px 16px;
+      }
+
+      h1,
+      .price,
+      .meta,
+      .description,
+      .empty,
+      .error,
+      .buy {
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      h1,
+      .price,
+      .meta {
+        margin: 0;
       }
 
       h1 {
-        margin: 0 0 12px;
-        font-size: 28px;
-        line-height: 1.25;
+        min-width: 0;
+        font-weight: 400;
         letter-spacing: 0;
+        overflow-wrap: anywhere;
       }
 
       .price {
-        margin: 0 0 24px;
-        font-size: 18px;
-        font-weight: 650;
+        white-space: nowrap;
       }
 
-      .status {
-        margin: -12px 0 24px;
-        color: #777;
-        font-size: 14px;
-      }
-
-      .description {
-        color: #444;
-        line-height: 1.65;
-      }
-
-      .description img {
-        max-width: 100%;
-        height: auto;
+      .meta {
+        grid-column: 1 / -1;
+        color: #8a8a8a;
+        text-transform: lowercase;
       }
 
       .buy {
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 44px;
-        padding: 0 18px;
-        border-radius: 8px;
-        background: #171717;
+        min-height: 38px;
+        border: 1px solid #111;
+        background: #111;
         color: #fff;
         text-decoration: none;
-        font-weight: 650;
+        text-transform: lowercase;
       }
 
       .buy[aria-disabled="true"] {
         pointer-events: none;
-        background: #b8b8b8;
+        border-color: #d8d8d8;
+        background: #f3f3f3;
+        color: #8a8a8a;
       }
 
-      .error,
-      .empty {
-        padding: 28px;
-        border: 1px solid #e5e5e5;
-        border-radius: 8px;
-        background: #fff;
+      .description {
+        display: grid;
+        gap: 12px;
+        color: #333;
+      }
+
+      .description:empty {
+        display: none;
+      }
+
+      .description p {
+        margin: 0;
+      }
+
+      .description img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      .empty,
+      .error {
+        min-height: 180px;
+        padding: 18px 0;
+        border-top: 1px solid #e8e8e8;
+        color: #6f6f6f;
       }
 
       .error {
         color: #b3261e;
       }
 
-      @media (max-width: 780px) {
-        .detail {
+      @media (max-width: 860px) {
+        .site-header-inner {
+          grid-template-columns: 1fr auto;
+        }
+
+        .brand {
+          justify-self: start;
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        .nav.start {
+          display: none;
+        }
+
+        .nav.end {
+          grid-column: 2;
+          grid-row: 1;
+        }
+
+        .product-layout {
           grid-template-columns: 1fr;
+          gap: 26px;
+        }
+
+        .gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .summary {
           position: static;
+          padding-left: 0;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .site-header-inner,
+        main {
+          width: calc(100% - 20px);
+        }
+
+        .nav {
+          gap: 12px;
+        }
+
+        .gallery {
+          grid-template-columns: 1fr;
+          gap: 10px;
         }
       }
     </style>
   </head>
   <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <nav class="nav start" aria-label="컬렉션">
+          <a href="./">all</a>
+        </nav>
+        <a class="brand" href="./">athoce</a>
+        <nav class="nav end" aria-label="도구">
+          <a href="https://hooman.kr">original</a>
+        </nav>
+      </div>
+    </header>
+
     <main>
-      <a class="back" href="./">목록으로</a>
       <section id="detail" aria-live="polite"></section>
     </main>
 
@@ -157,8 +295,14 @@
         return values.find((value) => value !== undefined && value !== null && value !== '');
       }
 
+      function formatDisplayText(value) {
+        return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+      }
+
       function getProductName(product) {
-        return pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품');
+        return formatDisplayText(
+          pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품'),
+        );
       }
 
       function getProductPrice(product) {
@@ -222,6 +366,31 @@
         );
       }
 
+      function renderImages(gallery, images, name) {
+        if (!images.length) {
+          gallery.innerHTML = '<div class="empty">등록된 상품 이미지가 없습니다.</div>';
+          return;
+        }
+
+        images.forEach((imageUrl, index) => {
+          const media = document.createElement('div');
+          media.className = 'media';
+
+          const image = document.createElement('img');
+          image.src = getOptimizedImwebImageUrl(imageUrl, index === 0 ? 1200 : 750);
+          image.srcset = getImageSrcSet(imageUrl);
+          image.sizes = '(max-width: 560px) calc(100vw - 20px), (max-width: 860px) calc((100vw - 28px - 8px) / 2), calc((100vw - 408px) / 2)';
+          image.alt = name;
+          image.referrerPolicy = 'no-referrer';
+          image.loading = index === 0 ? 'eager' : 'lazy';
+          image.decoding = 'async';
+          image.fetchPriority = index === 0 ? 'high' : 'auto';
+
+          media.append(image);
+          gallery.append(media);
+        });
+      }
+
       function render(product) {
         const images = getProductImages(product);
         const name = getProductName(product);
@@ -230,47 +399,40 @@
         const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
 
         const wrapper = document.createElement('div');
-        wrapper.className = `detail${unavailable ? ' is-unavailable' : ''}`;
+        wrapper.className = `product-layout${unavailable ? ' is-unavailable' : ''}`;
 
         const gallery = document.createElement('div');
         gallery.className = 'gallery';
-
-        if (images.length) {
-          images.forEach((imageUrl, index) => {
-            const image = document.createElement('img');
-            image.src = getOptimizedImwebImageUrl(imageUrl, 1200);
-            image.srcset = getImageSrcSet(imageUrl);
-            image.sizes = '(max-width: 780px) calc(100vw - 32px), 640px';
-            image.alt = name;
-            image.referrerPolicy = 'no-referrer';
-            image.loading = index === 0 ? 'eager' : 'lazy';
-            image.decoding = 'async';
-            image.fetchPriority = index === 0 ? 'high' : 'auto';
-            gallery.append(image);
-          });
-        } else {
-          gallery.innerHTML = '<div class="empty">등록된 상품 이미지가 없습니다.</div>';
-        }
+        renderImages(gallery, images, name);
 
         const summary = document.createElement('aside');
         summary.className = 'summary';
+
+        const summaryHead = document.createElement('div');
+        summaryHead.className = 'summary-head';
 
         const title = document.createElement('h1');
         title.textContent = name;
 
         const priceEl = document.createElement('p');
         priceEl.className = 'price';
-        priceEl.textContent = unavailable ? '' : price ? `${priceFormatter.format(price)}원` : '가격 문의';
+        priceEl.textContent = unavailable
+          ? 'sold out'
+          : price
+            ? `${priceFormatter.format(price)}원`
+            : '가격 문의';
 
-        const statusEl = document.createElement('p');
-        statusEl.className = 'status';
-        statusEl.textContent = unavailable ? 'Sold out' : '';
+        const metaEl = document.createElement('p');
+        metaEl.className = 'meta';
+        metaEl.textContent = prodNo ? `no. ${prodNo}` : '';
+
+        summaryHead.append(title, priceEl, metaEl);
 
         const buy = document.createElement('a');
         buy.className = 'buy';
         buy.href = getOriginalProductUrl(product);
         buy.rel = 'noopener';
-        buy.textContent = unavailable ? '판매 완료' : '원본 상품 보기';
+        buy.textContent = unavailable ? 'sold out' : 'view original';
 
         if (unavailable) {
           buy.setAttribute('aria-disabled', 'true');
@@ -288,14 +450,14 @@
 
           image.src = getOptimizedImwebImageUrl(source, 1200);
           image.srcset = getImageSrcSet(source);
-          image.sizes = '(max-width: 780px) calc(100vw - 32px), 640px';
+          image.sizes = '(max-width: 860px) calc(100vw - 28px), 360px';
           image.loading = index === 0 ? 'eager' : 'lazy';
           image.decoding = 'async';
           image.fetchPriority = index === 0 ? 'high' : 'auto';
           image.referrerPolicy = 'no-referrer';
         });
 
-        summary.append(title, priceEl, statusEl, buy, description);
+        summary.append(summaryHead, buy, description);
         wrapper.append(gallery, summary);
         detailEl.replaceChildren(wrapper);
       }
@@ -316,12 +478,14 @@
           const payload = text ? JSON.parse(text) : {};
 
           if (!response.ok || !payload.ok) {
-            throw new Error(payload?.error?.message || `상품 상세 요청 실패: HTTP ${response.status}`);
+            throw new Error(
+              payload?.error?.message || `상품 상세 요청 실패: http ${response.status}`,
+            );
           }
 
           render(payload.item);
         } catch (error) {
-          detailEl.innerHTML = `<div class="error">${error.message}</div>`;
+          detailEl.innerHTML = `<div class="error">${formatDisplayText(error.message)}</div>`;
         }
       }
 
