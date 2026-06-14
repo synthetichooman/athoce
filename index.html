@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="preconnect" href="https://cdn.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.imweb.me" />
-    <title>Athoce</title>
+    <title>athoce</title>
     <style>
       :root {
         color: #111;
@@ -50,11 +50,11 @@
       .brand {
         justify-self: center;
         color: inherit;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.08em;
         text-decoration: none;
-        text-transform: uppercase;
+        text-transform: lowercase;
       }
 
       .nav {
@@ -75,10 +75,10 @@
         background: transparent;
         color: inherit;
         font: inherit;
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1;
         text-decoration: none;
-        text-transform: uppercase;
+        text-transform: lowercase;
         cursor: pointer;
       }
 
@@ -98,10 +98,10 @@
 
       h1 {
         margin: 0;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
         letter-spacing: 0;
-        text-transform: uppercase;
+        text-transform: lowercase;
       }
 
       .collection-meta {
@@ -113,7 +113,7 @@
       #status {
         min-height: 15px;
         color: #111;
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1.25;
         text-align: right;
       }
@@ -174,7 +174,7 @@
       .price,
       .status {
         margin: 0;
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1.35;
       }
 
@@ -192,7 +192,7 @@
       .status {
         grid-column: 1 / -1;
         color: #8a8a8a;
-        text-transform: uppercase;
+        text-transform: lowercase;
       }
 
       .empty,
@@ -201,7 +201,7 @@
         padding: 18px 0;
         border-top: 1px solid #e8e8e8;
         color: #6f6f6f;
-        font-size: 12px;
+        font-size: 13px;
       }
 
       .error {
@@ -226,9 +226,9 @@
         background: #fff;
         color: #111;
         font: inherit;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 400;
-        text-transform: uppercase;
+        text-transform: lowercase;
         cursor: pointer;
       }
 
@@ -291,17 +291,17 @@
     <header class="site-header">
       <div class="site-header-inner">
         <nav class="nav start" aria-label="컬렉션">
-          <a href="./">All</a>
+          <a href="./">all</a>
         </nav>
-        <a class="brand" href="./">Athoce</a>
+        <a class="brand" href="./">athoce</a>
         <nav class="nav end" aria-label="도구">
-          <a href="https://hooman.kr">Original</a>
+          <a href="https://hooman.kr">original</a>
         </nav>
       </div>
     </header>
     <main>
       <section class="collection-head">
-        <h1>All</h1>
+        <h1>all</h1>
         <div class="collection-meta">
           <div id="status" aria-live="polite"></div>
         </div>
@@ -330,6 +330,10 @@
         return values.find((value) => value !== undefined && value !== null && value !== '');
       }
 
+      function formatDisplayText(value) {
+        return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+      }
+
       function getProductId(product) {
         return pickFirst(
           product.prodNo,
@@ -342,7 +346,9 @@
       }
 
       function getProductName(product) {
-        return pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품');
+        return formatDisplayText(
+          pickFirst(product.name, product.productName, product.product_name, '이름 없는 상품'),
+        );
       }
 
       function getProductPrice(product) {
@@ -429,12 +435,12 @@
         priceEl.className = 'price';
         priceEl.textContent =
           unavailable && display.hideUnavailablePrice !== false
-            ? ''
+            ? 'sold out'
             : price
               ? `${priceFormatter.format(price)}원`
               : '가격 문의';
         statusEl.className = 'status';
-        statusEl.textContent = unavailable ? 'Sold out' : '';
+        statusEl.textContent = '';
 
         info.append(nameEl, priceEl, statusEl);
         link.append(thumb, info);
@@ -484,7 +490,7 @@
           if (!response.ok || !payload.ok) {
             throw new Error(
               payload?.error?.message ||
-                `/api/products 요청 실패: HTTP ${response.status || '응답 없음'}`,
+                `/api/products 요청 실패: http ${response.status || '응답 없음'}`,
             );
           }
 
@@ -503,7 +509,7 @@
         } catch (error) {
           statusEl.textContent = '';
           productGrid.className = '';
-          productGrid.innerHTML = `<div class="error">${error.message}</div>`;
+          productGrid.innerHTML = `<div class="error">${formatDisplayText(error.message)}</div>`;
         }
       }
 
