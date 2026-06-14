@@ -222,7 +222,7 @@ function sortProducts(items, sortMode) {
   return sorted.sort((a, b) => getSortNo(b) - getSortNo(a));
 }
 
-function applyAdminConfig(items, config) {
+function applyAdminConfig(items, config, categoryCodes) {
   const hidden = new Set(config.hiddenProductNos);
   const statusFilter = new Set(config.statusFilter);
   const filtered = items.filter((product) => {
@@ -231,7 +231,7 @@ function applyAdminConfig(items, config) {
 
     return (
       !hidden.has(productNo) &&
-      productHasCategory(product, config.categoryCodes) &&
+      productHasCategory(product, categoryCodes) &&
       (!statusFilter.size || statusFilter.has(status))
     );
   });
@@ -260,10 +260,10 @@ function compactProduct(product) {
   };
 }
 
-async function fetchProducts({ env, unitCode, categoryCode }) {
+async function fetchProducts({ env, unitCode, categoryCode, page = 1 }) {
   const url = new URL(IMWEB_PRODUCTS_URL);
   url.searchParams.set('unitCode', unitCode);
-  url.searchParams.set('page', '1');
+  url.searchParams.set('page', String(page));
   url.searchParams.set('limit', '100');
 
   if (categoryCode) {
@@ -273,6 +273,27 @@ async function fetchProducts({ env, unitCode, categoryCode }) {
   return fetchImwebJson(env, url.toString(), {
     method: 'GET',
   });
+}
+
+async function fetchProductPages({ env, unitCode }) {
+  const results = [];
+  const maxPages = 5;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const result = await fetchProducts({
+      env,
+      unitCode,
+      page,
+    });
+    const products = normalizeProductsPayload(result.payload);
+    results.push(result);
+
+    if (!products.items.length || products.items.length < 100) {
+      break;
+    }
+  }
+
+  return results;
 }
 
 export async function onRequestGet({ env, request }) {
@@ -289,24 +310,42 @@ export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
-  const categoryCodes = requestedCategoryCode && ATHOCE_CATEGORY_CODES.includes(requestedCategoryCode)
-    ? [requestedCategoryCode]
+  const categoryCodes = requestedCategoryCode
+    ? ATHOCE_CATEGORY_CODES.includes(requestedCategoryCode)
+      ? [requestedCategoryCode]
+      : []
     : ATHOCE_CATEGORY_CODES;
+
+  if (!categoryCodes.length) {
+    return jsonResponse({
+      ok: true,
+      unitCode,
+      categoryCodes: ATHOCE_CATEGORY_CODES,
+      requestedCategoryCodes: [],
+      display: {
+        blurUnavailable: adminConfig.blurUnavailable,
+        hideUnavailablePrice: adminConfig.hideUnavailablePrice,
+        excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
+        homeCategoryCodes: ATHOCE_CATEGORY_CODES,
+        categoryButtonOrder: adminConfig.categoryButtonOrder,
+      },
+      tokenRefreshed: false,
+      tokenSource: 'not_requested',
+      storedInKv: false,
+      fetchedAt: new Date().toISOString(),
+      items: [],
+      page: 1,
+      limit: 100,
+      total: 0,
+    }, 200, {
+      'cache-control': `public, max-age=60, s-maxage=${EDGE_CACHE_SECONDS}`,
+    });
+  }
 
   let results;
 
   try {
-    const targets = categoryCodes.length ? categoryCodes : [null];
-
-    results = await Promise.all(
-      targets.map((categoryCode) =>
-        fetchProducts({
-          env,
-          unitCode,
-          categoryCode,
-        }),
-      ),
-    );
+    results = categoryCodes.length ? await fetchProductPages({ env, unitCode }) : [];
   } catch (error) {
     return jsonResponse(
       {
@@ -373,12 +412,12 @@ export async function onRequestGet({ env, request }) {
     }
   }
 
-  const displayItems = applyAdminConfig(mergedItems, adminConfig).map(compactProduct);
+  const displayItems = applyAdminConfig(mergedItems, adminConfig, categoryCodes).map(compactProduct);
 
   const response = jsonResponse({
     ok: true,
     unitCode,
-    categoryCodes: adminConfig.categoryCodes,
+    categoryCodes: ATHOCE_CATEGORY_CODES,
     requestedCategoryCodes: categoryCodes,
     display: {
       blurUnavailable: adminConfig.blurUnavailable,
