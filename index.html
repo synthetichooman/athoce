@@ -138,6 +138,7 @@
       }
 
       .thumb {
+        position: relative;
         width: 100%;
         aspect-ratio: 4 / 5;
         overflow: hidden;
@@ -145,10 +146,23 @@
       }
 
       .thumb img {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
+        transition: opacity 160ms ease;
+      }
+
+      .thumb img + img {
+        opacity: 0;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .product.has-hover-image:hover .thumb img + img {
+          opacity: 1;
+        }
       }
 
       .info {
@@ -371,6 +385,10 @@
         );
       }
 
+      function getProductHoverImage(product) {
+        return pickFirst(product.hoverImageUrl, product.hover_image_url, '');
+      }
+
       function isUnavailable(product) {
         const status = String(product.prodStatus || '').toLowerCase();
         const stockUse = String(product.stockUse || '').toUpperCase() === 'Y';
@@ -392,10 +410,17 @@
       function renderProduct(product, display = {}, index = 0) {
         const unavailable = isUnavailable(product);
         const link = document.createElement('a');
-        link.className = `product${unavailable && display.blurUnavailable !== false ? ' is-unavailable' : ''}`;
+        const imageUrl = getProductImage(product);
+        const hoverImageUrl = getProductHoverImage(product);
+        link.className = [
+          'product',
+          unavailable && display.blurUnavailable !== false ? 'is-unavailable' : '',
+          hoverImageUrl && hoverImageUrl !== imageUrl ? 'has-hover-image' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         link.href = getDetailUrl(product);
 
-        const imageUrl = getProductImage(product);
         const name = getProductName(product);
         const price = getProductPrice(product);
 
@@ -411,6 +436,16 @@
           image.decoding = 'async';
           image.fetchPriority = index < HIGH_PRIORITY_IMAGE_COUNT ? 'high' : 'auto';
           thumb.append(image);
+
+          if (hoverImageUrl && hoverImageUrl !== imageUrl) {
+            const hoverImage = document.createElement('img');
+            hoverImage.src = hoverImageUrl;
+            hoverImage.referrerPolicy = 'no-referrer';
+            hoverImage.alt = '';
+            hoverImage.loading = 'lazy';
+            hoverImage.decoding = 'async';
+            thumb.append(hoverImage);
+          }
         }
 
         const info = document.createElement('div');

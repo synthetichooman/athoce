@@ -85,21 +85,37 @@
       .product-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-        gap: 10px;
+        gap: 28px;
         align-items: start;
       }
 
-      .gallery {
+      .gallery-wrap {
+        min-width: 0;
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
+      .gallery {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-behavior: smooth;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+      }
+
+      .gallery::-webkit-scrollbar {
+        display: none;
+      }
+
       .media {
+        flex: 0 0 100%;
         width: 100%;
         aspect-ratio: 4 / 5;
         overflow: hidden;
         background: #f5f5f5;
+        scroll-snap-align: start;
       }
 
       .media img {
@@ -112,6 +128,44 @@
       .product-layout.is-unavailable .media img {
         filter: blur(7px) grayscale(0.28);
         transform: scale(1.032);
+      }
+
+      .gallery-controls {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .gallery-count {
+        color: #8a8a8a;
+        font-size: 13px;
+        line-height: 1;
+      }
+
+      .gallery-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .gallery-button {
+        width: 28px;
+        min-height: 28px;
+        padding: 0;
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+        font: inherit;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .gallery-button:disabled {
+        border-color: #d8d8d8;
+        color: #b8b8b8;
+        cursor: default;
       }
 
       .summary {
@@ -239,11 +293,6 @@
           gap: 26px;
         }
 
-        .gallery {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-        }
-
         .summary {
           position: static;
           padding-left: 0;
@@ -258,11 +307,6 @@
 
         .nav {
           gap: 12px;
-        }
-
-        .gallery {
-          grid-template-columns: 1fr;
-          gap: 10px;
         }
       }
     </style>
@@ -366,9 +410,41 @@
         );
       }
 
-      function renderImages(gallery, images, name) {
+      function updateGalleryState(galleryWrap) {
+        const gallery = galleryWrap.querySelector('.gallery');
+        const controls = galleryWrap.querySelector('.gallery-controls');
+        const count = galleryWrap.querySelector('.gallery-count');
+        const prev = galleryWrap.querySelector('[data-gallery-prev]');
+        const next = galleryWrap.querySelector('[data-gallery-next]');
+        const slides = [...gallery.querySelectorAll('.media')];
+
+        if (!slides.length) {
+          controls.hidden = true;
+          return;
+        }
+
+        controls.hidden = false;
+        const index = Math.round(gallery.scrollLeft / gallery.clientWidth);
+        const current = Math.min(Math.max(index, 0), slides.length - 1);
+        count.textContent = `${current + 1} / ${slides.length}`;
+        prev.disabled = current === 0;
+        next.disabled = current === slides.length - 1;
+      }
+
+      function scrollGallery(galleryWrap, direction) {
+        const gallery = galleryWrap.querySelector('.gallery');
+        gallery.scrollBy({
+          left: direction * gallery.clientWidth,
+          behavior: 'smooth',
+        });
+      }
+
+      function renderImages(galleryWrap, images, name) {
+        const gallery = galleryWrap.querySelector('.gallery');
+
         if (!images.length) {
           gallery.innerHTML = '<div class="empty">등록된 상품 이미지가 없습니다.</div>';
+          updateGalleryState(galleryWrap);
           return;
         }
 
@@ -379,7 +455,7 @@
           const image = document.createElement('img');
           image.src = getOptimizedImwebImageUrl(imageUrl, index === 0 ? 1200 : 750);
           image.srcset = getImageSrcSet(imageUrl);
-          image.sizes = '(max-width: 560px) calc(100vw - 20px), (max-width: 860px) calc((100vw - 28px - 8px) / 2), calc((100vw - 408px) / 2)';
+          image.sizes = '(max-width: 560px) calc(100vw - 20px), (max-width: 860px) calc(100vw - 28px), calc(100vw - 416px)';
           image.alt = name;
           image.referrerPolicy = 'no-referrer';
           image.loading = index === 0 ? 'eager' : 'lazy';
@@ -389,6 +465,8 @@
           media.append(image);
           gallery.append(media);
         });
+
+        updateGalleryState(galleryWrap);
       }
 
       function render(product) {
@@ -401,9 +479,28 @@
         const wrapper = document.createElement('div');
         wrapper.className = `product-layout${unavailable ? ' is-unavailable' : ''}`;
 
-        const gallery = document.createElement('div');
-        gallery.className = 'gallery';
-        renderImages(gallery, images, name);
+        const galleryWrap = document.createElement('div');
+        galleryWrap.className = 'gallery-wrap';
+        galleryWrap.innerHTML = `
+          <div class="gallery" aria-label="상품 이미지"></div>
+          <div class="gallery-controls">
+            <span class="gallery-count">1 / 1</span>
+            <div class="gallery-buttons">
+              <button class="gallery-button" type="button" data-gallery-prev aria-label="이전 이미지">‹</button>
+              <button class="gallery-button" type="button" data-gallery-next aria-label="다음 이미지">›</button>
+            </div>
+          </div>
+        `;
+        renderImages(galleryWrap, images, name);
+
+        const gallery = galleryWrap.querySelector('.gallery');
+        gallery.addEventListener('scroll', () => updateGalleryState(galleryWrap), { passive: true });
+        galleryWrap
+          .querySelector('[data-gallery-prev]')
+          .addEventListener('click', () => scrollGallery(galleryWrap, -1));
+        galleryWrap
+          .querySelector('[data-gallery-next]')
+          .addEventListener('click', () => scrollGallery(galleryWrap, 1));
 
         const summary = document.createElement('aside');
         summary.className = 'summary';
@@ -458,7 +555,7 @@
         });
 
         summary.append(summaryHead, buy, description);
-        wrapper.append(gallery, summary);
+        wrapper.append(galleryWrap, summary);
         detailEl.replaceChildren(wrapper);
       }
 

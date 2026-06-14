@@ -89,7 +89,7 @@ function pickFirst(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== '');
 }
 
-function getImageUrl(product) {
+function getProductImageAt(product, index = 0) {
   const images = pickFirst(
     product?.productImages,
     product?.images,
@@ -97,7 +97,15 @@ function getImageUrl(product) {
     product?.image_list,
     [],
   );
-  const firstImage = Array.isArray(images) ? images[0] : null;
+  const image = Array.isArray(images) ? images[index] : null;
+
+  if (image) {
+    return String(pickFirst(image?.url, image?.image_url, image, ''));
+  }
+
+  if (index > 0) {
+    return '';
+  }
 
   return String(
     pickFirst(
@@ -108,9 +116,6 @@ function getImageUrl(product) {
       product?.thumbnail,
       product?.mainImage,
       product?.main_image,
-      firstImage?.url,
-      firstImage?.image_url,
-      firstImage,
       '',
     ),
   );
@@ -222,7 +227,8 @@ function compactProduct(product) {
     stockUse: product?.stockUse || '',
     stockUnlimit: product?.stockUnlimit || '',
     stockNoOption: product?.stockNoOption ?? null,
-    imageUrl: getOptimizedImwebImageUrl(getImageUrl(product), 750),
+    imageUrl: getOptimizedImwebImageUrl(getProductImageAt(product, 0), 750),
+    hoverImageUrl: getOptimizedImwebImageUrl(getProductImageAt(product, 1), 750),
     categories: Array.isArray(product?.categories) ? product.categories : [],
     sortNo: getSortNo(product),
     addTime: product?.addTime || null,
