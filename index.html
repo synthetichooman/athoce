@@ -360,7 +360,7 @@
         <nav id="categoryFilters" class="category-filters" aria-label="카테고리"></nav>
         <label class="soldout-filter">
           <input id="excludeUnavailable" type="checkbox" />
-          sold out 제외
+          hide sold products
         </label>
       </section>
       <section id="products" class="grid" aria-label="상품 목록"></section>
@@ -371,9 +371,10 @@
 
     <script>
       const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
-      const INITIAL_RENDER_COUNT = 24;
+      const INITIAL_RENDER_COUNT = 18;
       const RENDER_BATCH_SIZE = 24;
       const HIGH_PRIORITY_IMAGE_COUNT = 8;
+      const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'athoce made'];
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
       const moreWrap = document.querySelector('#moreWrap');
@@ -463,7 +464,23 @@
       }
 
       function normalizeCategoryName(value) {
-        return String(value || '').trim().toLowerCase();
+        return String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ');
+      }
+
+      function getCategoryNameRank(category) {
+        const normalizedName = normalizeCategoryName(category.name);
+        const exactRank = CATEGORY_NAME_ORDER.indexOf(normalizedName);
+
+        if (exactRank >= 0) {
+          return exactRank;
+        }
+
+        const partialRank = CATEGORY_NAME_ORDER.findIndex((name) => normalizedName.includes(name));
+        return partialRank >= 0 ? partialRank : Infinity;
       }
 
       function flattenCategories(items = [], depth = 0, parentName = '') {
@@ -517,7 +534,14 @@
             return aRank - bRank;
           }
 
-          return a.name.localeCompare(b.name, 'ko');
+          const aNameRank = getCategoryNameRank(a);
+          const bNameRank = getCategoryNameRank(b);
+
+          if (aNameRank !== bNameRank) {
+            return aNameRank - bNameRank;
+          }
+
+          return 0;
         });
       }
 
