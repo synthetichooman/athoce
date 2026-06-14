@@ -11,6 +11,7 @@ const ATHOCE_CATEGORY_CODES = [
   RENTAL_CATEGORY_CODE,
   's20260613cf1433ba877ee',
 ];
+const PRODUCT_STATUS_QUERIES = ['sale', 'soldout'];
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -277,11 +278,15 @@ function compactProduct(product) {
   };
 }
 
-async function fetchProducts({ env, unitCode, categoryCode, page = 1 }) {
+async function fetchProducts({ env, unitCode, categoryCode, page = 1, prodStatus = '' }) {
   const url = new URL(IMWEB_PRODUCTS_URL);
   url.searchParams.set('unitCode', unitCode);
   url.searchParams.set('page', String(page));
   url.searchParams.set('limit', '100');
+
+  if (prodStatus) {
+    url.searchParams.set('prodStatus', prodStatus);
+  }
 
   if (categoryCode) {
     url.searchParams.set('categoryCode', categoryCode);
@@ -292,7 +297,7 @@ async function fetchProducts({ env, unitCode, categoryCode, page = 1 }) {
   });
 }
 
-async function fetchProductPages({ env, unitCode }) {
+async function fetchProductPagesForStatus({ env, unitCode, prodStatus }) {
   const results = [];
   const maxPages = 5;
 
@@ -301,6 +306,7 @@ async function fetchProductPages({ env, unitCode }) {
       env,
       unitCode,
       page,
+      prodStatus,
     });
     const products = normalizeProductsPayload(result.payload);
     results.push(result);
@@ -311,6 +317,20 @@ async function fetchProductPages({ env, unitCode }) {
   }
 
   return results;
+}
+
+async function fetchProductPages({ env, unitCode }) {
+  const groupedResults = await Promise.all(
+    PRODUCT_STATUS_QUERIES.map((prodStatus) =>
+      fetchProductPagesForStatus({
+        env,
+        unitCode,
+        prodStatus,
+      }),
+    ),
+  );
+
+  return groupedResults.flat();
 }
 
 export async function onRequestGet({ env, request }) {
