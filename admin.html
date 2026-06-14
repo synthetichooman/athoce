@@ -51,6 +51,11 @@
         letter-spacing: 0;
       }
 
+      section {
+        display: grid;
+        gap: 14px;
+      }
+
       .header-actions {
         display: flex;
         align-items: center;
@@ -264,6 +269,10 @@
               <legend>카테고리</legend>
               <div id="categories" class="checks"></div>
             </fieldset>
+            <div class="field">
+              <label for="categoryButtonOrder">홈 카테고리 버튼 순서 categoryCode</label>
+              <textarea id="categoryButtonOrder" name="categoryButtonOrder"></textarea>
+            </div>
           </section>
 
           <section>
@@ -303,6 +312,10 @@
               <label class="check">
                 <input type="checkbox" id="hideUnavailablePrice" name="hideUnavailablePrice" />
                 품절/재고 0 가격 숨김
+              </label>
+              <label class="check">
+                <input type="checkbox" id="excludeUnavailableByDefault" name="excludeUnavailableByDefault" />
+                홈에서 sold out 기본 제외
               </label>
             </div>
           </section>
@@ -377,7 +390,18 @@
           .filter((item) => Number.isFinite(item) && item > 0);
       }
 
+      function parseStringList(value) {
+        return String(value || '')
+          .split(/[\s,]+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
       function formatNumberList(values) {
+        return Array.isArray(values) ? values.join('\n') : '';
+      }
+
+      function formatStringList(values) {
         return Array.isArray(values) ? values.join('\n') : '';
       }
 
@@ -403,7 +427,10 @@
             input.value = category.categoryCode;
             input.checked = selectedSet.has(category.categoryCode);
 
-            label.append(input, document.createTextNode(category.name));
+            label.append(
+              input,
+              document.createTextNode(`${category.name} (${category.categoryCode})`),
+            );
             return label;
           }),
         );
@@ -414,6 +441,8 @@
         form.maxItems.value = config.maxItems || 100;
         form.blurUnavailable.checked = config.blurUnavailable !== false;
         form.hideUnavailablePrice.checked = config.hideUnavailablePrice !== false;
+        form.excludeUnavailableByDefault.checked = config.excludeUnavailableByDefault !== false;
+        form.categoryButtonOrder.value = formatStringList(config.categoryButtonOrder);
         form.pinnedProductNos.value = formatNumberList(config.pinnedProductNos);
         form.hiddenProductNos.value = formatNumberList(config.hiddenProductNos);
 
@@ -433,8 +462,10 @@
           ),
           sortMode: form.sortMode.value,
           maxItems: Number(form.maxItems.value || 100),
+          categoryButtonOrder: parseStringList(form.categoryButtonOrder.value),
           pinnedProductNos: parseNumberList(form.pinnedProductNos.value),
           hiddenProductNos: parseNumberList(form.hiddenProductNos.value),
+          excludeUnavailableByDefault: form.excludeUnavailableByDefault.checked,
           blurUnavailable: form.blurUnavailable.checked,
           hideUnavailablePrice: form.hideUnavailablePrice.checked,
         };

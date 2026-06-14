@@ -7,6 +7,8 @@ export const DEFAULT_ADMIN_CONFIG = {
   maxItems: 100,
   hiddenProductNos: [],
   pinnedProductNos: [],
+  categoryButtonOrder: [],
+  excludeUnavailableByDefault: true,
   blurUnavailable: true,
   hideUnavailablePrice: true,
 };
@@ -54,6 +56,8 @@ export function normalizeAdminConfig(config = {}) {
     maxItems: clampMaxItems(config.maxItems),
     hiddenProductNos: toNumberArray(config.hiddenProductNos),
     pinnedProductNos: toNumberArray(config.pinnedProductNos),
+    categoryButtonOrder: toStringArray(config.categoryButtonOrder),
+    excludeUnavailableByDefault: config.excludeUnavailableByDefault !== false,
     blurUnavailable: config.blurUnavailable !== false,
     hideUnavailablePrice: config.hideUnavailablePrice !== false,
   };

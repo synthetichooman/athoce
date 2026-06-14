@@ -152,8 +152,26 @@ function productHasCategory(product, categoryCodes) {
     return true;
   }
 
-  const productCategories = Array.isArray(product?.categories) ? product.categories : [];
+  const productCategories = normalizeProductCategories(product);
   return productCategories.some((categoryCode) => categoryCodes.includes(String(categoryCode)));
+}
+
+function normalizeProductCategories(product) {
+  const categories = Array.isArray(product?.categories) ? product.categories : [];
+
+  return categories
+    .map((category) =>
+      String(
+        pickFirst(
+          category?.categoryCode,
+          category?.code,
+          category?.category_code,
+          category,
+          '',
+        ),
+      ),
+    )
+    .filter(Boolean);
 }
 
 function applyPinnedOrder(items, pinnedProductNos) {
@@ -229,7 +247,7 @@ function compactProduct(product) {
     stockNoOption: product?.stockNoOption ?? null,
     imageUrl: getOptimizedImwebImageUrl(getProductImageAt(product, 0), 750),
     hoverImageUrl: getOptimizedImwebImageUrl(getProductImageAt(product, 1), 750),
-    categories: Array.isArray(product?.categories) ? product.categories : [],
+    categories: normalizeProductCategories(product),
     sortNo: getSortNo(product),
     addTime: product?.addTime || null,
   };
@@ -364,6 +382,9 @@ export async function onRequestGet({ env, request }) {
     display: {
       blurUnavailable: adminConfig.blurUnavailable,
       hideUnavailablePrice: adminConfig.hideUnavailablePrice,
+      excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
+      homeCategoryCodes: adminConfig.categoryCodes,
+      categoryButtonOrder: adminConfig.categoryButtonOrder,
     },
     tokenRefreshed: results.some((result) => result.tokenRefreshed),
     tokenSource: results.find((result) => result.tokenSource)?.tokenSource || 'unknown',

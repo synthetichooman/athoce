@@ -110,6 +110,50 @@
         justify-items: end;
       }
 
+      .filters {
+        display: grid;
+        gap: 12px;
+        margin: 0 0 22px;
+      }
+
+      .category-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+      }
+
+      .category-filters button {
+        min-height: auto;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #777;
+      }
+
+      .category-filters button.is-active {
+        color: #111;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .soldout-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        width: max-content;
+        color: #555;
+        font-size: 13px;
+        line-height: 1;
+        text-transform: lowercase;
+      }
+
+      .soldout-filter input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: #111;
+      }
+
       #status {
         min-height: 15px;
         color: #111;
@@ -262,6 +306,10 @@
           justify-items: start;
         }
 
+        .filters {
+          gap: 14px;
+        }
+
         #status {
           text-align: left;
         }
@@ -303,10 +351,17 @@
     </header>
     <main>
       <section class="collection-head">
-        <h1>all</h1>
+        <h1 id="collectionTitle">all</h1>
         <div class="collection-meta">
           <div id="status" aria-live="polite"></div>
         </div>
+      </section>
+      <section class="filters" aria-label="상품 필터">
+        <nav id="categoryFilters" class="category-filters" aria-label="카테고리"></nav>
+        <label class="soldout-filter">
+          <input id="excludeUnavailable" type="checkbox" />
+          sold out 제외
+        </label>
       </section>
       <section id="products" class="grid" aria-label="상품 목록"></section>
       <div class="more" id="moreWrap" hidden>
@@ -323,10 +378,16 @@
       const statusEl = document.querySelector('#status');
       const moreWrap = document.querySelector('#moreWrap');
       const loadMoreButton = document.querySelector('#loadMore');
+      const categoryFiltersEl = document.querySelector('#categoryFilters');
+      const excludeUnavailableEl = document.querySelector('#excludeUnavailable');
+      const collectionTitleEl = document.querySelector('#collectionTitle');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
+      let allProductsState = [];
       let productsState = [];
       let displayState = {};
       let renderedCount = 0;
+      let categoriesState = [];
+      let activeCategoryCode = '';
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -401,6 +462,74 @@
         );
       }
 
+      function normalizeCategoryName(value) {
+        return String(value || '').trim().toLowerCase();
+      }
+
+      function flattenCategories(items = [], depth = 0, parentName = '') {
+        return items.flatMap((item) => {
+          const current = {
+            name: item.name || '',
+            categoryCode: String(item.categoryCode || ''),
+            depth,
+            parentName,
+          };
+
+          return [
+            current,
+            ...flattenCategories(item.children || [], depth + 1, item.name || parentName),
+          ];
+        });
+      }
+
+      function findAthoceBranch(items = []) {
+        for (const item of items) {
+          if (normalizeCategoryName(item.name) === 'athoce') {
+            return item.children?.length ? item.children : [];
+          }
+
+          const childBranch = findAthoceBranch(item.children || []);
+
+          if (childBranch.length) {
+            return childBranch;
+          }
+        }
+
+        return [];
+      }
+
+      function getVisibleCategories(categoryTree = [], display = {}) {
+        const athoceBranch = findAthoceBranch(categoryTree);
+        const source = athoceBranch.length ? athoceBranch : categoryTree;
+        const flattened = flattenCategories(source);
+        const allowedCodes = new Set((display.homeCategoryCodes || []).map(String));
+        const order = (display.categoryButtonOrder || []).map(String).filter(Boolean);
+        const orderRank = new Map(order.map((code, index) => [code, index]));
+        const categories = flattened
+          .filter((category) => category.categoryCode)
+          .filter((category) => !allowedCodes.size || allowedCodes.has(category.categoryCode));
+
+        return categories.sort((a, b) => {
+          const aRank = orderRank.has(a.categoryCode) ? orderRank.get(a.categoryCode) : Infinity;
+          const bRank = orderRank.has(b.categoryCode) ? orderRank.get(b.categoryCode) : Infinity;
+
+          if (aRank !== bRank) {
+            return aRank - bRank;
+          }
+
+          return a.name.localeCompare(b.name, 'ko');
+        });
+      }
+
+      function productHasCategory(product, categoryCode) {
+        if (!categoryCode) {
+          return true;
+        }
+
+        const categories = Array.isArray(product.categories) ? product.categories.map(String) : [];
+        return categories.includes(String(categoryCode));
+      }
+
       function getDetailUrl(product) {
         const productId = getProductId(product);
         return productId ? `detail.html?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
@@ -472,8 +601,60 @@
       }
 
       function updateStatus() {
-        statusEl.textContent = `${Math.min(renderedCount, productsState.length)} / ${productsState.length}개 상품`;
+        const categoryName =
+          categoriesState.find((category) => category.categoryCode === activeCategoryCode)?.name || 'all';
+        collectionTitleEl.textContent = formatDisplayText(categoryName);
+        statusEl.textContent = `${formatDisplayText(categoryName)} · ${Math.min(renderedCount, productsState.length)} / ${productsState.length}개 상품`;
         moreWrap.hidden = renderedCount >= productsState.length;
+      }
+
+      function renderCategoryFilters() {
+        const buttons = [
+          {
+            name: 'all',
+            categoryCode: '',
+          },
+          ...categoriesState,
+        ].map((category) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = formatDisplayText(category.name);
+          button.dataset.categoryCode = category.categoryCode;
+          button.className = category.categoryCode === activeCategoryCode ? 'is-active' : '';
+          button.addEventListener('click', () => {
+            activeCategoryCode = category.categoryCode;
+            applyFilters();
+          });
+
+          return button;
+        });
+
+        categoryFiltersEl.replaceChildren(...buttons);
+      }
+
+      function applyFilters() {
+        const excludeUnavailable = excludeUnavailableEl.checked;
+
+        productsState = allProductsState.filter((product) => {
+          return (
+            productHasCategory(product, activeCategoryCode) &&
+            (!excludeUnavailable || !isUnavailable(product))
+          );
+        });
+        renderCategoryFilters();
+
+        productGrid.innerHTML = '';
+        renderedCount = 0;
+
+        if (!productsState.length) {
+          productGrid.className = '';
+          productGrid.innerHTML = '<div class="empty">표시할 상품이 없습니다.</div>';
+          updateStatus();
+          return;
+        }
+
+        productGrid.className = 'grid';
+        renderNextBatch();
       }
 
       function renderNextBatch() {
@@ -507,6 +688,9 @@
           const response = await fetch(apiUrl.pathname + apiUrl.search, {
             headers: { accept: 'application/json' },
           });
+          const categoriesRequest = fetch('/api/categories', {
+            headers: { accept: 'application/json' },
+          });
           const text = await response.text();
           const payload = text ? JSON.parse(text) : {};
 
@@ -517,18 +701,26 @@
             );
           }
 
-          productsState = Array.isArray(payload.items) ? payload.items : [];
-          displayState = payload.display || {};
-          statusEl.textContent = `${productsState.length}개 상품`;
+          const categoriesResponse = await categoriesRequest;
+          const categoriesText = await categoriesResponse.text();
+          const categoriesPayload = categoriesText ? JSON.parse(categoriesText) : {};
 
-          if (!productsState.length) {
-            productGrid.className = '';
-            productGrid.innerHTML = '<div class="empty">표시할 상품이 없습니다.</div>';
-            return;
+          if (!categoriesResponse.ok || !categoriesPayload.ok) {
+            throw new Error(
+              categoriesPayload?.error?.message ||
+                `/api/categories 요청 실패: http ${categoriesResponse.status || '응답 없음'}`,
+            );
           }
 
-          productGrid.className = 'grid';
-          renderNextBatch();
+          allProductsState = Array.isArray(payload.items) ? payload.items : [];
+          displayState = payload.display || {};
+          categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
+          excludeUnavailableEl.checked = displayState.excludeUnavailableByDefault !== false;
+          statusEl.textContent = `${allProductsState.length}개 상품`;
+          renderCategoryFilters();
+          applyFilters();
+
+          return;
         } catch (error) {
           statusEl.textContent = '';
           productGrid.className = '';
@@ -537,6 +729,7 @@
       }
 
       loadMoreButton.addEventListener('click', renderNextBatch);
+      excludeUnavailableEl.addEventListener('change', applyFilters);
       loadProducts();
     </script>
   </body>
