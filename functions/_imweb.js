@@ -1,6 +1,7 @@
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
 export const TOKEN_STORAGE_KEY = 'imweb_tokens';
+const TOKEN_REFRESH_BUFFER_SECONDS = 60 * 10;
 
 export function clean(value, fallback = '') {
   return String(value || fallback).trim();
@@ -44,8 +45,67 @@ export async function getStoredImwebTokens(env) {
     refreshToken: clean(stored?.refreshToken || env.IMWEB_REFRESH_TOKEN),
     scope: stored?.scope || '',
     updatedAt: stored?.updatedAt || '',
+    expiresAt: stored?.expiresAt || '',
+    lastRefreshFailedAt: stored?.lastRefreshFailedAt || '',
+    lastRefreshError: stored?.lastRefreshError || null,
     source: stored?.accessToken ? 'kv' : 'env',
   };
+}
+
+function sanitizeRefreshError(error = {}) {
+  return {
+    code: String(error?.code || error?.errorCode || error?.statusCode || 'REFRESH_FAILED'),
+    message: String(error?.message || 'Imweb accessToken 재발급에 실패했습니다.').slice(0, 240),
+  };
+}
+
+function getTokenExpiresAt(payload) {
+  const expiresIn = Number(
+    payload?.data?.expiresIn ||
+      payload?.data?.expires_in ||
+      payload?.expiresIn ||
+      payload?.expires_in ||
+      0,
+  );
+
+  if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
+    return '';
+  }
+
+  return new Date(Date.now() + expiresIn * 1000).toISOString();
+}
+
+function shouldRefreshBeforeRequest(storedTokens) {
+  if (!storedTokens.refreshToken || !storedTokens.expiresAt) {
+    return false;
+  }
+
+  const expiresAt = new Date(storedTokens.expiresAt).getTime();
+
+  if (!Number.isFinite(expiresAt)) {
+    return false;
+  }
+
+  return expiresAt - Date.now() <= TOKEN_REFRESH_BUFFER_SECONDS * 1000;
+}
+
+async function recordRefreshFailure(env, error) {
+  if (!env.ATHOCE_KV) {
+    return false;
+  }
+
+  const current = (await env.ATHOCE_KV.get(TOKEN_STORAGE_KEY, 'json')) || {};
+
+  await env.ATHOCE_KV.put(
+    TOKEN_STORAGE_KEY,
+    JSON.stringify({
+      ...current,
+      lastRefreshFailedAt: new Date().toISOString(),
+      lastRefreshError: sanitizeRefreshError(error),
+    }),
+  );
+
+  return true;
 }
 
 export async function storeImwebTokens(env, tokens) {
@@ -54,12 +114,16 @@ export async function storeImwebTokens(env, tokens) {
   }
 
   const current = (await env.ATHOCE_KV.get(TOKEN_STORAGE_KEY, 'json')) || {};
+  const hasExpiresAt = Object.prototype.hasOwnProperty.call(tokens, 'expiresAt');
   const next = {
     ...current,
     accessToken: clean(tokens.accessToken, current.accessToken),
     refreshToken: clean(tokens.refreshToken, current.refreshToken),
     scope: tokens.scope || current.scope || '',
+    expiresAt: hasExpiresAt ? tokens.expiresAt || '' : current.expiresAt || '',
     updatedAt: new Date().toISOString(),
+    lastRefreshFailedAt: '',
+    lastRefreshError: null,
   };
 
   await env.ATHOCE_KV.put(TOKEN_STORAGE_KEY, JSON.stringify(next));
@@ -73,12 +137,15 @@ export async function refreshImwebToken(env) {
   const refreshToken = storedTokens.refreshToken;
 
   if (!clientSecret || !refreshToken) {
+    const error = {
+      code: 'MISSING_REFRESH_CONFIG',
+      message: 'IMWEB_CLIENT_SECRET 또는 IMWEB_REFRESH_TOKEN 환경변수가 없습니다.',
+    };
+    await recordRefreshFailure(env, error);
+
     return {
       ok: false,
-      error: {
-        code: 'MISSING_REFRESH_CONFIG',
-        message: 'IMWEB_CLIENT_SECRET 또는 IMWEB_REFRESH_TOKEN 환경변수가 없습니다.',
-      },
+      error,
     };
   }
 
@@ -100,12 +167,15 @@ export async function refreshImwebToken(env) {
   const accessToken = payload?.data?.accessToken || payload?.accessToken;
 
   if (!response.ok || !accessToken) {
+    const error = payload?.error || {
+      code: payload?.statusCode || response.status,
+      message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
+    };
+    await recordRefreshFailure(env, error);
+
     return {
       ok: false,
-      error: payload?.error || {
-        code: payload?.statusCode || response.status,
-        message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
-      },
+      error,
       payload,
     };
   }
@@ -115,6 +185,7 @@ export async function refreshImwebToken(env) {
     accessToken,
     refreshToken: payload?.data?.refreshToken || payload?.refreshToken || refreshToken,
     scope: payload?.data?.scope || payload?.scope,
+    expiresAt: getTokenExpiresAt(payload),
   };
 
   nextTokens.storedInKv = await storeImwebTokens(env, nextTokens);
@@ -123,8 +194,18 @@ export async function refreshImwebToken(env) {
 }
 
 export async function fetchImwebJson(env, url, init = {}) {
-  const storedTokens = await getStoredImwebTokens(env);
-  const accessToken = storedTokens.accessToken;
+  let storedTokens = await getStoredImwebTokens(env);
+  let accessToken = storedTokens.accessToken;
+  let preemptiveRefresh = null;
+
+  if (shouldRefreshBeforeRequest(storedTokens)) {
+    preemptiveRefresh = await refreshImwebToken(env);
+
+    if (preemptiveRefresh.ok) {
+      storedTokens = await getStoredImwebTokens(env);
+      accessToken = preemptiveRefresh.accessToken;
+    }
+  }
 
   if (!accessToken) {
     return {
@@ -136,7 +217,9 @@ export async function fetchImwebJson(env, url, init = {}) {
         },
       },
       tokenRefreshed: false,
+      tokenPreemptivelyRefreshed: false,
       tokenSource: storedTokens.source,
+      refreshError: preemptiveRefresh?.error,
     };
   }
 
@@ -149,7 +232,15 @@ export async function fetchImwebJson(env, url, init = {}) {
   let payload = await parseJsonResponse(response);
 
   if (!isAuthTokenError(payload, response)) {
-    return { response, payload, tokenRefreshed: false, tokenSource: storedTokens.source };
+    return {
+      response,
+      payload,
+      tokenRefreshed: Boolean(preemptiveRefresh?.ok),
+      tokenPreemptivelyRefreshed: Boolean(preemptiveRefresh?.ok),
+      tokenSource: preemptiveRefresh?.ok ? 'refresh' : storedTokens.source,
+      refreshed: preemptiveRefresh?.ok ? preemptiveRefresh : undefined,
+      refreshError: preemptiveRefresh?.error,
+    };
   }
 
   const refreshed = await refreshImwebToken(env);
@@ -159,6 +250,7 @@ export async function fetchImwebJson(env, url, init = {}) {
       response,
       payload,
       tokenRefreshed: false,
+      tokenPreemptivelyRefreshed: false,
       tokenSource: storedTokens.source,
       refreshError: refreshed.error,
     };
@@ -177,7 +269,30 @@ export async function fetchImwebJson(env, url, init = {}) {
     response,
     payload,
     tokenRefreshed: true,
+    tokenPreemptivelyRefreshed: false,
     tokenSource: 'refresh',
     refreshed,
+  };
+}
+
+export async function getImwebTokenHealth(env) {
+  const storedTokens = await getStoredImwebTokens(env);
+  const expiresAtTime = storedTokens.expiresAt ? new Date(storedTokens.expiresAt).getTime() : 0;
+  const expiresInSeconds = storedTokens.expiresAt && Number.isFinite(expiresAtTime)
+    ? Math.floor((expiresAtTime - Date.now()) / 1000)
+    : null;
+
+  return {
+    kvConfigured: Boolean(env.ATHOCE_KV),
+    clientSecretConfigured: Boolean(clean(env.IMWEB_CLIENT_SECRET)),
+    hasAccessToken: Boolean(storedTokens.accessToken),
+    hasRefreshToken: Boolean(storedTokens.refreshToken),
+    tokenSource: storedTokens.source,
+    updatedAt: storedTokens.updatedAt,
+    expiresAt: storedTokens.expiresAt,
+    expiresInSeconds,
+    refreshRecommended: shouldRefreshBeforeRequest(storedTokens),
+    lastRefreshFailedAt: storedTokens.lastRefreshFailedAt,
+    lastRefreshError: storedTokens.lastRefreshError,
   };
 }
