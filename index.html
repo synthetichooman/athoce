@@ -806,7 +806,7 @@ please check each product detail for handling notes before use</p>
           displayState = payload.display || {};
           lockedCategoryCodes = new Set((displayState.lockedCategoryCodes || []).map(String));
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
-          excludeUnavailableEl.checked = displayState.excludeUnavailableByDefault !== false;
+          excludeUnavailableEl.checked = false;
           statusEl.textContent = `${allProductsState.length}개 상품`;
           renderCategoryFilters();
           applyFilters();

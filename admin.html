@@ -286,6 +286,7 @@
             />
           </div>
           <button id="loginButton" type="submit">로그인</button>
+          <button class="secondary" type="button" data-reconnect-imweb>reconnect imweb</button>
           <p id="loginStatus" class="error" aria-live="polite"></p>
         </form>
       </section>
@@ -374,7 +375,10 @@
               <dt>status</dt>
               <dd>확인 전</dd>
             </dl>
-            <button id="refreshToken" class="secondary" type="button">refresh test</button>
+            <div class="actions">
+              <button id="refreshToken" class="secondary" type="button">refresh test</button>
+              <button class="secondary" type="button" data-reconnect-imweb>reconnect imweb</button>
+            </div>
           </section>
         </aside>
       </div>
@@ -394,6 +398,7 @@
       const reloadButton = document.querySelector('#reload');
       const tokenHealthEl = document.querySelector('#tokenHealth');
       const refreshTokenButton = document.querySelector('#refreshToken');
+      const reconnectImwebButtons = document.querySelectorAll('[data-reconnect-imweb]');
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -511,6 +516,29 @@
             return label;
           }),
         );
+      }
+
+      function renderCategoryLoadError(selected = [], message = '') {
+        categoriesEl.replaceChildren(
+          ...selected.map((categoryCode) => {
+            const label = document.createElement('label');
+            label.className = 'check';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'categoryCodes';
+            input.value = categoryCode;
+            input.checked = true;
+
+            label.append(input, document.createTextNode(categoryCode));
+            return label;
+          }),
+        );
+
+        const note = document.createElement('p');
+        note.className = 'error';
+        note.textContent = message || '카테고리 목록을 불러오지 못했습니다. Imweb 재연결 후 새로고침하세요.';
+        categoriesEl.append(note);
       }
 
       function applyConfig(config) {
@@ -669,14 +697,21 @@
         loadTokenHealth();
 
         try {
-          const [configPayload, categoriesPayload] = await Promise.all([
-            fetchJson('/api/admin/config'),
-            fetchJson('/api/categories'),
-          ]);
-
-          renderCategories(categoriesPayload.items || [], configPayload.config.categoryCodes || []);
+          const configPayload = await fetchJson('/api/admin/config');
           applyConfig(configPayload.config);
-          setStatus('불러왔습니다.');
+
+          try {
+            const categoriesPayload = await fetchJson('/api/categories');
+            renderCategories(categoriesPayload.items || [], configPayload.config.categoryCodes || []);
+            setStatus('불러왔습니다.');
+          } catch (categoryError) {
+            renderCategoryLoadError(
+              configPayload.config.categoryCodes || [],
+              categoryError.message || '카테고리 목록을 불러오지 못했습니다.',
+            );
+            setStatus('Imweb 토큰 또는 카테고리 로드에 문제가 있습니다. reconnect imweb을 실행하세요.', true);
+          }
+
         } catch (error) {
           handleSessionError(error);
         }
@@ -748,11 +783,18 @@
         }
       }
 
+      function reconnectImweb() {
+        window.location.href = '/api/oauth/start';
+      }
+
       loginForm.addEventListener('submit', login);
       logoutButton.addEventListener('click', logout);
       saveButton.addEventListener('click', save);
       reloadButton.addEventListener('click', load);
       refreshTokenButton.addEventListener('click', refreshToken);
+      reconnectImwebButtons.forEach((button) => {
+        button.addEventListener('click', reconnectImweb);
+      });
       checkSession();
     </script>
   </body>
