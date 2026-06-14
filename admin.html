@@ -21,6 +21,10 @@
         margin: 0;
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
       main {
         width: min(980px, calc(100% - 32px));
         margin: 0 auto;
@@ -47,6 +51,18 @@
         letter-spacing: 0;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      a {
+        color: inherit;
+        font-size: 14px;
+        text-underline-offset: 3px;
+      }
+
       .layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 300px;
@@ -71,6 +87,29 @@
         position: sticky;
         top: 20px;
         padding: 18px;
+      }
+
+      .login-panel {
+        display: grid;
+        place-items: center;
+        min-height: 58vh;
+      }
+
+      .login-card {
+        width: min(420px, 100%);
+        display: grid;
+        gap: 18px;
+        padding: 24px;
+        border: 1px solid #e3e3e3;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .login-card p {
+        margin: 0;
+        color: #5f6368;
+        font-size: 14px;
+        line-height: 1.5;
       }
 
       .field {
@@ -157,6 +196,15 @@
         color: #171717;
       }
 
+      button.subtle {
+        min-height: 34px;
+        padding: 0 10px;
+        border-color: #d8d8d8;
+        background: #fff;
+        color: #171717;
+        font-size: 13px;
+      }
+
       #status {
         min-height: 22px;
         color: #5f6368;
@@ -182,10 +230,33 @@
     <main>
       <header>
         <h1>Athoce Admin</h1>
-        <a href="./">Storefront</a>
+        <div class="header-actions">
+          <a href="./">storefront</a>
+          <button id="logout" class="subtle" type="button" hidden>로그아웃</button>
+        </div>
       </header>
 
-      <div class="layout">
+      <section id="loginPanel" class="login-panel" hidden>
+        <form id="loginForm" class="login-card">
+          <div>
+            <h2>관리자 로그인</h2>
+            <p>공유받은 관리자 비밀번호를 입력하면 이 기기에서 24시간 동안 유지됩니다.</p>
+          </div>
+          <div class="field">
+            <label for="loginPassword">비밀번호</label>
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              inputmode="text"
+            />
+          </div>
+          <button id="loginButton" type="submit">로그인</button>
+          <p id="loginStatus" class="error" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <div id="adminApp" class="layout" hidden>
         <form id="settings" class="panel">
           <section>
             <h2>상품 노출</h2>
@@ -250,13 +321,9 @@
         </form>
 
         <aside class="sidebar">
-          <div class="field">
-            <label for="adminPassword">Admin password</label>
-            <input id="adminPassword" type="password" autocomplete="current-password" />
-          </div>
           <div class="actions">
-            <button id="save" type="button">Save</button>
-            <button id="reload" class="secondary" type="button">Reload</button>
+            <button id="save" type="button">저장</button>
+            <button id="reload" class="secondary" type="button">새로고침</button>
           </div>
           <p id="status" aria-live="polite"></p>
         </aside>
@@ -264,18 +331,41 @@
     </main>
 
     <script>
+      const adminApp = document.querySelector('#adminApp');
+      const loginPanel = document.querySelector('#loginPanel');
+      const loginForm = document.querySelector('#loginForm');
+      const loginPasswordEl = document.querySelector('#loginPassword');
+      const loginStatusEl = document.querySelector('#loginStatus');
       const form = document.querySelector('#settings');
       const categoriesEl = document.querySelector('#categories');
-      const passwordEl = document.querySelector('#adminPassword');
       const statusEl = document.querySelector('#status');
+      const logoutButton = document.querySelector('#logout');
       const saveButton = document.querySelector('#save');
       const reloadButton = document.querySelector('#reload');
-
-      passwordEl.value = localStorage.getItem('athoce_admin_password') || '';
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
         statusEl.className = isError ? 'error' : '';
+      }
+
+      function setLoginStatus(message, isError = false) {
+        loginStatusEl.textContent = message;
+        loginStatusEl.className = isError ? 'error' : '';
+      }
+
+      function showLogin(message = '', isError = false) {
+        adminApp.hidden = true;
+        logoutButton.hidden = true;
+        loginPanel.hidden = false;
+        setStatus('');
+        setLoginStatus(message, isError);
+        loginPasswordEl.focus();
+      }
+
+      function showAdmin() {
+        loginPanel.hidden = true;
+        adminApp.hidden = false;
+        logoutButton.hidden = false;
       }
 
       function parseNumberList(value) {
@@ -351,19 +441,101 @@
       }
 
       async function fetchJson(url, options) {
-        const response = await fetch(url, options);
+        const response = await fetch(url, {
+          credentials: 'same-origin',
+          ...options,
+        });
         const text = await response.text();
-        const payload = text ? JSON.parse(text) : {};
+        let payload = {};
+
+        try {
+          payload = text ? JSON.parse(text) : {};
+        } catch {
+          payload = {
+            ok: false,
+            error: {
+              message: `HTTP ${response.status}`,
+            },
+          };
+        }
 
         if (!response.ok || !payload.ok) {
-          throw new Error(payload?.error?.message || `HTTP ${response.status}`);
+          const error = new Error(payload?.error?.message || `HTTP ${response.status}`);
+          error.status = response.status;
+          error.code = payload?.error?.code;
+          throw error;
         }
 
         return payload;
       }
 
+      function handleSessionError(error) {
+        if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
+          showLogin(error.message || '다시 로그인해주세요.', true);
+          return;
+        }
+
+        setStatus(error.message || '요청을 처리하지 못했습니다.', true);
+      }
+
+      async function checkSession() {
+        try {
+          const payload = await fetchJson('/api/admin/session');
+
+          if (!payload.adminConfigured) {
+            showLogin('Cloudflare Pages 환경변수 ADMIN_PASSWORD 또는 ADMIN_PASSWORDS를 먼저 설정하세요.', true);
+            return;
+          }
+
+          if (!payload.authenticated) {
+            showLogin();
+            return;
+          }
+
+          showAdmin();
+          await load();
+        } catch (error) {
+          showLogin(error.message, true);
+        }
+      }
+
+      async function login(event) {
+        event.preventDefault();
+        setLoginStatus('로그인 중입니다.');
+
+        try {
+          await fetchJson('/api/admin/login', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ password: loginPasswordEl.value }),
+          });
+
+          loginPasswordEl.value = '';
+          showAdmin();
+          await load();
+        } catch (error) {
+          setLoginStatus(error.message, true);
+        }
+      }
+
+      async function logout() {
+        try {
+          await fetchJson('/api/admin/logout', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+            },
+          });
+        } finally {
+          showLogin('로그아웃되었습니다.');
+        }
+      }
+
       async function load() {
-        setStatus('Loading');
+        setStatus('불러오는 중입니다.');
 
         try {
           const [configPayload, categoriesPayload] = await Promise.all([
@@ -373,15 +545,14 @@
 
           renderCategories(categoriesPayload.items || [], configPayload.config.categoryCodes || []);
           applyConfig(configPayload.config);
-          setStatus(configPayload.adminPasswordConfigured ? 'Loaded' : 'ADMIN_PASSWORD required', !configPayload.adminPasswordConfigured);
+          setStatus('불러왔습니다.');
         } catch (error) {
-          setStatus(error.message, true);
+          handleSessionError(error);
         }
       }
 
       async function save() {
-        setStatus('Saving');
-        localStorage.setItem('athoce_admin_password', passwordEl.value);
+        setStatus('저장 중입니다.');
 
         try {
           const payload = await fetchJson('/api/admin/config', {
@@ -389,21 +560,22 @@
             headers: {
               accept: 'application/json',
               'content-type': 'application/json',
-              'x-admin-password': passwordEl.value,
             },
             body: JSON.stringify({ config: collectConfig() }),
           });
 
           applyConfig(payload.config);
-          setStatus('Saved');
+          setStatus('저장했습니다.');
         } catch (error) {
-          setStatus(error.message, true);
+          handleSessionError(error);
         }
       }
 
+      loginForm.addEventListener('submit', login);
+      logoutButton.addEventListener('click', logout);
       saveButton.addEventListener('click', save);
       reloadButton.addEventListener('click', load);
-      load();
+      checkSession();
     </script>
   </body>
 </html>

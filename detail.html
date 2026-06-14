@@ -543,10 +543,12 @@
         buy.className = 'buy';
         buy.href = getOriginalProductUrl(product);
         buy.rel = 'noopener';
-        buy.textContent = unavailable ? 'sold out' : 'view original';
+        buy.textContent = unavailable ? 'sold out' : 'purchase now in hooman.kr';
 
         if (unavailable) {
           buy.setAttribute('aria-disabled', 'true');
+        } else {
+          buy.target = '_blank';
         }
 
         const description = document.createElement('div');

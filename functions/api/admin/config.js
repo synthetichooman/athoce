@@ -1,6 +1,7 @@
 import {
   DEFAULT_ADMIN_CONFIG,
   getAdminConfig,
+  isAdminConfigured,
   isAdminAuthorized,
   normalizeAdminConfig,
   setAdminConfig,
@@ -17,21 +18,27 @@ function jsonResponse(body, status = 200) {
 }
 
 function unauthorized(env) {
+  const configured = isAdminConfigured(env);
+
   return jsonResponse(
     {
       ok: false,
       error: {
-        code: env.ADMIN_PASSWORD ? 'UNAUTHORIZED' : 'ADMIN_PASSWORD_NOT_CONFIGURED',
-        message: env.ADMIN_PASSWORD
-          ? '관리자 비밀번호가 올바르지 않습니다.'
-          : 'Cloudflare Pages 환경변수 ADMIN_PASSWORD를 먼저 설정하세요.',
+        code: configured ? 'UNAUTHORIZED' : 'ADMIN_PASSWORD_NOT_CONFIGURED',
+        message: configured
+          ? '관리자 로그인이 필요합니다.'
+          : 'Cloudflare Pages 환경변수 ADMIN_PASSWORD 또는 ADMIN_PASSWORDS를 먼저 설정하세요.',
       },
     },
-    env.ADMIN_PASSWORD ? 401 : 500,
+    configured ? 401 : 500,
   );
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request }) {
+  if (!(await isAdminAuthorized(request, env))) {
+    return unauthorized(env);
+  }
+
   try {
     const config = await getAdminConfig(env);
 
@@ -39,7 +46,8 @@ export async function onRequestGet({ env }) {
       ok: true,
       config,
       defaults: normalizeAdminConfig(DEFAULT_ADMIN_CONFIG),
-      adminPasswordConfigured: Boolean(env.ADMIN_PASSWORD),
+      adminPasswordConfigured: isAdminConfigured(env),
+      adminConfigured: isAdminConfigured(env),
     });
   } catch (error) {
     return jsonResponse(
@@ -56,7 +64,7 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ env, request }) {
-  if (!isAdminAuthorized(request, env)) {
+  if (!(await isAdminAuthorized(request, env))) {
     return unauthorized(env);
   }
 
@@ -80,7 +88,7 @@ export async function onRequestPost({ env, request }) {
   try {
     const config = await setAdminConfig(env, payload?.config || payload || {});
     const url = new URL(request.url);
-    await caches.default.delete(new Request(`${url.origin}/api/products`));
+    await globalThis.caches?.default?.delete(new Request(`${url.origin}/api/products`));
 
     return jsonResponse({
       ok: true,
