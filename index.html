@@ -38,48 +38,21 @@
       }
 
       .site-header-inner {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        display: flex;
+        justify-content: center;
         align-items: center;
         width: min(1440px, calc(100% - 28px));
         margin: 0 auto;
         min-height: 54px;
-        gap: 18px;
       }
 
       .brand {
-        justify-self: center;
         color: inherit;
         font-size: 14px;
         font-weight: 600;
         letter-spacing: 0.08em;
         text-decoration: none;
         text-transform: lowercase;
-      }
-
-      .nav {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        min-width: 0;
-      }
-
-      .nav.end {
-        justify-content: flex-end;
-      }
-
-      .nav a,
-      .nav button {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        font-size: 13px;
-        line-height: 1;
-        text-decoration: none;
-        text-transform: lowercase;
-        cursor: pointer;
       }
 
       main {
@@ -89,19 +62,9 @@
       }
 
       .collection-head {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: start;
-        gap: 18px;
-        margin-bottom: 18px;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: 0;
-        text-transform: lowercase;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
       }
 
       .collection-meta {
@@ -284,22 +247,11 @@
         }
 
         .brand {
-          justify-self: start;
-          grid-column: 1;
-          grid-row: 1;
-        }
-
-        .nav.start {
-          display: none;
-        }
-
-        .nav.end {
-          grid-column: 2;
-          grid-row: 1;
+          justify-self: center;
         }
 
         .collection-head {
-          grid-template-columns: 1fr;
+          justify-content: flex-start;
         }
 
         .collection-meta {
@@ -326,10 +278,6 @@
           width: calc(100% - 20px);
         }
 
-        .nav {
-          gap: 12px;
-        }
-
         .grid {
           grid-template-columns: 1fr;
           gap: 32px;
@@ -340,18 +288,11 @@
   <body>
     <header class="site-header">
       <div class="site-header-inner">
-        <nav class="nav start" aria-label="컬렉션">
-          <a href="./">all</a>
-        </nav>
         <a class="brand" href="./">athoce</a>
-        <nav class="nav end" aria-label="도구">
-          <a href="https://hooman.kr">original</a>
-        </nav>
       </div>
     </header>
     <main>
       <section class="collection-head">
-        <h1 id="collectionTitle">all</h1>
         <div class="collection-meta">
           <div id="status" aria-live="polite"></div>
         </div>
@@ -381,7 +322,6 @@
       const loadMoreButton = document.querySelector('#loadMore');
       const categoryFiltersEl = document.querySelector('#categoryFilters');
       const excludeUnavailableEl = document.querySelector('#excludeUnavailable');
-      const collectionTitleEl = document.querySelector('#collectionTitle');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
       let allProductsState = [];
       let productsState = [];
@@ -627,7 +567,6 @@
       function updateStatus() {
         const categoryName =
           categoriesState.find((category) => category.categoryCode === activeCategoryCode)?.name || 'all';
-        collectionTitleEl.textContent = formatDisplayText(categoryName);
         statusEl.textContent = `${formatDisplayText(categoryName)} · ${Math.min(renderedCount, productsState.length)} / ${productsState.length}개 상품`;
         moreWrap.hidden = renderedCount >= productsState.length;
       }
