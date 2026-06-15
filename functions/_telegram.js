@@ -22,14 +22,15 @@ export function isTelegramConfigured(env) {
   return Boolean(botToken && chatId);
 }
 
-export async function sendTelegramMessage(env, text) {
-  const { botToken, chatId } = getTelegramConfig(env);
+export async function sendTelegramMessageToChat(env, chatId, text) {
+  const { botToken } = getTelegramConfig(env);
+  const targetChatId = clean(chatId);
 
-  if (!botToken || !chatId) {
+  if (!botToken || !targetChatId) {
     return {
       ok: false,
       skipped: true,
-      error: 'TELEGRAM_BOT_TOKEN 또는 TELEGRAM_CHAT_ID가 없습니다.',
+      error: 'TELEGRAM_BOT_TOKEN 또는 대상 chat_id가 없습니다.',
     };
   }
 
@@ -40,7 +41,7 @@ export async function sendTelegramMessage(env, text) {
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      chat_id: chatId,
+      chat_id: targetChatId,
       text: clip(text),
       disable_web_page_preview: true,
     }),
@@ -59,6 +60,11 @@ export async function sendTelegramMessage(env, text) {
     status: response.status,
     payload,
   };
+}
+
+export async function sendTelegramMessage(env, text) {
+  const { chatId } = getTelegramConfig(env);
+  return sendTelegramMessageToChat(env, chatId, text);
 }
 
 export async function sendThrottledTelegramAlert(env, alertKey, text) {
