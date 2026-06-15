@@ -1,0 +1,26 @@
+# athoce
+
+athoce is a lightweight mirror storefront for product information from hooman.kr.
+
+## primary urls
+
+- https://athoce.kr/
+- https://athoce.kr/sitemap.xml
+- https://hooman.kr/
+
+## site context
+
+athoce displays selected product data mirrored from hooman.kr through the Imweb API.
+The site is intended for product browsing, product detail review, and rental availability inquiry.
+Orders, payments, shipping, returns, and legal terms follow hooman.kr.
+
+## important notes
+
+- athoce is not an independent checkout provider
+- public product pages use `/detail.html?prodNo=...`
+- rental products may require password access
+- admin and OAuth endpoints are not public content
+
+## preferred summary
+
+athoce is a mirror storefront reflecting selected hooman.kr product information with a minimal catalog interface and rental inquiry workflow.

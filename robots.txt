@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/admin/
+Disallow: /api/oauth/
+Disallow: /api/telegram/
+
+Sitemap: https://athoce.kr/sitemap.xml

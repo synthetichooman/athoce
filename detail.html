@@ -3,8 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="athoce product detail. product information is mirrored from hooman.kr."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#ffffff" />
+    <link id="canonicalUrl" rel="canonical" href="https://athoce.kr/detail.html" />
     <link rel="preconnect" href="https://cdn-optimized.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn-optimized.imweb.me" />
+    <meta property="og:type" content="product" />
+    <meta property="og:site_name" content="athoce" />
+    <meta property="og:title" content="athoce product" />
+    <meta
+      property="og:description"
+      content="product information mirrored from hooman.kr"
+    />
+    <meta property="og:url" content="https://athoce.kr/detail.html" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="athoce product" />
+    <meta name="twitter:description" content="product information mirrored from hooman.kr" />
     <title>athoce product</title>
     <style>
       :root {
@@ -379,6 +398,110 @@
         );
       }
 
+      function stripHtml(value) {
+        const container = document.createElement('div');
+        container.innerHTML = String(value || '');
+        return container.textContent.replace(/\s+/g, ' ').trim();
+      }
+
+      function setMeta(selector, attribute, value) {
+        if (!value) {
+          return;
+        }
+
+        const element = document.head.querySelector(selector);
+
+        if (element) {
+          element.setAttribute(attribute, value);
+        }
+      }
+
+      function upsertProductJsonLd(product, images, name, price, unavailable) {
+        const productUrl = prodNo
+          ? `https://athoce.kr/detail.html?prodNo=${encodeURIComponent(prodNo)}`
+          : 'https://athoce.kr/detail.html';
+        const jsonLd = {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name,
+          image: images.map((imageUrl) => getOptimizedImwebImageUrl(imageUrl, 1200)),
+          description:
+            stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
+            `${name} product information mirrored from hooman.kr.`,
+          sku: String(pickFirst(product.prodNo, product.prodCode, prodNo, '')),
+          brand: {
+            '@type': 'Brand',
+            name: 'hooman.kr',
+          },
+          url: productUrl,
+          offers: {
+            '@type': 'Offer',
+            url: getOriginalProductUrl(product),
+            priceCurrency: 'KRW',
+            availability: unavailable
+              ? 'https://schema.org/OutOfStock'
+              : 'https://schema.org/InStock',
+          },
+        };
+
+        if (price) {
+          jsonLd.offers.price = String(price);
+        }
+
+        let script = document.querySelector('#productJsonLd');
+
+        if (!script) {
+          script = document.createElement('script');
+          script.type = 'application/ld+json';
+          script.id = 'productJsonLd';
+          document.head.append(script);
+        }
+
+        script.textContent = JSON.stringify(jsonLd);
+      }
+
+      function updateSeo(product, images, name, price, unavailable) {
+        const productUrl = prodNo
+          ? `https://athoce.kr/detail.html?prodNo=${encodeURIComponent(prodNo)}`
+          : 'https://athoce.kr/detail.html';
+        const description =
+          stripHtml(pickFirst(product.simpleContent, product.content, product.mobileContent, ''))
+            .slice(0, 150) || `${name} product information mirrored from hooman.kr.`;
+        const imageUrl = images[0] ? getOptimizedImwebImageUrl(images[0], 1200) : '';
+        const title = `${name} | athoce`;
+
+        document.title = title;
+        setMeta('meta[name="description"]', 'content', description);
+        setMeta('meta[property="og:title"]', 'content', title);
+        setMeta('meta[property="og:description"]', 'content', description);
+        setMeta('meta[property="og:url"]', 'content', productUrl);
+        setMeta('meta[name="twitter:title"]', 'content', title);
+        setMeta('meta[name="twitter:description"]', 'content', description);
+
+        if (imageUrl) {
+          let ogImage = document.head.querySelector('meta[property="og:image"]');
+          let twitterImage = document.head.querySelector('meta[name="twitter:image"]');
+
+          if (!ogImage) {
+            ogImage = document.createElement('meta');
+            ogImage.setAttribute('property', 'og:image');
+            document.head.append(ogImage);
+          }
+
+          if (!twitterImage) {
+            twitterImage = document.createElement('meta');
+            twitterImage.setAttribute('name', 'twitter:image');
+            document.head.append(twitterImage);
+          }
+
+          ogImage.setAttribute('content', imageUrl);
+          twitterImage.setAttribute('content', imageUrl);
+        }
+
+        document.querySelector('#canonicalUrl')?.setAttribute('href', productUrl);
+        upsertProductJsonLd(product, images, name, price, unavailable);
+      }
+
       function updateGalleryState(galleryWrap) {
         const gallery = galleryWrap.querySelector('.gallery');
         const controls = galleryWrap.querySelector('.gallery-controls');
@@ -445,6 +568,7 @@
         const price = getProductPrice(product);
         const unavailable = isUnavailable(product);
         const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
+        updateSeo(product, images, name, price, unavailable);
 
         const wrapper = document.createElement('div');
         wrapper.className = `product-layout${unavailable ? ' is-unavailable' : ''}`;
