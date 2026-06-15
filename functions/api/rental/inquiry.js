@@ -69,8 +69,9 @@ function buildInquiryMessage(payload) {
   return [
     '[athoce] rental availability inquiry',
     `time: ${new Date().toISOString()}`,
-    `organization: ${payload.organization}`,
+    `team / name: ${payload.teamName}`,
     `contact: ${payload.contactMethod} / ${payload.contact}`,
+    `purpose / schedule: ${payload.purposeSchedule}`,
     `items: ${payload.products.length}`,
     '',
     productLines,
@@ -168,16 +169,23 @@ export async function onRequestPost({ env, request }) {
 
   const contactMethod = clean(body?.contactMethod, 40).toLowerCase();
   const contact = clean(body?.contact, 160);
-  const organization = clean(body?.organization, 160);
+  const teamName = clean(body?.teamName || body?.organization, 160);
+  const purposeSchedule = clean(body?.purposeSchedule, 800);
   const products = normalizeProducts(body?.products, getOrigin(request));
 
-  if (!CONTACT_METHODS.has(contactMethod) || !contact || !organization || !products.length) {
+  if (
+    !CONTACT_METHODS.has(contactMethod) ||
+    !contact ||
+    !teamName ||
+    !purposeSchedule ||
+    !products.length
+  ) {
     return jsonResponse(
       {
         ok: false,
         error: {
           code: 'INVALID_INQUIRY',
-          message: 'contact and selected products are required.',
+          message: 'contact, purpose, schedule, and selected products are required.',
         },
       },
       400,
@@ -200,7 +208,8 @@ export async function onRequestPost({ env, request }) {
   const payload = {
     contactMethod,
     contact,
-    organization,
+    teamName,
+    purposeSchedule,
     products,
   };
   const message = buildInquiryMessage(payload);

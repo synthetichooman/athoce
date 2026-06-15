@@ -206,7 +206,8 @@
         accent-color: #111;
       }
 
-      .rental-inquiry-form input[type="text"] {
+      .rental-inquiry-form input[type="text"],
+      .rental-inquiry-form textarea {
         width: 100%;
         min-height: 36px;
         border: 1px solid #d8d8d8;
@@ -214,9 +215,15 @@
         padding: 8px 10px;
         font: inherit;
         font-size: 13px;
+        resize: vertical;
+      }
+
+      .rental-inquiry-form textarea {
+        min-height: 82px;
       }
 
       .rental-inquiry-form input:focus,
+      .rental-inquiry-form textarea:focus,
       .rental-gate input:focus {
         outline: none;
         border-color: #111;
@@ -518,8 +525,9 @@ please check each product detail for handling notes before use</p>
             <label><input type="radio" name="contactMethod" value="phone" /> phone</label>
             <label><input type="radio" name="contactMethod" value="email" /> email</label>
           </div>
-          <input id="inquiryOrganization" type="text" autocomplete="organization" placeholder="organization" />
+          <input id="inquiryTeamName" type="text" autocomplete="organization" placeholder="team / name" />
           <input id="inquiryContact" type="text" autocomplete="off" placeholder="contact" />
+          <textarea id="inquiryPurposeSchedule" placeholder="purpose / schedule"></textarea>
           <div class="rental-inquiry-submit">
             <button type="submit" id="inquirySubmit">send inquiry</button>
             <p id="inquiryStatus" class="rental-inquiry-status" aria-live="polite"></p>
@@ -557,8 +565,9 @@ please check each product detail for handling notes before use</p>
       const bundleToggleButton = document.querySelector('#bundleToggle');
       const bundleCountEl = document.querySelector('#bundleCount');
       const rentalInquiryForm = document.querySelector('#rentalInquiryForm');
-      const inquiryOrganizationEl = document.querySelector('#inquiryOrganization');
+      const inquiryTeamNameEl = document.querySelector('#inquiryTeamName');
       const inquiryContactEl = document.querySelector('#inquiryContact');
+      const inquiryPurposeScheduleEl = document.querySelector('#inquiryPurposeSchedule');
       const inquiryStatusEl = document.querySelector('#inquiryStatus');
       const inquirySubmitButton = document.querySelector('#inquirySubmit');
       const moreWrap = document.querySelector('#moreWrap');
@@ -1066,15 +1075,16 @@ please check each product detail for handling notes before use</p>
         const contactMethod = rentalInquiryForm.querySelector(
           'input[name="contactMethod"]:checked',
         )?.value;
-        const organization = inquiryOrganizationEl.value.trim();
+        const teamName = inquiryTeamNameEl.value.trim();
         const contact = inquiryContactEl.value.trim();
+        const purposeSchedule = inquiryPurposeScheduleEl.value.trim();
 
         if (!products.length) {
           inquiryStatusEl.textContent = 'select products';
           return;
         }
 
-        if (!organization || !contact) {
+        if (!teamName || !contact || !purposeSchedule) {
           inquiryStatusEl.textContent = 'add contact';
           return;
         }
@@ -1093,7 +1103,8 @@ please check each product detail for handling notes before use</p>
             body: JSON.stringify({
               contactMethod,
               contact,
-              organization,
+              teamName,
+              purposeSchedule,
               products: products.map((product) => ({
                 prodNo: getProductId(product),
                 name: getProductName(product),
