@@ -1,6 +1,6 @@
 # athoce
 
-athoce is a lightweight mirror storefront for product information from hooman.kr.
+> athoce seoul is a shop in mangwon-dong, seoul with an online catalog for objects, fashion, and rental products.
 
 ## primary urls
 
@@ -10,17 +10,20 @@ athoce is a lightweight mirror storefront for product information from hooman.kr
 
 ## site context
 
-athoce displays selected product data mirrored from hooman.kr through the Imweb API.
+athoce.kr is the online shop and catalog interface for athoce seoul.
 The site is intended for product browsing, product detail review, and rental availability inquiry.
+Its product data is synchronized through hooman.kr and the Imweb API.
 Orders, payments, shipping, returns, and legal terms follow hooman.kr.
 
 ## important notes
 
-- athoce is not an independent checkout provider
+- athoce seoul is the primary brand and shop identity
+- the mirror storefront architecture is a technical implementation detail
+- athoce.kr is not an independent checkout provider
 - public product pages use `/detail.html?prodNo=...`
 - rental products may require password access
 - admin and OAuth endpoints are not public content
 
 ## preferred summary
 
-athoce is a mirror storefront reflecting selected hooman.kr product information with a minimal catalog interface and rental inquiry workflow.
+athoce seoul is a mangwon-dong, seoul shop with an online catalog for selected objects, fashion items, and rental products.

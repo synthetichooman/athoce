@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="athoce product detail. product information is mirrored from hooman.kr."
+      content="product detail from athoce seoul, a shop in mangwon-dong, seoul."
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
@@ -17,13 +17,17 @@
     <meta property="og:title" content="athoce product" />
     <meta
       property="og:description"
-      content="product information mirrored from hooman.kr"
+      content="product detail from athoce seoul, a shop in mangwon-dong, seoul"
     />
+    <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://athoce.kr/detail.html" />
     <meta property="og:locale" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="athoce product" />
-    <meta name="twitter:description" content="product information mirrored from hooman.kr" />
+    <meta name="twitter:description" content="product detail from athoce seoul" />
+    <meta name="twitter:image" content="https://athoce.kr/assets/athoce-og.png" />
     <title>athoce product</title>
     <style>
       :root {
@@ -427,11 +431,11 @@
           image: images.map((imageUrl) => getOptimizedImwebImageUrl(imageUrl, 1200)),
           description:
             stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
-            `${name} product information mirrored from hooman.kr.`,
+            `${name} product detail from athoce seoul.`,
           sku: String(pickFirst(product.prodNo, product.prodCode, prodNo, '')),
           brand: {
             '@type': 'Brand',
-            name: 'hooman.kr',
+            name: 'athoce seoul',
           },
           url: productUrl,
           offers: {
@@ -466,7 +470,7 @@
           : 'https://athoce.kr/detail.html';
         const description =
           stripHtml(pickFirst(product.simpleContent, product.content, product.mobileContent, ''))
-            .slice(0, 150) || `${name} product information mirrored from hooman.kr.`;
+            .slice(0, 150) || `${name} product detail from athoce seoul.`;
         const imageUrl = images[0] ? getOptimizedImwebImageUrl(images[0], 1200) : '';
         const title = `${name} | athoce`;
 
