@@ -79,6 +79,26 @@
           transform 160ms ease;
       }
 
+      .site-footer {
+        width: min(1440px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 18px 0 28px;
+        border-top: 1px solid #000;
+        color: #555;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .site-footer p {
+        max-width: 760px;
+        margin: 0;
+      }
+
+      .site-footer a {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
       .filter-top {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -448,7 +468,8 @@
 
       @media (max-width: 560px) {
         .site-header-inner,
-        main {
+        main,
+        .site-footer {
           width: calc(100% - 20px);
         }
 
@@ -539,6 +560,13 @@ please check each product detail for handling notes before use</p>
         <button type="button" id="loadMore">더 보기</button>
       </div>
     </main>
+    <footer class="site-footer">
+      <p>
+        athoce는 <a href="https://hooman.kr" target="_blank" rel="noopener">hooman.kr</a>의 상품 정보를
+        비추는 미러 스토어입니다. 상품, 주문, 결제, 배송, 환불 및 이용 조건에 관한 모든 기준은
+        hooman.kr의 약관과 정책을 따릅니다.
+      </p>
+    </footer>
     <div id="rentalGate" class="rental-gate" hidden>
       <form id="rentalGateForm">
         <label for="rentalPassword">password required</label>
