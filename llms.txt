@@ -1,6 +1,6 @@
 # athoce
 
-> athoce seoul is a shop in mangwon-dong, seoul with an online catalog for objects, fashion, and rental products.
+> aategois, hooman, cementbay as athoce, in seoul.
 
 ## primary urls
 
@@ -26,4 +26,4 @@ Orders, payments, shipping, returns, and legal terms follow hooman.kr.
 
 ## preferred summary
 
-athoce seoul is a mangwon-dong, seoul shop with an online catalog for selected objects, fashion items, and rental products.
+aategois, hooman, cementbay as athoce, in seoul.
