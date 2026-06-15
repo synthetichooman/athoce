@@ -3,7 +3,7 @@ import { getAdminConfig } from '../_config.js';
 import { RENTAL_CATEGORY_CODE, isRentalAuthorized } from '../_rental.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
-const EDGE_CACHE_SECONDS = 300;
+const EDGE_CACHE_SECONDS = 120;
 const ATHOCE_CATEGORY_CODES = [
   's202606130219c191c0d3e',
   's20260613114d8f3179b7b',
@@ -15,7 +15,7 @@ const PRODUCT_STATUS_QUERIES = ['sale', 'soldout'];
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'public, max-age=60, s-maxage=300',
+  'cache-control': 'public, max-age=60, s-maxage=120',
 };
 
 function jsonResponse(body, status = 200, extraHeaders = {}) {

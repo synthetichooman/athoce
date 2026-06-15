@@ -1,3 +1,5 @@
+import { sendThrottledTelegramAlert } from './_telegram.js';
+
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
 export const TOKEN_STORAGE_KEY = 'imweb_tokens';
@@ -90,7 +92,11 @@ function shouldRefreshBeforeRequest(storedTokens) {
 }
 
 async function recordRefreshFailure(env, error) {
+  const sanitizedError = sanitizeRefreshError(error);
+  const failedAt = new Date().toISOString();
+
   if (!env.ATHOCE_KV) {
+    await notifyRefreshFailure(env, sanitizedError, failedAt);
     return false;
   }
 
@@ -100,12 +106,34 @@ async function recordRefreshFailure(env, error) {
     TOKEN_STORAGE_KEY,
     JSON.stringify({
       ...current,
-      lastRefreshFailedAt: new Date().toISOString(),
-      lastRefreshError: sanitizeRefreshError(error),
+      lastRefreshFailedAt: failedAt,
+      lastRefreshError: sanitizedError,
     }),
   );
 
+  await notifyRefreshFailure(env, sanitizedError, failedAt);
+
   return true;
+}
+
+async function notifyRefreshFailure(env, error, failedAt) {
+  try {
+    await sendThrottledTelegramAlert(
+      env,
+      `imweb_refresh:${error.code}`,
+      [
+        '[athoce] imweb token refresh failed',
+        `time: ${failedAt}`,
+        `code: ${error.code}`,
+        `message: ${error.message}`,
+        '',
+        'admin: https://athoce.kr/admin.html',
+        'reauthorize: https://athoce.kr/api/oauth/start',
+      ].join('\n'),
+    );
+  } catch {
+    // Alert delivery must never break product loading or token recovery flows.
+  }
 }
 
 export async function storeImwebTokens(env, tokens) {

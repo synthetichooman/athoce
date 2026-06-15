@@ -377,6 +377,7 @@
             </dl>
             <div class="actions">
               <button id="refreshToken" class="secondary" type="button">refresh test</button>
+              <button id="telegramTest" class="secondary" type="button">telegram test</button>
               <button class="secondary" type="button" data-reconnect-imweb>reconnect imweb</button>
             </div>
           </section>
@@ -398,6 +399,7 @@
       const reloadButton = document.querySelector('#reload');
       const tokenHealthEl = document.querySelector('#tokenHealth');
       const refreshTokenButton = document.querySelector('#refreshToken');
+      const telegramTestButton = document.querySelector('#telegramTest');
       const reconnectImwebButtons = document.querySelectorAll('[data-reconnect-imweb]');
 
       function setStatus(message, isError = false) {
@@ -783,6 +785,25 @@
         }
       }
 
+      async function testTelegram() {
+        setStatus('텔레그램 테스트 메시지를 보내는 중입니다.');
+        telegramTestButton.disabled = true;
+
+        try {
+          await fetchJson('/api/admin/telegram-test', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+            },
+          });
+          setStatus('텔레그램 테스트 메시지를 보냈습니다.');
+        } catch (error) {
+          handleSessionError(error);
+        } finally {
+          telegramTestButton.disabled = false;
+        }
+      }
+
       function reconnectImweb() {
         window.location.href = '/api/oauth/start';
       }
@@ -792,6 +813,7 @@
       saveButton.addEventListener('click', save);
       reloadButton.addEventListener('click', load);
       refreshTokenButton.addEventListener('click', refreshToken);
+      telegramTestButton.addEventListener('click', testTelegram);
       reconnectImwebButtons.forEach((button) => {
         button.addEventListener('click', reconnectImweb);
       });

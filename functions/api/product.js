@@ -8,7 +8,7 @@ function jsonResponse(body, status = 200) {
     status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
-      'cache-control': status === 200 ? 'public, max-age=60, s-maxage=300' : 'no-store',
+      'cache-control': status === 200 ? 'public, max-age=60, s-maxage=120' : 'no-store',
     },
   });
 }
