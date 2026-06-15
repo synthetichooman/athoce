@@ -157,6 +157,72 @@
         white-space: pre-line;
       }
 
+      .rental-inquiry {
+        display: grid;
+        gap: 12px;
+        margin: -8px 0 28px;
+        color: #555;
+        font-size: 13px;
+      }
+
+      .rental-inquiry[hidden],
+      .rental-inquiry-form[hidden] {
+        display: none;
+      }
+
+      .rental-inquiry-actions,
+      .rental-contact-methods,
+      .rental-inquiry-submit {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+
+      .rental-bundle-count,
+      .rental-inquiry-status {
+        min-height: 16px;
+        margin: 0;
+        color: #777;
+        font-size: 13px;
+        line-height: 1.25;
+      }
+
+      .rental-inquiry-form {
+        display: grid;
+        gap: 10px;
+        width: min(520px, 100%);
+      }
+
+      .rental-contact-methods label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #555;
+        text-transform: lowercase;
+      }
+
+      .rental-contact-methods input {
+        accent-color: #111;
+      }
+
+      .rental-inquiry-form input[type="text"] {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid #d8d8d8;
+        border-radius: 0;
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .rental-inquiry-form input:focus,
+      .rental-gate input:focus {
+        outline: none;
+        border-color: #111;
+        box-shadow: none;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -174,6 +240,11 @@
       .product.is-unavailable .thumb img {
         filter: blur(7px) grayscale(0.28);
         transform: scale(1.032);
+      }
+
+      .product.is-selected .thumb {
+        outline: 1px solid #111;
+        outline-offset: -1px;
       }
 
       .thumb {
@@ -195,6 +266,35 @@
 
       .thumb img + img {
         opacity: 0;
+      }
+
+      .rental-select {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 2;
+        display: none;
+        width: 22px;
+        height: 22px;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .product.is-bundle-selectable .rental-select {
+        display: inline-flex;
+      }
+
+      .rental-select input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: #111;
+      }
+
+      .rental-select input:focus {
+        outline: none;
+        box-shadow: none;
       }
 
       @media (hover: hover) and (pointer: fine) {
@@ -345,6 +445,30 @@
           width: calc(100% - 20px);
         }
 
+        .rental-gate {
+          align-items: start;
+          padding: 72px 12px 16px;
+        }
+
+        .rental-gate form {
+          width: min(280px, calc(100vw - 32px));
+          gap: 10px;
+          padding: 14px;
+        }
+
+        .rental-gate input {
+          min-height: 34px;
+        }
+
+        .rental-gate-actions {
+          justify-content: stretch;
+        }
+
+        .rental-gate-actions button {
+          flex: 1;
+          padding: 0 8px;
+        }
+
         .grid {
           grid-template-columns: 1fr;
           gap: 32px;
@@ -383,6 +507,25 @@ rental items are not for sale
 some rental items may be damaged
 please check each product detail for handling notes before use</p>
       </section>
+      <section id="rentalInquiry" class="rental-inquiry" aria-label="rental inquiry" hidden>
+        <div class="rental-inquiry-actions">
+          <button type="button" id="bundleToggle">make bundle</button>
+          <p id="bundleCount" class="rental-bundle-count" aria-live="polite"></p>
+        </div>
+        <form id="rentalInquiryForm" class="rental-inquiry-form" hidden>
+          <div class="rental-contact-methods" aria-label="contact method">
+            <label><input type="radio" name="contactMethod" value="instagram" checked /> instagram</label>
+            <label><input type="radio" name="contactMethod" value="phone" /> phone</label>
+            <label><input type="radio" name="contactMethod" value="email" /> email</label>
+          </div>
+          <input id="inquiryOrganization" type="text" autocomplete="organization" placeholder="organization" />
+          <input id="inquiryContact" type="text" autocomplete="off" placeholder="contact" />
+          <div class="rental-inquiry-submit">
+            <button type="submit" id="inquirySubmit">send inquiry</button>
+            <p id="inquiryStatus" class="rental-inquiry-status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
       <section id="products" class="grid" aria-label="상품 목록"></section>
       <div class="more" id="moreWrap" hidden>
         <button type="button" id="loadMore">더 보기</button>
@@ -390,7 +533,7 @@ please check each product detail for handling notes before use</p>
     </main>
     <div id="rentalGate" class="rental-gate" hidden>
       <form id="rentalGateForm">
-        <label for="rentalPassword">rental password</label>
+        <label for="rentalPassword">password required</label>
         <input id="rentalPassword" type="password" autocomplete="current-password" />
         <p id="rentalGateStatus" aria-live="polite"></p>
         <div class="rental-gate-actions">
@@ -410,6 +553,14 @@ please check each product detail for handling notes before use</p>
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
       const rentalDisclaimerEl = document.querySelector('#rentalDisclaimer');
+      const rentalInquiryEl = document.querySelector('#rentalInquiry');
+      const bundleToggleButton = document.querySelector('#bundleToggle');
+      const bundleCountEl = document.querySelector('#bundleCount');
+      const rentalInquiryForm = document.querySelector('#rentalInquiryForm');
+      const inquiryOrganizationEl = document.querySelector('#inquiryOrganization');
+      const inquiryContactEl = document.querySelector('#inquiryContact');
+      const inquiryStatusEl = document.querySelector('#inquiryStatus');
+      const inquirySubmitButton = document.querySelector('#inquirySubmit');
       const moreWrap = document.querySelector('#moreWrap');
       const loadMoreButton = document.querySelector('#loadMore');
       const categoryFiltersEl = document.querySelector('#categoryFilters');
@@ -428,6 +579,8 @@ please check each product detail for handling notes before use</p>
       let activeCategoryCode = '';
       let pendingRentalCategoryCode = '';
       let lockedCategoryCodes = new Set();
+      let bundleMode = false;
+      let selectedRentalProductIds = new Set();
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -597,6 +750,48 @@ please check each product detail for handling notes before use</p>
         return lockedCategoryCodes.has(String(categoryCode));
       }
 
+      function isRentalCategoryActive() {
+        return activeCategoryCode === RENTAL_CATEGORY_CODE;
+      }
+
+      function getSelectedRentalProducts() {
+        return allProductsState.filter((product) => {
+          const productId = String(getProductId(product) || '');
+          return productId && selectedRentalProductIds.has(productId);
+        });
+      }
+
+      function syncRentalInquiryUi() {
+        const rentalActive = isRentalCategoryActive();
+        rentalInquiryEl.hidden = !rentalActive;
+
+        if (!rentalActive) {
+          bundleMode = false;
+          selectedRentalProductIds.clear();
+        }
+
+        rentalInquiryForm.hidden = !bundleMode;
+        bundleToggleButton.textContent = bundleMode ? 'cancel bundle' : 'make bundle';
+
+        const selectedCount = getSelectedRentalProducts().length;
+        bundleCountEl.textContent = bundleMode ? `${selectedCount} selected` : '';
+        inquirySubmitButton.disabled = selectedCount < 1;
+      }
+
+      function toggleRentalProduct(product) {
+        const productId = String(getProductId(product) || '');
+
+        if (!productId) {
+          return;
+        }
+
+        if (selectedRentalProductIds.has(productId)) {
+          selectedRentalProductIds.delete(productId);
+        } else {
+          selectedRentalProductIds.add(productId);
+        }
+      }
+
       function showRentalGate(categoryCode) {
         pendingRentalCategoryCode = categoryCode;
         rentalGate.hidden = false;
@@ -628,6 +823,8 @@ please check each product detail for handling notes before use</p>
           'product',
           unavailable && display.blurUnavailable !== false ? 'is-unavailable' : '',
           hoverImageUrl && hoverImageUrl !== imageUrl ? 'has-hover-image' : '',
+          bundleMode && isRentalCategoryActive() ? 'is-bundle-selectable' : '',
+          selectedRentalProductIds.has(String(getProductId(product) || '')) ? 'is-selected' : '',
         ]
           .filter(Boolean)
           .join(' ');
@@ -658,6 +855,36 @@ please check each product detail for handling notes before use</p>
             hoverImage.decoding = 'async';
             thumb.append(hoverImage);
           }
+        }
+
+        if (bundleMode && isRentalCategoryActive()) {
+          const productId = String(getProductId(product) || '');
+          const selectLabel = document.createElement('label');
+          const selectInput = document.createElement('input');
+          selectLabel.className = 'rental-select';
+          selectInput.type = 'checkbox';
+          selectInput.checked = productId ? selectedRentalProductIds.has(productId) : false;
+          selectInput.setAttribute('aria-label', `select ${name}`);
+          selectLabel.addEventListener('click', (event) => {
+            event.stopPropagation();
+          });
+          selectInput.addEventListener('change', (event) => {
+            event.stopPropagation();
+            toggleRentalProduct(product);
+            link.classList.toggle('is-selected', selectInput.checked);
+            syncRentalInquiryUi();
+          });
+          selectLabel.append(selectInput);
+          thumb.append(selectLabel);
+
+          link.addEventListener('click', (event) => {
+            event.preventDefault();
+            toggleRentalProduct(product);
+            const selected = selectedRentalProductIds.has(productId);
+            selectInput.checked = selected;
+            link.classList.toggle('is-selected', selected);
+            syncRentalInquiryUi();
+          });
         }
 
         const info = document.createElement('div');
@@ -722,7 +949,8 @@ please check each product detail for handling notes before use</p>
 
       function applyFilters() {
         const excludeUnavailable = excludeUnavailableEl.checked;
-        rentalDisclaimerEl.hidden = activeCategoryCode !== RENTAL_CATEGORY_CODE;
+        const rentalActive = isRentalCategoryActive();
+        rentalDisclaimerEl.hidden = !rentalActive;
 
         productsState = allProductsState.filter((product) => {
           return (
@@ -730,6 +958,7 @@ please check each product detail for handling notes before use</p>
             (!excludeUnavailable || !isUnavailable(product))
           );
         });
+        syncRentalInquiryUi();
         renderCategoryFilters();
 
         productGrid.innerHTML = '';
@@ -821,6 +1050,75 @@ please check each product detail for handling notes before use</p>
 
       loadMoreButton.addEventListener('click', renderNextBatch);
       excludeUnavailableEl.addEventListener('change', applyFilters);
+      bundleToggleButton.addEventListener('click', () => {
+        bundleMode = !bundleMode;
+
+        if (!bundleMode) {
+          selectedRentalProductIds.clear();
+          inquiryStatusEl.textContent = '';
+        }
+
+        applyFilters();
+      });
+      rentalInquiryForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const products = getSelectedRentalProducts();
+        const contactMethod = rentalInquiryForm.querySelector(
+          'input[name="contactMethod"]:checked',
+        )?.value;
+        const organization = inquiryOrganizationEl.value.trim();
+        const contact = inquiryContactEl.value.trim();
+
+        if (!products.length) {
+          inquiryStatusEl.textContent = 'select products';
+          return;
+        }
+
+        if (!organization || !contact) {
+          inquiryStatusEl.textContent = 'add contact';
+          return;
+        }
+
+        inquiryStatusEl.textContent = 'sending';
+        inquirySubmitButton.disabled = true;
+
+        try {
+          const response = await fetch('/api/rental/inquiry', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              contactMethod,
+              contact,
+              organization,
+              products: products.map((product) => ({
+                prodNo: getProductId(product),
+                name: getProductName(product),
+                price: getProductPrice(product),
+                detailUrl: getDetailUrl(product),
+              })),
+            }),
+          });
+          const text = await response.text();
+          const payload = text ? JSON.parse(text) : {};
+
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload?.error?.message || 'send failed');
+          }
+
+          inquiryStatusEl.textContent = payload.email?.sent ? 'sent' : 'sent to telegram';
+          selectedRentalProductIds.clear();
+          bundleMode = false;
+          rentalInquiryForm.reset();
+          applyFilters();
+        } catch (error) {
+          inquiryStatusEl.textContent = formatDisplayText(error.message);
+          syncRentalInquiryUi();
+        }
+      });
       rentalGateCancelButton.addEventListener('click', hideRentalGate);
       rentalGateForm.addEventListener('submit', async (event) => {
         event.preventDefault();
