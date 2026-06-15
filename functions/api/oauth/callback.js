@@ -204,6 +204,7 @@ export async function onRequestGet({ env, request }) {
     accessToken,
     refreshToken,
     scope: payload?.data?.scope || payload?.scope,
+    expiresAt: '',
   });
 
   return htmlResponse(

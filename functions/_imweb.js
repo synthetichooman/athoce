@@ -136,6 +136,33 @@ async function notifyRefreshFailure(env, error, failedAt) {
   }
 }
 
+async function reuseUpdatedTokensAfterRefreshRace(env, previousTokens) {
+  if (!env.ATHOCE_KV) {
+    return null;
+  }
+
+  const latestTokens = await getStoredImwebTokens(env);
+  const tokenChanged =
+    latestTokens.updatedAt &&
+    latestTokens.updatedAt !== previousTokens.updatedAt &&
+    latestTokens.accessToken &&
+    latestTokens.refreshToken;
+
+  if (!tokenChanged) {
+    return null;
+  }
+
+  return {
+    ok: true,
+    accessToken: latestTokens.accessToken,
+    refreshToken: latestTokens.refreshToken,
+    scope: latestTokens.scope,
+    expiresAt: latestTokens.expiresAt,
+    storedInKv: true,
+    reusedConcurrentRefresh: true,
+  };
+}
+
 export async function storeImwebTokens(env, tokens) {
   if (!env.ATHOCE_KV) {
     return false;
@@ -195,6 +222,12 @@ export async function refreshImwebToken(env) {
   const accessToken = payload?.data?.accessToken || payload?.accessToken;
 
   if (!response.ok || !accessToken) {
+    const reusedTokens = await reuseUpdatedTokensAfterRefreshRace(env, storedTokens);
+
+    if (reusedTokens) {
+      return reusedTokens;
+    }
+
     const error = payload?.error || {
       code: payload?.statusCode || response.status,
       message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',

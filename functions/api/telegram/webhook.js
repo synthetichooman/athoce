@@ -101,9 +101,10 @@ async function handleCommand(env, command) {
         ? '[athoce] imweb token refresh succeeded'
         : '[athoce] imweb token refresh failed',
       refreshed.ok ? `storedInKv: ${refreshed.storedInKv ? 'yes' : 'no'}` : `error: ${refreshed.error?.message || '-'}`,
+      refreshed.ok ? `reusedConcurrentRefresh: ${refreshed.reusedConcurrentRefresh ? 'yes' : 'no'}` : '',
       '',
       formatHealth(health),
-    ].join('\n');
+    ].filter((line) => line !== '').join('\n');
   }
 
   if (command === '/reauth') {
