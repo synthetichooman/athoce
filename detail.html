@@ -9,7 +9,7 @@
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
-    <link id="canonicalUrl" rel="canonical" href="https://athoce.kr/detail.html" />
+    <link id="canonicalUrl" rel="canonical" href="https://athoce.kr/detail" />
     <link rel="preconnect" href="https://cdn-optimized.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn-optimized.imweb.me" />
     <meta property="og:type" content="product" />
@@ -22,7 +22,7 @@
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url" content="https://athoce.kr/detail.html" />
+    <meta property="og:url" content="https://athoce.kr/detail" />
     <meta property="og:locale" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="athoce product" />
@@ -305,8 +305,8 @@
   <body>
     <header class="site-header">
       <div class="site-header-inner">
-        <a class="brand" href="./" aria-label="athoce home">
-          <img src="assets/athoce-symbol.svg" alt="" />
+        <a class="brand" href="/" aria-label="athoce home">
+          <img src="/assets/athoce-symbol.svg" alt="" />
         </a>
       </div>
     </header>
@@ -417,8 +417,8 @@
 
       function upsertProductJsonLd(product, images, name, price, unavailable) {
         const productUrl = prodNo
-          ? `https://athoce.kr/detail.html?prodNo=${encodeURIComponent(prodNo)}`
-          : 'https://athoce.kr/detail.html';
+          ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
+          : 'https://athoce.kr/detail';
         const jsonLd = {
           '@context': 'https://schema.org',
           '@type': 'Product',
@@ -461,8 +461,8 @@
 
       function updateSeo(product, images, name, price, unavailable) {
         const productUrl = prodNo
-          ? `https://athoce.kr/detail.html?prodNo=${encodeURIComponent(prodNo)}`
-          : 'https://athoce.kr/detail.html';
+          ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
+          : 'https://athoce.kr/detail';
         const description =
           stripHtml(pickFirst(product.simpleContent, product.content, product.mobileContent, ''))
             .slice(0, 150) || `${name} product detail from athoce seoul.`;

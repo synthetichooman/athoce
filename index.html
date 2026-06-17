@@ -573,8 +573,8 @@
   <body>
     <header class="site-header">
       <div class="site-header-inner">
-        <a class="brand" href="./" aria-label="athoce home">
-          <img src="assets/athoce-symbol.svg" alt="" />
+        <a class="brand" href="/" aria-label="athoce home">
+          <img src="/assets/athoce-symbol.svg" alt="" />
         </a>
       </div>
     </header>
@@ -919,7 +919,7 @@ please check each product detail for handling notes before use</p>
 
       function getDetailUrl(product) {
         const productId = getProductId(product);
-        return productId ? `detail.html?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
+        return productId ? `/detail?prodNo=${encodeURIComponent(productId)}` : ORIGINAL_SHOP_BASE_URL;
       }
 
       function renderProduct(product, display = {}, index = 0) {
