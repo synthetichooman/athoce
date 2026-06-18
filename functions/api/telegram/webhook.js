@@ -57,6 +57,18 @@ function formatExpiresIn(seconds) {
   return `${minutes}m`;
 }
 
+function formatDuration(seconds) {
+  if (seconds === null || seconds === undefined) {
+    return 'unknown';
+  }
+
+  if (seconds < 60) {
+    return `${Math.max(0, seconds)}s`;
+  }
+
+  return formatExpiresIn(seconds);
+}
+
 function formatHealth(health = {}) {
   return [
     '[athoce] imweb token status',
@@ -64,6 +76,8 @@ function formatHealth(health = {}) {
     `source: ${health.tokenSource || '-'}`,
     `accessToken: ${health.hasAccessToken ? 'present' : 'missing'}`,
     `refreshToken: ${health.hasRefreshToken ? 'present' : 'missing'}`,
+    `refreshedAgo: ${formatDuration(health.refreshedAgoSeconds)}`,
+    `refreshInterval: ${formatDuration(health.refreshIntervalSeconds)}`,
     `expiresIn: ${formatExpiresIn(health.expiresInSeconds)}`,
     `expiresAt: ${formatDateTime(health.expiresAt)}`,
     `updatedAt: ${formatDateTime(health.updatedAt)}`,

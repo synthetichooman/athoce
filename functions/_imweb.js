@@ -3,6 +3,7 @@ import { sendThrottledTelegramAlert } from './_telegram.js';
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
 export const TOKEN_STORAGE_KEY = 'imweb_tokens';
+const TOKEN_REFRESH_INTERVAL_SECONDS = 60 * 60;
 const TOKEN_REFRESH_BUFFER_SECONDS = 60 * 10;
 
 export function clean(value, fallback = '') {
@@ -78,7 +79,21 @@ function getTokenExpiresAt(payload) {
 }
 
 function shouldRefreshBeforeRequest(storedTokens) {
-  if (!storedTokens.refreshToken || !storedTokens.expiresAt) {
+  if (!storedTokens.refreshToken) {
+    return false;
+  }
+
+  const updatedAt = storedTokens.updatedAt ? new Date(storedTokens.updatedAt).getTime() : 0;
+
+  if (Number.isFinite(updatedAt) && updatedAt > 0) {
+    if (Date.now() - updatedAt >= TOKEN_REFRESH_INTERVAL_SECONDS * 1000) {
+      return true;
+    }
+  } else if (storedTokens.source === 'kv') {
+    return true;
+  }
+
+  if (!storedTokens.expiresAt) {
     return false;
   }
 
@@ -339,8 +354,12 @@ export async function fetchImwebJson(env, url, init = {}) {
 export async function getImwebTokenHealth(env) {
   const storedTokens = await getStoredImwebTokens(env);
   const expiresAtTime = storedTokens.expiresAt ? new Date(storedTokens.expiresAt).getTime() : 0;
+  const updatedAtTime = storedTokens.updatedAt ? new Date(storedTokens.updatedAt).getTime() : 0;
   const expiresInSeconds = storedTokens.expiresAt && Number.isFinite(expiresAtTime)
     ? Math.floor((expiresAtTime - Date.now()) / 1000)
+    : null;
+  const refreshedAgoSeconds = storedTokens.updatedAt && Number.isFinite(updatedAtTime)
+    ? Math.floor((Date.now() - updatedAtTime) / 1000)
     : null;
 
   return {
@@ -350,6 +369,8 @@ export async function getImwebTokenHealth(env) {
     hasRefreshToken: Boolean(storedTokens.refreshToken),
     tokenSource: storedTokens.source,
     updatedAt: storedTokens.updatedAt,
+    refreshedAgoSeconds,
+    refreshIntervalSeconds: TOKEN_REFRESH_INTERVAL_SECONDS,
     expiresAt: storedTokens.expiresAt,
     expiresInSeconds,
     refreshRecommended: shouldRefreshBeforeRequest(storedTokens),
