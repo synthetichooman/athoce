@@ -106,12 +106,15 @@ function shouldRefreshBeforeRequest(storedTokens) {
   return expiresAt - Date.now() <= TOKEN_REFRESH_BUFFER_SECONDS * 1000;
 }
 
-async function recordRefreshFailure(env, error) {
+async function recordRefreshFailure(env, error, options = {}) {
+  const shouldNotify = options.notify !== false;
   const sanitizedError = sanitizeRefreshError(error);
   const failedAt = new Date().toISOString();
 
   if (!env.ATHOCE_KV) {
-    await notifyRefreshFailure(env, sanitizedError, failedAt);
+    if (shouldNotify) {
+      await notifyRefreshFailure(env, sanitizedError, failedAt);
+    }
     return false;
   }
 
@@ -126,7 +129,9 @@ async function recordRefreshFailure(env, error) {
     }),
   );
 
-  await notifyRefreshFailure(env, sanitizedError, failedAt);
+  if (shouldNotify) {
+    await notifyRefreshFailure(env, sanitizedError, failedAt);
+  }
 
   return true;
 }
@@ -200,7 +205,8 @@ export async function storeImwebTokens(env, tokens) {
   return true;
 }
 
-export async function refreshImwebToken(env) {
+export async function refreshImwebToken(env, options = {}) {
+  const shouldNotifyFailure = options.notifyFailure !== false;
   const clientId = clean(env.IMWEB_CLIENT_ID, DEFAULT_CLIENT_ID);
   const clientSecret = clean(env.IMWEB_CLIENT_SECRET);
   const storedTokens = await getStoredImwebTokens(env);
@@ -211,7 +217,7 @@ export async function refreshImwebToken(env) {
       code: 'MISSING_REFRESH_CONFIG',
       message: 'IMWEB_CLIENT_SECRET 또는 IMWEB_REFRESH_TOKEN 환경변수가 없습니다.',
     };
-    await recordRefreshFailure(env, error);
+    await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
 
     return {
       ok: false,
@@ -247,7 +253,7 @@ export async function refreshImwebToken(env) {
       code: payload?.statusCode || response.status,
       message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
     };
-    await recordRefreshFailure(env, error);
+    await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
 
     return {
       ok: false,
@@ -275,7 +281,7 @@ export async function fetchImwebJson(env, url, init = {}) {
   let preemptiveRefresh = null;
 
   if (shouldRefreshBeforeRequest(storedTokens)) {
-    preemptiveRefresh = await refreshImwebToken(env);
+    preemptiveRefresh = await refreshImwebToken(env, { notifyFailure: false });
 
     if (preemptiveRefresh.ok) {
       storedTokens = await getStoredImwebTokens(env);
