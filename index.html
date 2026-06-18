@@ -1178,20 +1178,6 @@ please check each product detail for handling notes before use</p>
         updateStatus();
       }
 
-      function isTokenLikeError(error) {
-        const message = String(error?.message || '').toLowerCase();
-        const code = String(error?.code || '').toLowerCase();
-        return (
-          code.includes('token') ||
-          code.includes('auth') ||
-          message.includes('token') ||
-          message.includes('토큰') ||
-          message.includes('유효하지') ||
-          message.includes('access') ||
-          message.includes('authorization')
-        );
-      }
-
       function renderLoadError(error) {
         statusEl.textContent = '';
         productGrid.className = '';
@@ -1203,39 +1189,37 @@ please check each product detail for handling notes before use</p>
         message.textContent = formatDisplayText(error.message || '상품을 불러오지 못했습니다.');
         wrapper.append(message);
 
-        if (isTokenLikeError(error)) {
-          const actions = document.createElement('div');
-          const retryButton = document.createElement('button');
-          actions.className = 'error-actions';
-          retryButton.type = 'button';
-          retryButton.textContent = 'retry sync';
-          retryButton.addEventListener('click', async () => {
-            retryButton.disabled = true;
-            retryButton.textContent = 'syncing';
+        const actions = document.createElement('div');
+        const retryButton = document.createElement('button');
+        actions.className = 'error-actions';
+        retryButton.type = 'button';
+        retryButton.textContent = 'retry sync';
+        retryButton.addEventListener('click', async () => {
+          retryButton.disabled = true;
+          retryButton.textContent = 'syncing';
 
-            try {
-              const response = await fetch('/api/oauth/refresh-public', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { accept: 'application/json' },
-              });
-              const text = await response.text();
-              const payload = text ? JSON.parse(text) : {};
+          try {
+            const response = await fetch('/api/oauth/refresh-public', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { accept: 'application/json' },
+            });
+            const text = await response.text();
+            const payload = text ? JSON.parse(text) : {};
 
-              if (!response.ok || !payload.ok) {
-                throw new Error(payload?.error?.message || 'sync retry failed.');
-              }
-
-              await loadProducts({ bypassCache: true });
-            } catch (syncError) {
-              retryButton.disabled = false;
-              retryButton.textContent = 'retry sync';
-              message.textContent = formatDisplayText(syncError.message || 'sync retry failed.');
+            if (!response.ok || !payload.ok) {
+              throw new Error(payload?.error?.message || 'sync retry failed.');
             }
-          });
-          actions.append(retryButton);
-          wrapper.append(actions);
-        }
+
+            await loadProducts({ bypassCache: true });
+          } catch (syncError) {
+            retryButton.disabled = false;
+            retryButton.textContent = 'retry sync';
+            message.textContent = formatDisplayText(syncError.message || 'sync retry failed.');
+          }
+        });
+        actions.append(retryButton);
+        wrapper.append(actions);
 
         productGrid.replaceChildren(wrapper);
       }

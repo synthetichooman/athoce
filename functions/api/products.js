@@ -348,9 +348,12 @@ export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
-  const configuredHomeCategoryCodes = adminConfig.categoryCodes.length
-    ? adminConfig.categoryCodes.map(String)
-    : ATHOCE_CATEGORY_CODES;
+  const configuredHomeCategoryCodes = [
+    ...new Set([
+      ...ATHOCE_CATEGORY_CODES,
+      ...adminConfig.categoryCodes.map(String),
+    ]),
+  ];
   const visibleCategoryCodes = rentalAuthorized
     ? configuredHomeCategoryCodes
     : configuredHomeCategoryCodes.filter((categoryCode) => categoryCode !== RENTAL_CATEGORY_CODE);
