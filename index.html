@@ -442,6 +442,32 @@
         color: #b3261e;
       }
 
+      .error-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .error-actions button {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #111;
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        text-transform: lowercase;
+      }
+
+      .error-actions button:disabled {
+        border-color: #d8d8d8;
+        background: #f4f4f4;
+        color: #8a8a8a;
+        cursor: default;
+      }
+
       .more {
         display: flex;
         justify-content: center;
@@ -656,7 +682,7 @@ please check each product detail for handling notes before use</p>
       const INITIAL_RENDER_COUNT = 18;
       const RENDER_BATCH_SIZE = 24;
       const HIGH_PRIORITY_IMAGE_COUNT = 8;
-      const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'athoce made'];
+      const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'archive', 'vault', 'log', 'athoce made'];
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
       const rentalDisclaimerEl = document.querySelector('#rentalDisclaimer');
@@ -862,6 +888,24 @@ please check each product detail for handling notes before use</p>
         return activeCategoryCode === RENTAL_CATEGORY_CODE;
       }
 
+      function getCategoryByCode(categoryCode) {
+        return categoriesState.find((category) => category.categoryCode === categoryCode) || null;
+      }
+
+      function isArchiveCategory(category) {
+        const normalizedName = normalizeCategoryName(category?.name);
+        return ['archive', 'vault', 'log'].some((keyword) => normalizedName.includes(keyword));
+      }
+
+      function productIsInArchive(product) {
+        const categories = Array.isArray(product.categories) ? product.categories.map(String) : [];
+        return categories.some((categoryCode) => isArchiveCategory(getCategoryByCode(categoryCode)));
+      }
+
+      function isArchiveCategoryActive() {
+        return isArchiveCategory(getCategoryByCode(activeCategoryCode));
+      }
+
       function getSelectedRentalProducts() {
         return allProductsState.filter((product) => {
           const productId = String(getProductId(product) || '');
@@ -924,6 +968,7 @@ please check each product detail for handling notes before use</p>
 
       function renderProduct(product, display = {}, index = 0) {
         const unavailable = isUnavailable(product);
+        const archiveProduct = productIsInArchive(product);
         const link = document.createElement('a');
         const imageUrl = getProductImage(product);
         const hoverImageUrl = getProductHoverImage(product);
@@ -1004,9 +1049,10 @@ please check each product detail for handling notes before use</p>
         nameEl.className = 'name';
         nameEl.textContent = name;
         priceEl.className = 'price';
-        priceEl.textContent =
-          unavailable && display.hideUnavailablePrice !== false
-            ? 'sold out'
+        priceEl.textContent = archiveProduct
+          ? 'archive'
+          : unavailable && display.hideUnavailablePrice !== false
+            ? 'sold'
             : price
               ? `${priceFormatter.format(price)}원`
               : '가격 문의';
@@ -1058,12 +1104,14 @@ please check each product detail for handling notes before use</p>
       function applyFilters() {
         const excludeUnavailable = excludeUnavailableEl.checked;
         const rentalActive = isRentalCategoryActive();
+        const archiveActive = isArchiveCategoryActive();
         rentalDisclaimerEl.hidden = !rentalActive;
+        excludeUnavailableEl.closest('label').hidden = archiveActive;
 
         productsState = allProductsState.filter((product) => {
           return (
             productHasCategory(product, activeCategoryCode) &&
-            (!excludeUnavailable || !isUnavailable(product))
+            (archiveActive || !excludeUnavailable || !isUnavailable(product))
           );
         });
         syncRentalInquiryUi();
@@ -1096,7 +1144,69 @@ please check each product detail for handling notes before use</p>
         updateStatus();
       }
 
-      async function loadProducts() {
+      function isTokenLikeError(error) {
+        const message = String(error?.message || '').toLowerCase();
+        const code = String(error?.code || '').toLowerCase();
+        return (
+          code.includes('token') ||
+          code.includes('auth') ||
+          message.includes('token') ||
+          message.includes('토큰') ||
+          message.includes('유효하지') ||
+          message.includes('access') ||
+          message.includes('authorization')
+        );
+      }
+
+      function renderLoadError(error) {
+        statusEl.textContent = '';
+        productGrid.className = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'error';
+
+        const message = document.createElement('p');
+        message.textContent = formatDisplayText(error.message || '상품을 불러오지 못했습니다.');
+        wrapper.append(message);
+
+        if (isTokenLikeError(error)) {
+          const actions = document.createElement('div');
+          const retryButton = document.createElement('button');
+          actions.className = 'error-actions';
+          retryButton.type = 'button';
+          retryButton.textContent = 'retry sync';
+          retryButton.addEventListener('click', async () => {
+            retryButton.disabled = true;
+            retryButton.textContent = 'syncing';
+
+            try {
+              const response = await fetch('/api/oauth/refresh-public', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { accept: 'application/json' },
+              });
+              const text = await response.text();
+              const payload = text ? JSON.parse(text) : {};
+
+              if (!response.ok || !payload.ok) {
+                throw new Error(payload?.error?.message || 'sync retry failed.');
+              }
+
+              await loadProducts({ bypassCache: true });
+            } catch (syncError) {
+              retryButton.disabled = false;
+              retryButton.textContent = 'retry sync';
+              message.textContent = formatDisplayText(syncError.message || 'sync retry failed.');
+            }
+          });
+          actions.append(retryButton);
+          wrapper.append(actions);
+        }
+
+        productGrid.replaceChildren(wrapper);
+      }
+
+      async function loadProducts(options = {}) {
         statusEl.textContent = '상품을 불러오는 중';
         productGrid.innerHTML = '';
         moreWrap.hidden = true;
@@ -1111,6 +1221,10 @@ please check each product detail for handling notes before use</p>
             apiUrl.searchParams.set('categoryCode', categoryCode);
           }
 
+          if (options.bypassCache) {
+            apiUrl.searchParams.set('cache', 'refresh');
+          }
+
           const response = await fetch(apiUrl.pathname + apiUrl.search, {
             credentials: 'same-origin',
             headers: { accept: 'application/json' },
@@ -1122,10 +1236,12 @@ please check each product detail for handling notes before use</p>
           const payload = text ? JSON.parse(text) : {};
 
           if (!response.ok || !payload.ok) {
-            throw new Error(
+            const error = new Error(
               payload?.error?.message ||
                 `/api/products 요청 실패: http ${response.status || '응답 없음'}`,
             );
+            error.code = payload?.error?.code;
+            throw error;
           }
 
           const categoriesResponse = await categoriesRequest;
@@ -1150,9 +1266,7 @@ please check each product detail for handling notes before use</p>
 
           return;
         } catch (error) {
-          statusEl.textContent = '';
-          productGrid.className = '';
-          productGrid.innerHTML = `<div class="error">${formatDisplayText(error.message)}</div>`;
+          renderLoadError(error);
         }
       }
 

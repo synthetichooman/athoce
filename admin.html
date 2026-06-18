@@ -490,6 +490,18 @@
         return `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
       }
 
+      function formatDuration(seconds) {
+        if (seconds === null || seconds === undefined || Number.isNaN(Number(seconds))) {
+          return '-';
+        }
+
+        if (seconds < 60) {
+          return `${Math.max(0, seconds)}초`;
+        }
+
+        return formatExpiresIn(seconds);
+      }
+
       function flattenCategories(items = [], depth = 0) {
         return items.flatMap((item) => [
           { name: item.name, categoryCode: item.categoryCode, depth },
@@ -566,8 +578,12 @@
           ['kv', health.kvConfigured ? 'connected' : 'not connected'],
           ['access', health.hasAccessToken ? 'configured' : 'missing'],
           ['refresh', health.hasRefreshToken ? 'configured' : 'missing'],
+          ['refreshed ago', formatDuration(health.refreshedAgoSeconds)],
+          ['refresh interval', formatDuration(health.refreshIntervalSeconds)],
+          ['refresh needed', health.refreshRecommended ? 'yes' : 'no'],
           ['expires in', formatExpiresIn(health.expiresInSeconds)],
           ['updated', formatDateTime(health.updatedAt)],
+          ['last failure', formatDateTime(health.lastRefreshFailedAt)],
           ['last error', health.lastRefreshError?.message || '-'],
         ];
 

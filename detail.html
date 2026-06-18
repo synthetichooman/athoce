@@ -228,6 +228,11 @@
         color: #8a8a8a;
       }
 
+      .buy[hidden],
+      .price[hidden] {
+        display: none;
+      }
+
       .description {
         display: grid;
         gap: 12px;
@@ -317,10 +322,12 @@
 
     <script>
       const ORIGINAL_SHOP_BASE_URL = 'https://hooman.kr';
+      const RENTAL_CATEGORY_CODE = 's20260613e8746a4f236be';
       const detailEl = document.querySelector('#detail');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
       const params = new URLSearchParams(window.location.search);
       const prodNo = params.get('prodNo');
+      let categoryNameByCode = new Map();
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -384,6 +391,56 @@
           status === 'nosale' ||
           (stockUse && !stockUnlimit && Number.isFinite(stock) && stock <= 0)
         );
+      }
+
+      function normalizeCategoryName(value) {
+        return String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ');
+      }
+
+      function flattenCategories(items = []) {
+        return items.flatMap((item) => [
+          {
+            name: item.name || '',
+            categoryCode: String(item.categoryCode || ''),
+          },
+          ...flattenCategories(item.children || []),
+        ]);
+      }
+
+      function getProductCategoryCodes(product) {
+        const categories = Array.isArray(product?.categories) ? product.categories : [];
+        return categories
+          .map((category) =>
+            String(
+              pickFirst(
+                category?.categoryCode,
+                category?.code,
+                category?.category_code,
+                category,
+                '',
+              ),
+            ),
+          )
+          .filter(Boolean);
+      }
+
+      function getProductType(product) {
+        const categoryCodes = getProductCategoryCodes(product);
+
+        if (categoryCodes.includes(RENTAL_CATEGORY_CODE)) {
+          return 'rental';
+        }
+
+        const hasArchiveCategory = categoryCodes.some((categoryCode) => {
+          const name = normalizeCategoryName(categoryNameByCode.get(categoryCode));
+          return ['archive', 'vault', 'log'].some((keyword) => name.includes(keyword));
+        });
+
+        return hasArchiveCategory ? 'archive' : 'sale';
       }
 
       function getOriginalProductUrl(product) {
@@ -566,6 +623,7 @@
         const name = getProductName(product);
         const price = getProductPrice(product);
         const unavailable = isUnavailable(product);
+        const productType = getProductType(product);
         const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
         updateSeo(product, images, name, price, unavailable);
 
@@ -607,11 +665,14 @@
 
         const priceEl = document.createElement('p');
         priceEl.className = 'price';
-        priceEl.textContent = unavailable
-          ? 'sold out'
-          : price
-            ? `${priceFormatter.format(price)}원`
-            : '가격 문의';
+        priceEl.hidden = productType === 'archive';
+        priceEl.textContent = productType === 'archive'
+          ? ''
+          : unavailable
+            ? 'sold'
+            : price
+              ? `${priceFormatter.format(price)}원`
+              : '가격 문의';
 
         const metaEl = document.createElement('p');
         metaEl.className = 'meta';
@@ -621,13 +682,20 @@
 
         const buy = document.createElement('a');
         buy.className = 'buy';
-        buy.href = getOriginalProductUrl(product);
+        buy.hidden = productType === 'archive';
+        buy.href = productType === 'rental'
+          ? `/?categoryCode=${encodeURIComponent(RENTAL_CATEGORY_CODE)}`
+          : getOriginalProductUrl(product);
         buy.rel = 'noopener';
-        buy.textContent = unavailable ? 'sold out' : 'purchase now in hooman.kr';
+        buy.textContent = productType === 'rental'
+          ? 'availability inquiry'
+          : unavailable
+            ? 'sold'
+            : 'purchase now in hooman.kr';
 
-        if (unavailable) {
+        if (unavailable && productType !== 'rental') {
           buy.setAttribute('aria-disabled', 'true');
-        } else {
+        } else if (productType === 'sale') {
           buy.target = '_blank';
         }
 
@@ -664,10 +732,14 @@
         detailEl.innerHTML = '<div class="empty">상품을 불러오는 중</div>';
 
         try {
-          const response = await fetch(`/api/product?prodNo=${encodeURIComponent(prodNo)}`, {
+          const productRequest = fetch(`/api/product?prodNo=${encodeURIComponent(prodNo)}`, {
             credentials: 'same-origin',
             headers: { accept: 'application/json' },
           });
+          const categoriesRequest = fetch('/api/categories', {
+            headers: { accept: 'application/json' },
+          });
+          const response = await productRequest;
           const text = await response.text();
           const payload = text ? JSON.parse(text) : {};
 
@@ -675,6 +747,22 @@
             throw new Error(
               payload?.error?.message || `상품 상세 요청 실패: http ${response.status}`,
             );
+          }
+
+          try {
+            const categoriesResponse = await categoriesRequest;
+            const categoriesText = await categoriesResponse.text();
+            const categoriesPayload = categoriesText ? JSON.parse(categoriesText) : {};
+
+            if (categoriesResponse.ok && categoriesPayload.ok) {
+              categoryNameByCode = new Map(
+                flattenCategories(categoriesPayload.items || [])
+                  .filter((category) => category.categoryCode)
+                  .map((category) => [category.categoryCode, category.name]),
+              );
+            }
+          } catch {
+            categoryNameByCode = new Map();
           }
 
           render(payload.item);

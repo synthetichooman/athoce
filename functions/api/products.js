@@ -348,9 +348,12 @@ export async function onRequestGet({ env, request }) {
   const unitCode = clean(env.IMWEB_UNIT_CODE || env.IMWEB_SITE_CODE, DEFAULT_UNIT_CODE);
   const adminConfig = await getAdminConfig(env);
   const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
+  const configuredHomeCategoryCodes = adminConfig.categoryCodes.length
+    ? adminConfig.categoryCodes.map(String)
+    : ATHOCE_CATEGORY_CODES;
   const visibleCategoryCodes = rentalAuthorized
-    ? ATHOCE_CATEGORY_CODES
-    : ATHOCE_CATEGORY_CODES.filter((categoryCode) => categoryCode !== RENTAL_CATEGORY_CODE);
+    ? configuredHomeCategoryCodes
+    : configuredHomeCategoryCodes.filter((categoryCode) => categoryCode !== RENTAL_CATEGORY_CODE);
   const categoryCodes = requestedCategoryCode
     ? visibleCategoryCodes.includes(requestedCategoryCode)
       ? [requestedCategoryCode]
@@ -361,13 +364,13 @@ export async function onRequestGet({ env, request }) {
     return jsonResponse({
       ok: true,
       unitCode,
-      categoryCodes: ATHOCE_CATEGORY_CODES,
+      categoryCodes: configuredHomeCategoryCodes,
       requestedCategoryCodes: [],
       display: {
         blurUnavailable: adminConfig.blurUnavailable,
         hideUnavailablePrice: adminConfig.hideUnavailablePrice,
         excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
-        homeCategoryCodes: ATHOCE_CATEGORY_CODES,
+        homeCategoryCodes: configuredHomeCategoryCodes,
         categoryButtonOrder: adminConfig.categoryButtonOrder,
         lockedCategoryCodes: rentalAuthorized ? [] : [RENTAL_CATEGORY_CODE],
       },
@@ -459,13 +462,13 @@ export async function onRequestGet({ env, request }) {
   const response = jsonResponse({
     ok: true,
     unitCode,
-    categoryCodes: ATHOCE_CATEGORY_CODES,
+    categoryCodes: configuredHomeCategoryCodes,
     requestedCategoryCodes: categoryCodes,
     display: {
       blurUnavailable: adminConfig.blurUnavailable,
       hideUnavailablePrice: adminConfig.hideUnavailablePrice,
       excludeUnavailableByDefault: adminConfig.excludeUnavailableByDefault,
-      homeCategoryCodes: ATHOCE_CATEGORY_CODES,
+      homeCategoryCodes: configuredHomeCategoryCodes,
       categoryButtonOrder: adminConfig.categoryButtonOrder,
       lockedCategoryCodes: rentalAuthorized ? [] : [RENTAL_CATEGORY_CODE],
     },
