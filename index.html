@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="aategois, hooman, cementbay as athoce, in seoul"
+      content="athoce is an online shop from seoul, featuring aategois, hooman and cementbay"
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
@@ -17,7 +17,7 @@
     <meta property="og:title" content="athoce" />
     <meta
       property="og:description"
-      content="aategois, hooman, cementbay as athoce, in seoul"
+      content="athoce is an online shop from seoul, featuring aategois, hooman and cementbay"
     />
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <meta property="og:image:width" content="1200" />
@@ -28,7 +28,7 @@
     <meta name="twitter:title" content="athoce" />
     <meta
       name="twitter:description"
-      content="aategois, hooman, cementbay as athoce, in seoul"
+      content="athoce is an online shop from seoul, featuring aategois, hooman and cementbay"
     />
     <meta name="twitter:image" content="https://athoce.kr/assets/athoce-og.png" />
     <title>athoce</title>
@@ -43,7 +43,7 @@
             "alternateName": "아토스 서울",
             "url": "https://athoce.kr/",
             "inLanguage": ["ko", "en"],
-            "description": "aategois, hooman, cementbay as athoce, in seoul",
+            "description": "athoce is an online shop from seoul, featuring aategois, hooman and cementbay",
             "publisher": {
               "@id": "https://athoce.kr/#organization"
             }
@@ -55,7 +55,7 @@
             "alternateName": "아토스 서울",
             "url": "https://athoce.kr/",
             "image": "https://athoce.kr/assets/athoce-og.png",
-            "sameAs": ["https://hooman.kr/"],
+            "sameAs": ["https://www.instagram.com/athoce.seoul/", "https://hooman.kr/"],
             "logo": "https://athoce.kr/assets/athoce-symbol.svg",
             "address": {
               "@type": "PostalAddress",
@@ -724,6 +724,39 @@ please check each product detail for handling notes before use</p>
         return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
       }
 
+      function setMeta(selector, attribute, value) {
+        if (!value) {
+          return;
+        }
+
+        const element = document.head.querySelector(selector);
+
+        if (element) {
+          element.setAttribute(attribute, value);
+        }
+      }
+
+      function updateHomeSeo() {
+        const category = getCategoryByCode(activeCategoryCode);
+        const categoryName = formatDisplayText(category?.name || '');
+        const title = categoryName ? `athoce | ${categoryName}` : 'athoce';
+        const description = categoryName
+          ? `${categoryName} from athoce, an online shop from seoul`
+          : 'athoce is an online shop from seoul, featuring aategois, hooman and cementbay';
+        const canonicalUrl = activeCategoryCode
+          ? `https://athoce.kr/?categoryCode=${encodeURIComponent(activeCategoryCode)}`
+          : 'https://athoce.kr/';
+
+        document.title = title;
+        setMeta('meta[name="description"]', 'content', description);
+        setMeta('meta[property="og:title"]', 'content', title);
+        setMeta('meta[property="og:description"]', 'content', description);
+        setMeta('meta[property="og:url"]', 'content', canonicalUrl);
+        setMeta('meta[name="twitter:title"]', 'content', title);
+        setMeta('meta[name="twitter:description"]', 'content', description);
+        document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonicalUrl);
+      }
+
       function getProductId(product) {
         return pickFirst(
           product.prodNo,
@@ -1107,6 +1140,7 @@ please check each product detail for handling notes before use</p>
         const archiveActive = isArchiveCategoryActive();
         rentalDisclaimerEl.hidden = !rentalActive;
         excludeUnavailableEl.closest('label').hidden = archiveActive;
+        updateHomeSeo();
 
         productsState = allProductsState.filter((product) => {
           return (

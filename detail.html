@@ -472,24 +472,33 @@
         }
       }
 
-      function upsertProductJsonLd(product, images, name, price, unavailable) {
+      function upsertProductJsonLd(product, images, name, price, unavailable, productType) {
         const productUrl = prodNo
           ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
           : 'https://athoce.kr/detail';
-        const jsonLd = {
+        const baseJsonLd = {
           '@context': 'https://schema.org',
-          '@type': 'Product',
           name,
           image: images.map((imageUrl) => getOptimizedImwebImageUrl(imageUrl, 1200)),
           description:
             stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
             `${name} product detail from athoce seoul.`,
+          url: productUrl,
+          provider: {
+            '@type': 'Store',
+            name: 'athoce seoul',
+            url: 'https://athoce.kr/',
+            sameAs: ['https://www.instagram.com/athoce.seoul/', 'https://hooman.kr/'],
+          },
+        };
+        let jsonLd = {
+          ...baseJsonLd,
+          '@type': 'Product',
           sku: String(pickFirst(product.prodNo, product.prodCode, prodNo, '')),
           brand: {
             '@type': 'Brand',
             name: 'athoce seoul',
           },
-          url: productUrl,
           offers: {
             '@type': 'Offer',
             url: getOriginalProductUrl(product),
@@ -500,8 +509,27 @@
           },
         };
 
+        if (productType === 'rental') {
+          jsonLd = {
+            ...baseJsonLd,
+            '@type': 'Service',
+            serviceType: 'rental availability inquiry',
+            areaServed: {
+              '@type': 'City',
+              name: 'seoul',
+            },
+          };
+        }
+
+        if (productType === 'archive') {
+          jsonLd = {
+            ...baseJsonLd,
+            '@type': 'CreativeWork',
+          };
+        }
+
         if (price) {
-          jsonLd.offers.price = String(price);
+          jsonLd.offers && (jsonLd.offers.price = String(price));
         }
 
         let script = document.querySelector('#productJsonLd');
@@ -516,13 +544,19 @@
         script.textContent = JSON.stringify(jsonLd);
       }
 
-      function updateSeo(product, images, name, price, unavailable) {
+      function updateSeo(product, images, name, price, unavailable, productType) {
         const productUrl = prodNo
           ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
           : 'https://athoce.kr/detail';
-        const description =
-          stripHtml(pickFirst(product.simpleContent, product.content, product.mobileContent, ''))
-            .slice(0, 150) || `${name} product detail from athoce seoul.`;
+        const rawDescription = stripHtml(
+          pickFirst(product.simpleContent, product.content, product.mobileContent, ''),
+        );
+        const fallbackByType = {
+          rental: `${name} rental availability from athoce seoul.`,
+          archive: `${name} archive entry from athoce seoul.`,
+          sale: `${name} product detail from athoce seoul.`,
+        };
+        const description = rawDescription.slice(0, 150) || fallbackByType[productType] || fallbackByType.sale;
         const imageUrl = images[0] ? getOptimizedImwebImageUrl(images[0], 1200) : '';
         const title = `${name} | athoce`;
 
@@ -555,7 +589,7 @@
         }
 
         document.querySelector('#canonicalUrl')?.setAttribute('href', productUrl);
-        upsertProductJsonLd(product, images, name, price, unavailable);
+        upsertProductJsonLd(product, images, name, price, unavailable, productType);
       }
 
       function updateGalleryState(galleryWrap) {
@@ -625,7 +659,7 @@
         const unavailable = isUnavailable(product);
         const productType = getProductType(product);
         const content = pickFirst(product.content, product.simpleContent, product.mobileContent, '');
-        updateSeo(product, images, name, price, unavailable);
+        updateSeo(product, images, name, price, unavailable, productType);
 
         const wrapper = document.createElement('div');
         wrapper.className = `product-layout${unavailable ? ' is-unavailable' : ''}`;

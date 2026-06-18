@@ -53,6 +53,17 @@ export async function onRequestGet({ request }) {
     });
     const payload = await response.json();
     const items = Array.isArray(payload?.items) ? payload.items : [];
+    const categoryCodes = Array.isArray(payload?.categoryCodes) ? payload.categoryCodes : [];
+
+    for (const categoryCode of categoryCodes) {
+      if (!categoryCode) {
+        continue;
+      }
+
+      urls.push(
+        buildUrl(`${origin}/?categoryCode=${encodeURIComponent(categoryCode)}`, payload.fetchedAt || now, '0.7'),
+      );
+    }
 
     for (const product of items) {
       const prodNo = getProductId(product);
@@ -64,7 +75,7 @@ export async function onRequestGet({ request }) {
       const lastmod = toIsoDate(product.addTime, payload.fetchedAt || now);
 
       urls.push(
-        buildUrl(`${origin}/detail.html?prodNo=${encodeURIComponent(prodNo)}`, lastmod, '0.8'),
+        buildUrl(`${origin}/detail?prodNo=${encodeURIComponent(prodNo)}`, lastmod, '0.8'),
       );
     }
   } catch {
