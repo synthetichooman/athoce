@@ -40,7 +40,7 @@ function normalizeProducts(products, origin) {
       const name = clean(product?.name, 160) || 'unnamed product';
       const price = Number(product?.price || 0);
       const detailUrl = prodNo
-        ? `${origin}/detail.html?prodNo=${encodeURIComponent(prodNo)}`
+        ? `${origin}/detail?prodNo=${encodeURIComponent(prodNo)}`
         : clean(product?.detailUrl, 320);
 
       return {
@@ -67,7 +67,7 @@ function buildInquiryMessage(payload) {
     .join('\n\n');
 
   return [
-    '[athoce] rental availability inquiry',
+    '[athoce] bundle inquiry',
     `time: ${new Date().toISOString()}`,
     `team / name: ${payload.teamName}`,
     `contact: ${payload.contactMethod} / ${payload.contact}`,
@@ -99,7 +99,7 @@ async function sendEmailIfConfigured(env, payload, message) {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        type: 'rental_availability_inquiry',
+        type: 'bundle_inquiry',
         message,
         ...payload,
       }),
@@ -133,7 +133,7 @@ async function sendEmailIfConfigured(env, payload, message) {
     body: JSON.stringify({
       from: emailFrom,
       to: [emailTo],
-      subject: '[athoce] rental availability inquiry',
+      subject: '[athoce] bundle inquiry',
       text: message,
     }),
   });

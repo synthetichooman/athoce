@@ -921,6 +921,10 @@ please check each product detail for handling notes before use</p>
         return activeCategoryCode === RENTAL_CATEGORY_CODE;
       }
 
+      function isRentalUnlocked() {
+        return !lockedCategoryCodes.has(RENTAL_CATEGORY_CODE);
+      }
+
       function getCategoryByCode(categoryCode) {
         return categoriesState.find((category) => category.categoryCode === categoryCode) || null;
       }
@@ -947,10 +951,10 @@ please check each product detail for handling notes before use</p>
       }
 
       function syncRentalInquiryUi() {
-        const rentalActive = isRentalCategoryActive();
-        rentalInquiryEl.hidden = !rentalActive;
+        const rentalUnlocked = isRentalUnlocked();
+        rentalInquiryEl.hidden = !rentalUnlocked;
 
-        if (!rentalActive) {
+        if (!rentalUnlocked) {
           bundleMode = false;
           selectedRentalProductIds.clear();
         }
@@ -1009,7 +1013,7 @@ please check each product detail for handling notes before use</p>
           'product',
           unavailable && display.blurUnavailable !== false ? 'is-unavailable' : '',
           hoverImageUrl && hoverImageUrl !== imageUrl ? 'has-hover-image' : '',
-          bundleMode && isRentalCategoryActive() ? 'is-bundle-selectable' : '',
+          bundleMode && isRentalUnlocked() ? 'is-bundle-selectable' : '',
           selectedRentalProductIds.has(String(getProductId(product) || '')) ? 'is-selected' : '',
         ]
           .filter(Boolean)
@@ -1043,7 +1047,7 @@ please check each product detail for handling notes before use</p>
           }
         }
 
-        if (bundleMode && isRentalCategoryActive()) {
+        if (bundleMode && isRentalUnlocked()) {
           const productId = String(getProductId(product) || '');
           const selectLabel = document.createElement('label');
           const selectInput = document.createElement('input');
