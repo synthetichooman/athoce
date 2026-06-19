@@ -89,6 +89,14 @@
         color: #c51616;
       }
 
+      body.red-room :where(a, button, input, textarea, select, label, p, span, div, h1, h2, h3, small, strong) {
+        color: #c51616;
+      }
+
+      body.red-room .brand img {
+        filter: brightness(0) saturate(100%) invert(16%) sepia(86%) saturate(3140%) hue-rotate(351deg) brightness(91%) contrast(95%);
+      }
+
       body.rental-gate-open .site-header,
       body.rental-gate-open main {
         filter: blur(7px) grayscale(0.28);
