@@ -6,6 +6,24 @@ const RENTAL_SESSION_COOKIE = 'athoce_rental_session';
 const RENTAL_SESSION_MAX_AGE = 60 * 60 * 24;
 const MAX_RENTAL_LOGS = 80;
 const FALLBACK_RENTAL_PASSWORD = '3days15percent';
+const RENTAL_KEY_WORDS = [
+  'atelier',
+  'archive',
+  'cloth',
+  'editor',
+  'fitting',
+  'image',
+  'line',
+  'look',
+  'note',
+  'object',
+  'pull',
+  'rack',
+  'room',
+  'sample',
+  'season',
+  'studio',
+];
 const encoder = new TextEncoder();
 
 function getRentalPassword(env) {
@@ -61,6 +79,25 @@ function slugify(value) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
+}
+
+function randomIndex(max) {
+  const values = new Uint32Array(1);
+  crypto.getRandomValues(values);
+  return values[0] % max;
+}
+
+function generateRentalKeyValue() {
+  const first = RENTAL_KEY_WORDS[randomIndex(RENTAL_KEY_WORDS.length)];
+  let second = RENTAL_KEY_WORDS[randomIndex(RENTAL_KEY_WORDS.length)];
+  const number = String(randomIndex(90) + 10);
+
+  if (second === first) {
+    const offset = randomIndex(RENTAL_KEY_WORDS.length - 1) + 1;
+    second = RENTAL_KEY_WORDS[(RENTAL_KEY_WORDS.indexOf(first) + offset) % RENTAL_KEY_WORDS.length];
+  }
+
+  return `${first}-${second}-${number}`;
 }
 
 function timingSafeEqual(left, right) {
@@ -180,7 +217,7 @@ export async function createRentalKey(env, keyInput = {}) {
   const nextKey = {
     id,
     label: clean(keyInput.label || id, 120),
-    key: clean(keyInput.key, 160),
+    key: clean(keyInput.key || generateRentalKeyValue(), 160),
     note: clean(keyInput.note, 400),
     active: keyInput.active !== false,
     createdAt: now,

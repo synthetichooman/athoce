@@ -261,6 +261,12 @@
         grid-column: 1 / -1;
       }
 
+      .key-input-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+      }
+
       .rental-key-card,
       .rental-log-card {
         display: grid;
@@ -406,11 +412,14 @@
             <div class="rental-key-create">
               <div class="field">
                 <label for="rentalKeyLabel">client label</label>
-                <input id="rentalKeyLabel" type="text" placeholder="brand a director" />
+                <input id="rentalKeyLabel" type="text" placeholder="client / project name" />
               </div>
               <div class="field">
                 <label for="rentalKeyValue">key value</label>
-                <input id="rentalKeyValue" type="text" placeholder="private access key" />
+                <div class="key-input-row">
+                  <input id="rentalKeyValue" type="text" placeholder="auto generated" />
+                  <button id="generateRentalKey" class="secondary" type="button">generate</button>
+                </div>
               </div>
               <div class="field wide">
                 <label for="rentalKeyNote">note</label>
@@ -468,8 +477,27 @@
       const rentalKeyNoteEl = document.querySelector('#rentalKeyNote');
       const rentalKeyActiveEl = document.querySelector('#rentalKeyActive');
       const addRentalKeyButton = document.querySelector('#addRentalKey');
+      const generateRentalKeyButton = document.querySelector('#generateRentalKey');
       const rentalKeysEl = document.querySelector('#rentalKeys');
       const rentalLogsEl = document.querySelector('#rentalLogs');
+      const rentalKeyWords = [
+        'atelier',
+        'archive',
+        'cloth',
+        'editor',
+        'fitting',
+        'image',
+        'line',
+        'look',
+        'note',
+        'object',
+        'pull',
+        'rack',
+        'room',
+        'sample',
+        'season',
+        'studio',
+      ];
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -510,6 +538,30 @@
           .split(/[\s,]+/)
           .map((item) => item.trim())
           .filter(Boolean);
+      }
+
+      function randomIndex(max) {
+        const values = new Uint32Array(1);
+        crypto.getRandomValues(values);
+        return values[0] % max;
+      }
+
+      function generateRentalKeyValue() {
+        const first = rentalKeyWords[randomIndex(rentalKeyWords.length)];
+        let second = rentalKeyWords[randomIndex(rentalKeyWords.length)];
+        const number = String(randomIndex(90) + 10);
+
+        if (second === first) {
+          const offset = randomIndex(rentalKeyWords.length - 1) + 1;
+          second = rentalKeyWords[(rentalKeyWords.indexOf(first) + offset) % rentalKeyWords.length];
+        }
+
+        return `${first}-${second}-${number}`;
+      }
+
+      function fillRentalKeyValue() {
+        rentalKeyValueEl.value = generateRentalKeyValue();
+        rentalKeyValueEl.select();
       }
 
       function formatNumberList(values) {
@@ -913,6 +965,10 @@
       }
 
       async function addRentalKey() {
+        if (!rentalKeyValueEl.value.trim()) {
+          rentalKeyValueEl.value = generateRentalKeyValue();
+        }
+
         setStatus('rental key 저장 중입니다.');
         addRentalKeyButton.disabled = true;
 
@@ -1082,6 +1138,7 @@
       refreshTokenButton.addEventListener('click', refreshToken);
       telegramTestButton.addEventListener('click', testTelegram);
       addRentalKeyButton.addEventListener('click', addRentalKey);
+      generateRentalKeyButton.addEventListener('click', fillRentalKeyValue);
       reconnectImwebButtons.forEach((button) => {
         button.addEventListener('click', reconnectImweb);
       });
