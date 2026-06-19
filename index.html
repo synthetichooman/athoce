@@ -594,6 +594,39 @@
         cursor: pointer;
       }
 
+      body.red-room .category-filters button,
+      body.red-room .category-filters button.is-active,
+      body.red-room .soldout-filter,
+      body.red-room #status,
+      body.red-room .rental-bundle-count,
+      body.red-room .rental-inquiry-status {
+        color: #c51616;
+      }
+
+      body.red-room .category-filters button.is-active {
+        text-decoration-color: #c51616;
+      }
+
+      body.red-room input[type="checkbox"] {
+        appearance: none;
+        display: inline-grid;
+        place-content: center;
+        border: 1px solid #c51616;
+        background: #fff;
+      }
+
+      body.red-room input[type="checkbox"]::before {
+        width: 8px;
+        height: 8px;
+        background: #c51616;
+        content: "";
+        opacity: 0;
+      }
+
+      body.red-room input[type="checkbox"]:checked::before {
+        opacity: 1;
+      }
+
       @media (max-width: 860px) {
         .filters {
           gap: 14px;
