@@ -1,4 +1,4 @@
-import { isRentalAuthorized } from '../../_rental.js';
+import { getRentalSession, recordRentalEvent } from '../../_rental.js';
 import { isTelegramConfigured, sendTelegramMessage } from '../../_telegram.js';
 
 const CONTACT_METHODS = new Set(['instagram', 'phone', 'email']);
@@ -69,6 +69,8 @@ function buildInquiryMessage(payload) {
   return [
     '[athoce] bundle inquiry',
     `time: ${new Date().toISOString()}`,
+    `client: ${payload.clientLabel || '-'}`,
+    `keyId: ${payload.clientKeyId || '-'}`,
     `team / name: ${payload.teamName}`,
     `contact: ${payload.contactMethod} / ${payload.contact}`,
     `purpose / schedule: ${payload.purposeSchedule}`,
@@ -146,7 +148,9 @@ async function sendEmailIfConfigured(env, payload, message) {
 }
 
 export async function onRequestPost({ env, request }) {
-  if (!(await isRentalAuthorized(request, env))) {
+  const rentalSession = await getRentalSession(request, env);
+
+  if (!rentalSession) {
     return jsonResponse(
       {
         ok: false,
@@ -210,6 +214,8 @@ export async function onRequestPost({ env, request }) {
     contact,
     teamName,
     purposeSchedule,
+    clientKeyId: rentalSession.keyId,
+    clientLabel: rentalSession.label,
     products,
   };
   const message = buildInquiryMessage(payload);
@@ -230,6 +236,14 @@ export async function onRequestPost({ env, request }) {
       502,
     );
   }
+
+  await recordRentalEvent(env, request, {
+    event: 'bundle_inquiry',
+    keyId: rentalSession.keyId,
+    label: rentalSession.label,
+    success: true,
+    itemCount: products.length,
+  });
 
   return jsonResponse({
     ok: true,

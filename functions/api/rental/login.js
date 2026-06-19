@@ -1,4 +1,4 @@
-import { createRentalSessionCookie, isRentalPasswordValid } from '../../_rental.js';
+import { createRentalSessionCookie, findRentalAccess, recordRentalEvent } from '../../_rental.js';
 
 function jsonResponse(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
@@ -20,7 +20,16 @@ export async function onRequestPost({ env, request }) {
     payload = {};
   }
 
-  if (!isRentalPasswordValid(payload?.password, env)) {
+  const access = await findRentalAccess(payload?.password, env);
+
+  if (!access.ok) {
+    await recordRentalEvent(env, request, {
+      event: 'rental_login',
+      keyId: 'unknown',
+      label: '',
+      success: false,
+    });
+
     return jsonResponse(
       {
         ok: false,
@@ -33,14 +42,25 @@ export async function onRequestPost({ env, request }) {
     );
   }
 
+  await recordRentalEvent(env, request, {
+    event: 'rental_login',
+    keyId: access.keyId,
+    label: access.label,
+    success: true,
+  });
+
   return jsonResponse(
     {
       ok: true,
       expiresIn: 60 * 60 * 24,
+      key: {
+        id: access.keyId,
+        label: access.label,
+      },
     },
     200,
     {
-      'set-cookie': await createRentalSessionCookie(env),
+      'set-cookie': await createRentalSessionCookie(env, access),
     },
   );
 }

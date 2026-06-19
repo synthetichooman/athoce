@@ -246,6 +246,44 @@
         overflow-wrap: anywhere;
       }
 
+      .rental-key-create,
+      .rental-key-list,
+      .rental-log-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .rental-key-create {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .rental-key-create .wide {
+        grid-column: 1 / -1;
+      }
+
+      .rental-key-card,
+      .rental-log-card {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #e3e3e3;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+
+      .rental-key-card header {
+        margin: 0;
+      }
+
+      .rental-key-card .actions {
+        flex-wrap: wrap;
+      }
+
+      .rental-log-card {
+        color: #4f4f4f;
+        font-size: 13px;
+      }
+
       .error {
         color: #b3261e;
       }
@@ -362,6 +400,29 @@
               <textarea id="hiddenProductNos" name="hiddenProductNos"></textarea>
             </div>
           </section>
+
+          <section>
+            <h2>rental access keys</h2>
+            <div class="rental-key-create">
+              <div class="field">
+                <label for="rentalKeyLabel">client label</label>
+                <input id="rentalKeyLabel" type="text" placeholder="brand a director" />
+              </div>
+              <div class="field">
+                <label for="rentalKeyValue">key value</label>
+                <input id="rentalKeyValue" type="text" placeholder="private access key" />
+              </div>
+              <div class="field wide">
+                <label for="rentalKeyNote">note</label>
+                <textarea id="rentalKeyNote" placeholder="project, season, contact memo"></textarea>
+              </div>
+              <label class="check"><input id="rentalKeyActive" type="checkbox" checked /> active</label>
+              <button id="addRentalKey" type="button">add key</button>
+            </div>
+            <div id="rentalKeys" class="rental-key-list"></div>
+            <h2>rental usage</h2>
+            <div id="rentalLogs" class="rental-log-list"></div>
+          </section>
         </form>
 
         <aside class="sidebar">
@@ -402,6 +463,13 @@
       const refreshTokenButton = document.querySelector('#refreshToken');
       const telegramTestButton = document.querySelector('#telegramTest');
       const reconnectImwebButtons = document.querySelectorAll('[data-reconnect-imweb]');
+      const rentalKeyLabelEl = document.querySelector('#rentalKeyLabel');
+      const rentalKeyValueEl = document.querySelector('#rentalKeyValue');
+      const rentalKeyNoteEl = document.querySelector('#rentalKeyNote');
+      const rentalKeyActiveEl = document.querySelector('#rentalKeyActive');
+      const addRentalKeyButton = document.querySelector('#addRentalKey');
+      const rentalKeysEl = document.querySelector('#rentalKeys');
+      const rentalLogsEl = document.querySelector('#rentalLogs');
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -598,6 +666,100 @@
         );
       }
 
+      function renderRentalLogs(logs = []) {
+        if (!logs.length) {
+          rentalLogsEl.innerHTML = '<p>기록이 없습니다.</p>';
+          return;
+        }
+
+        rentalLogsEl.replaceChildren(
+          ...logs.slice(0, 20).map((log) => {
+            const card = document.createElement('div');
+            card.className = 'rental-log-card';
+            card.textContent = [
+              `${formatDateTime(log.time)} · ${log.event}`,
+              `${log.label || log.keyId || '-'} · ${log.success ? 'success' : 'failed'}`,
+              log.itemCount ? `${log.itemCount} items` : '',
+              `ip ${log.ipHash || '-'}`,
+            ].filter(Boolean).join(' / ');
+            return card;
+          }),
+        );
+      }
+
+      function renderRentalKeys(keys = [], logs = []) {
+        if (!keys.length) {
+          rentalKeysEl.innerHTML = '<p>등록된 client key가 없습니다.</p>';
+        } else {
+          rentalKeysEl.replaceChildren(
+            ...keys.map((key) => {
+              const card = document.createElement('div');
+              const head = document.createElement('header');
+              const title = document.createElement('h2');
+              const activeLabel = document.createElement('label');
+              const activeInput = document.createElement('input');
+              const labelField = document.createElement('input');
+              const keyField = document.createElement('input');
+              const noteField = document.createElement('textarea');
+              const meta = document.createElement('p');
+              const actions = document.createElement('div');
+              const saveButton = document.createElement('button');
+              const toggleButton = document.createElement('button');
+              const deleteButton = document.createElement('button');
+
+              card.className = 'rental-key-card';
+              title.textContent = key.label || key.id;
+              activeLabel.className = 'check';
+              activeInput.type = 'checkbox';
+              activeInput.checked = key.active !== false;
+              activeLabel.append(activeInput, document.createTextNode('active'));
+              head.append(title, activeLabel);
+
+              labelField.value = key.label || '';
+              keyField.value = key.key || '';
+              noteField.value = key.note || '';
+              labelField.placeholder = 'client label';
+              keyField.placeholder = 'key value';
+              noteField.placeholder = 'note';
+              meta.textContent = [
+                `id ${key.id}`,
+                `uses ${key.useCount || 0}`,
+                `last ${formatDateTime(key.lastUsedAt)}`,
+              ].join(' / ');
+
+              actions.className = 'actions';
+              saveButton.type = 'button';
+              saveButton.textContent = 'save';
+              toggleButton.type = 'button';
+              toggleButton.className = 'secondary';
+              toggleButton.textContent = key.active === false ? 'activate' : 'deactivate';
+              deleteButton.type = 'button';
+              deleteButton.className = 'secondary';
+              deleteButton.textContent = 'delete';
+
+              saveButton.addEventListener('click', () =>
+                saveRentalKey(key.id, {
+                  label: labelField.value,
+                  key: keyField.value,
+                  note: noteField.value,
+                  active: activeInput.checked,
+                }),
+              );
+              toggleButton.addEventListener('click', () =>
+                saveRentalKey(key.id, { active: key.active === false }),
+              );
+              deleteButton.addEventListener('click', () => deleteRentalKey(key.id));
+
+              actions.append(saveButton, toggleButton, deleteButton);
+              card.append(head, labelField, keyField, noteField, meta, actions);
+              return card;
+            }),
+          );
+        }
+
+        renderRentalLogs(logs);
+      }
+
       function collectConfig() {
         return {
           categoryCodes: [...form.querySelectorAll('[name="categoryCodes"]:checked')].map(
@@ -714,6 +876,7 @@
       async function load() {
         setStatus('불러오는 중입니다.');
         loadTokenHealth();
+        loadRentalKeys();
 
         try {
           const configPayload = await fetchJson('/api/admin/config');
@@ -731,6 +894,92 @@
             setStatus('Imweb 토큰 또는 카테고리 로드에 문제가 있습니다. reconnect imweb을 실행하세요.', true);
           }
 
+        } catch (error) {
+          handleSessionError(error);
+        }
+      }
+
+      async function loadRentalKeys() {
+        try {
+          const payload = await fetchJson('/api/admin/rental-keys');
+          renderRentalKeys(payload.keys || [], payload.logs || []);
+        } catch (error) {
+          if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
+            return;
+          }
+
+          rentalKeysEl.innerHTML = '<p class="error">rental key를 불러오지 못했습니다.</p>';
+        }
+      }
+
+      async function addRentalKey() {
+        setStatus('rental key 저장 중입니다.');
+        addRentalKeyButton.disabled = true;
+
+        try {
+          const payload = await fetchJson('/api/admin/rental-keys', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'create',
+              key: {
+                label: rentalKeyLabelEl.value,
+                key: rentalKeyValueEl.value,
+                note: rentalKeyNoteEl.value,
+                active: rentalKeyActiveEl.checked,
+              },
+            }),
+          });
+
+          rentalKeyLabelEl.value = '';
+          rentalKeyValueEl.value = '';
+          rentalKeyNoteEl.value = '';
+          rentalKeyActiveEl.checked = true;
+          renderRentalKeys(payload.keys || [], payload.logs || []);
+          setStatus('rental key를 저장했습니다.');
+        } catch (error) {
+          handleSessionError(error);
+        } finally {
+          addRentalKeyButton.disabled = false;
+        }
+      }
+
+      async function saveRentalKey(id, patch) {
+        setStatus('rental key 저장 중입니다.');
+
+        try {
+          const payload = await fetchJson('/api/admin/rental-keys', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ action: 'update', id, patch }),
+          });
+          renderRentalKeys(payload.keys || [], payload.logs || []);
+          setStatus('rental key를 저장했습니다.');
+        } catch (error) {
+          handleSessionError(error);
+        }
+      }
+
+      async function deleteRentalKey(id) {
+        setStatus('rental key 삭제 중입니다.');
+
+        try {
+          const payload = await fetchJson('/api/admin/rental-keys', {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ action: 'delete', id }),
+          });
+          renderRentalKeys(payload.keys || [], payload.logs || []);
+          setStatus('rental key를 삭제했습니다.');
         } catch (error) {
           handleSessionError(error);
         }
@@ -826,11 +1075,13 @@
       }
 
       loginForm.addEventListener('submit', login);
+      form.addEventListener('submit', (event) => event.preventDefault());
       logoutButton.addEventListener('click', logout);
       saveButton.addEventListener('click', save);
       reloadButton.addEventListener('click', load);
       refreshTokenButton.addEventListener('click', refreshToken);
       telegramTestButton.addEventListener('click', testTelegram);
+      addRentalKeyButton.addEventListener('click', addRentalKey);
       reconnectImwebButtons.forEach((button) => {
         button.addEventListener('click', reconnectImweb);
       });
