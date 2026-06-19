@@ -85,6 +85,10 @@
         min-width: 320px;
       }
 
+      body.red-room {
+        color: #c51616;
+      }
+
       body.rental-gate-open .site-header,
       body.rental-gate-open main {
         filter: blur(7px) grayscale(0.28);
@@ -683,6 +687,14 @@ please check each product detail for handling notes before use</p>
       const RENDER_BATCH_SIZE = 24;
       const HIGH_PRIORITY_IMAGE_COUNT = 8;
       const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'archive', 'vault', 'log', 'athoce made'];
+      const LOADING_LINES = [
+        'checking the rack',
+        'asking hooman',
+        'counting one-of-ones',
+        'finding the right hanger',
+        'waiting near mangwon',
+        'pulling from the back room',
+      ];
       const productGrid = document.querySelector('#products');
       const statusEl = document.querySelector('#status');
       const rentalDisclaimerEl = document.querySelector('#rentalDisclaimer');
@@ -715,6 +727,7 @@ please check each product detail for handling notes before use</p>
       let lockedCategoryCodes = new Set();
       let bundleMode = false;
       let selectedRentalProductIds = new Set();
+      let easterEggBuffer = '';
 
       function pickFirst(...values) {
         return values.find((value) => value !== undefined && value !== null && value !== '');
@@ -722,6 +735,30 @@ please check each product detail for handling notes before use</p>
 
       function formatDisplayText(value) {
         return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+      }
+
+      function getLoadingLine() {
+        return LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)];
+      }
+
+      function handleEasterEggInput(event) {
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+          return;
+        }
+
+        const target = event.target;
+        const isTypingField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName) || target?.isContentEditable;
+
+        if (isTypingField || event.key.length !== 1) {
+          return;
+        }
+
+        easterEggBuffer = `${easterEggBuffer}${event.key.toLowerCase()}`.slice(-6);
+
+        if (easterEggBuffer === 'athoce') {
+          document.body.classList.toggle('red-room');
+          easterEggBuffer = '';
+        }
       }
 
       function setMeta(selector, attribute, value) {
@@ -1229,7 +1266,7 @@ please check each product detail for handling notes before use</p>
       }
 
       async function loadProducts(options = {}) {
-        statusEl.textContent = '상품을 불러오는 중';
+        statusEl.textContent = getLoadingLine();
         productGrid.innerHTML = '';
         moreWrap.hidden = true;
         renderedCount = 0;
@@ -1293,6 +1330,7 @@ please check each product detail for handling notes before use</p>
       }
 
       loadMoreButton.addEventListener('click', renderNextBatch);
+      window.addEventListener('keydown', handleEasterEggInput);
       excludeUnavailableEl.addEventListener('change', applyFilters);
       bundleToggleButton.addEventListener('click', () => {
         bundleMode = !bundleMode;
