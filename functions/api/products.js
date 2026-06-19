@@ -14,6 +14,7 @@ const ATHOCE_CATEGORY_CODES = [
 ];
 const PRODUCT_STATUS_QUERIES = ['sale', 'soldout'];
 const PRODUCTS_STALE_KEY_PREFIX = 'athoce_products_last_good:';
+const PRODUCTS_STALE_LATEST_KEY_PREFIX = 'athoce_products_last_good_latest:';
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -376,44 +377,105 @@ function getStaleProductsKey(categoryCodes, rentalAuthorized) {
   return `${PRODUCTS_STALE_KEY_PREFIX}${rentalAuthorized ? 'rental' : 'public'}:${categoryCodes.join(',')}`;
 }
 
-async function readStaleProducts(env, staleKey, error) {
-  if (!env.ATHOCE_KV || !staleKey) {
-    return null;
-  }
-
-  const stalePayload = await env.ATHOCE_KV.get(staleKey, 'json');
-
-  if (!stalePayload?.items?.length) {
-    return null;
-  }
-
-  return {
-    ...stalePayload,
-    ok: true,
-    stale: true,
-    staleReason: 'imweb_unavailable',
-    error: error
-      ? {
-          code: error.code,
-          message: error.message,
-        }
-      : undefined,
-    servedAt: new Date().toISOString(),
-  };
+function getLatestStaleProductsKey(rentalAuthorized) {
+  return `${PRODUCTS_STALE_LATEST_KEY_PREFIX}${rentalAuthorized ? 'rental' : 'public'}`;
 }
 
-async function storeStaleProducts(env, staleKey, payload) {
-  if (!env.ATHOCE_KV || !staleKey || !payload?.items?.length) {
+function uniqueKeys(keys) {
+  return [...new Set(keys.filter(Boolean))];
+}
+
+async function readStaleProducts(env, staleKey, error, fallbackKeys = []) {
+  if (!env.ATHOCE_KV) {
+    return null;
+  }
+
+  const keys = uniqueKeys([staleKey, ...fallbackKeys]);
+
+  for (const key of keys) {
+    let stalePayload = null;
+
+    try {
+      stalePayload = await env.ATHOCE_KV.get(key, 'json');
+    } catch {
+      continue;
+    }
+
+    if (!stalePayload?.items?.length) {
+      continue;
+    }
+
+    return {
+      ...stalePayload,
+      ok: true,
+      stale: true,
+      staleKey: key,
+      staleReason: 'imweb_unavailable',
+      error: error
+        ? {
+            code: error.code,
+            message: error.message,
+          }
+        : undefined,
+      servedAt: new Date().toISOString(),
+    };
+  }
+
+  return null;
+}
+
+async function storeStaleProducts(env, staleKey, payload, fallbackKeys = []) {
+  if (!env.ATHOCE_KV || !payload?.items?.length) {
     return;
   }
 
-  await env.ATHOCE_KV.put(
-    staleKey,
-    JSON.stringify({
-      ...payload,
-      cachedAt: new Date().toISOString(),
-    }),
-  );
+  const keys = uniqueKeys([staleKey, ...fallbackKeys]);
+  const body = JSON.stringify({
+    ...payload,
+    cachedAt: new Date().toISOString(),
+  });
+
+  await Promise.allSettled(keys.map((key) => env.ATHOCE_KV.put(key, body)));
+}
+
+async function readEmergencyStaleProducts({ env, request }, error) {
+  const requestUrl = new URL(request.url);
+  const requestedCategoryCode = clean(requestUrl.searchParams.get('categoryCode'));
+  const fallbackKeys = [
+    getLatestStaleProductsKey(false),
+    getLatestStaleProductsKey(true),
+  ];
+
+  try {
+    const rentalAuthorized = await isRentalAuthorized(request, env);
+    const adminConfig = await getAdminConfig(env);
+    const configuredHomeCategoryCodes = [
+      ...new Set([
+        ...ATHOCE_CATEGORY_CODES,
+        ...adminConfig.categoryCodes.map(String),
+      ]),
+    ];
+    const visibleCategoryCodes = rentalAuthorized
+      ? configuredHomeCategoryCodes
+      : configuredHomeCategoryCodes.filter((categoryCode) => categoryCode !== RENTAL_CATEGORY_CODE);
+    const categoryCodes = requestedCategoryCode
+      ? visibleCategoryCodes.includes(requestedCategoryCode)
+        ? [requestedCategoryCode]
+        : []
+      : visibleCategoryCodes;
+
+    return readStaleProducts(
+      env,
+      getStaleProductsKey(categoryCodes, rentalAuthorized),
+      error,
+      [
+        getLatestStaleProductsKey(rentalAuthorized),
+        ...fallbackKeys,
+      ],
+    );
+  } catch {
+    return readStaleProducts(env, '', error, fallbackKeys);
+  }
 }
 
 async function handleProductsRequest({ env, request }) {
@@ -446,6 +508,7 @@ async function handleProductsRequest({ env, request }) {
       : []
     : visibleCategoryCodes;
   const staleKey = getStaleProductsKey(categoryCodes, rentalAuthorized);
+  const staleFallbackKeys = [getLatestStaleProductsKey(rentalAuthorized)];
 
   if (!categoryCodes.length) {
     return jsonResponse({
@@ -479,10 +542,15 @@ async function handleProductsRequest({ env, request }) {
   try {
     results = categoryCodes.length ? await fetchProductPages({ env, unitCode }) : [];
   } catch (error) {
-    const stalePayload = await readStaleProducts(env, staleKey, {
-      code: 'IMWEB_NETWORK_ERROR',
-      message: error?.message || 'Imweb API에 연결하지 못했습니다.',
-    });
+    const stalePayload = await readStaleProducts(
+      env,
+      staleKey,
+      {
+        code: 'IMWEB_NETWORK_ERROR',
+        message: error?.message || 'Imweb API에 연결하지 못했습니다.',
+      },
+      staleFallbackKeys,
+    );
 
     if (stalePayload) {
       await notifyProductsFailure(env, request, error, {
@@ -535,7 +603,7 @@ async function handleProductsRequest({ env, request }) {
     const parsedError = getImwebError(failedResult.payload, failedResult.response.status);
     const stalePayload = String(parsedError.code) === '30104'
       ? null
-      : await readStaleProducts(env, staleKey, parsedError);
+      : await readStaleProducts(env, staleKey, parsedError, staleFallbackKeys);
 
     if (stalePayload) {
       await notifyProductsFailure(env, request, parsedError, {
@@ -609,7 +677,7 @@ async function handleProductsRequest({ env, request }) {
     total: displayItems.length,
   };
 
-  await storeStaleProducts(env, staleKey, responsePayload);
+  await storeStaleProducts(env, staleKey, responsePayload, staleFallbackKeys);
 
   const response = jsonResponse(responsePayload, 200, {
     'cache-control': rentalAuthorized
@@ -628,6 +696,23 @@ export async function onRequestGet(context) {
   try {
     return await handleProductsRequest(context);
   } catch (error) {
+    const stalePayload = await readEmergencyStaleProducts(context, {
+      code: 'PRODUCTS_ENDPOINT_ERROR',
+      message: error?.message || '상품 목록 요청 중 예외가 발생했습니다.',
+    });
+
+    if (stalePayload) {
+      await notifyProductsFailure(context.env, context.request, error, {
+        stage: 'uncaught',
+        code: 'PRODUCTS_ENDPOINT_ERROR',
+        staleServed: true,
+      });
+
+      return jsonResponse(stalePayload, 200, {
+        'cache-control': 'public, max-age=30, s-maxage=60',
+      });
+    }
+
     await notifyProductsFailure(context.env, context.request, error, {
       stage: 'uncaught',
       code: 'PRODUCTS_ENDPOINT_ERROR',
