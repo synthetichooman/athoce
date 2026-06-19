@@ -1,6 +1,7 @@
 import { DEFAULT_UNIT_CODE, clean, fetchImwebJson } from '../_imweb.js';
 import { getAdminConfig } from '../_config.js';
 import { RENTAL_CATEGORY_CODE, isRentalAuthorized } from '../_rental.js';
+import { sendThrottledTelegramAlert } from '../_telegram.js';
 
 const IMWEB_PRODUCTS_URL = 'https://openapi.imweb.me/products';
 const EDGE_CACHE_SECONDS = 120;
@@ -59,6 +60,41 @@ function getImwebError(payload, fallbackStatus) {
       payload?.message ||
       'Imweb API request failed.',
   };
+}
+
+function getErrorCode(error, fallback = 'PRODUCTS_ERROR') {
+  return String(error?.code || error?.errorCode || error?.statusCode || error?.name || fallback);
+}
+
+function getErrorMessage(error, fallback = '상품 목록 요청이 실패했습니다.') {
+  return String(error?.message || error?.detail || fallback).slice(0, 360);
+}
+
+async function notifyProductsFailure(env, request, error, details = {}) {
+  try {
+    const code = getErrorCode(error, details.code || 'PRODUCTS_ERROR');
+    const url = new URL(request.url);
+
+    await sendThrottledTelegramAlert(
+      env,
+      `products:${details.stage || 'unknown'}:${code}`,
+      [
+        '[athoce] products api failed',
+        `time: ${new Date().toISOString()}`,
+        `stage: ${details.stage || '-'}`,
+        `code: ${code}`,
+        `message: ${getErrorMessage(error)}`,
+        `url: ${url.origin}${url.pathname}${url.search}`,
+        details.staleServed ? 'staleServed: yes' : '',
+        '',
+        'admin: https://athoce.kr/admin.html',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+  } catch {
+    // Alert delivery must never make the products endpoint fail harder.
+  }
 }
 
 function normalizeProductsPayload(payload) {
@@ -380,7 +416,7 @@ async function storeStaleProducts(env, staleKey, payload) {
   );
 }
 
-export async function onRequestGet({ env, request }) {
+async function handleProductsRequest({ env, request }) {
   const requestUrl = new URL(request.url);
   const cache = caches.default;
   const cacheKey = new Request(request.url, request);
@@ -449,10 +485,21 @@ export async function onRequestGet({ env, request }) {
     });
 
     if (stalePayload) {
+      await notifyProductsFailure(env, request, error, {
+        stage: 'imweb_network',
+        code: 'IMWEB_NETWORK_ERROR',
+        staleServed: true,
+      });
+
       return jsonResponse(stalePayload, 200, {
         'cache-control': 'public, max-age=30, s-maxage=60',
       });
     }
+
+    await notifyProductsFailure(env, request, error, {
+      stage: 'imweb_network',
+      code: 'IMWEB_NETWORK_ERROR',
+    });
 
     return jsonResponse(
       {
@@ -491,10 +538,19 @@ export async function onRequestGet({ env, request }) {
       : await readStaleProducts(env, staleKey, parsedError);
 
     if (stalePayload) {
+      await notifyProductsFailure(env, request, parsedError, {
+        stage: 'imweb_response',
+        staleServed: true,
+      });
+
       return jsonResponse(stalePayload, 200, {
         'cache-control': 'public, max-age=30, s-maxage=60',
       });
     }
+
+    await notifyProductsFailure(env, request, parsedError, {
+      stage: 'imweb_response',
+    });
 
     return jsonResponse(
       {
@@ -566,4 +622,27 @@ export async function onRequestGet({ env, request }) {
   }
 
   return response;
+}
+
+export async function onRequestGet(context) {
+  try {
+    return await handleProductsRequest(context);
+  } catch (error) {
+    await notifyProductsFailure(context.env, context.request, error, {
+      stage: 'uncaught',
+      code: 'PRODUCTS_ENDPOINT_ERROR',
+    });
+
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          code: 'PRODUCTS_ENDPOINT_ERROR',
+          message: '상품 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+        },
+      },
+      502,
+      { 'cache-control': 'no-store' },
+    );
+  }
 }
