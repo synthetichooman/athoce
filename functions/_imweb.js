@@ -3,6 +3,8 @@ import { sendThrottledTelegramAlert } from './_telegram.js';
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
 export const TOKEN_STORAGE_KEY = 'imweb_tokens';
+const TOKEN_REFRESH_LOCK_KEY = 'imweb_refresh_lock';
+const TOKEN_REFRESH_LOCK_SECONDS = 20;
 const TOKEN_REFRESH_INTERVAL_SECONDS = 60 * 60;
 const TOKEN_REFRESH_BUFFER_SECONDS = 60 * 10;
 
@@ -183,6 +185,37 @@ async function reuseUpdatedTokensAfterRefreshRace(env, previousTokens) {
   };
 }
 
+async function acquireRefreshLock(env) {
+  if (!env.ATHOCE_KV) {
+    return '';
+  }
+
+  const existingLock = await env.ATHOCE_KV.get(TOKEN_REFRESH_LOCK_KEY);
+
+  if (existingLock) {
+    return '';
+  }
+
+  const lockValue = crypto.randomUUID();
+  await env.ATHOCE_KV.put(TOKEN_REFRESH_LOCK_KEY, lockValue, {
+    expirationTtl: TOKEN_REFRESH_LOCK_SECONDS,
+  });
+
+  return lockValue;
+}
+
+async function releaseRefreshLock(env, lockValue) {
+  if (!env.ATHOCE_KV || !lockValue) {
+    return;
+  }
+
+  const currentLock = await env.ATHOCE_KV.get(TOKEN_REFRESH_LOCK_KEY);
+
+  if (currentLock === lockValue) {
+    await env.ATHOCE_KV.delete(TOKEN_REFRESH_LOCK_KEY);
+  }
+}
+
 export async function storeImwebTokens(env, tokens) {
   if (!env.ATHOCE_KV) {
     return false;
@@ -211,6 +244,23 @@ export async function refreshImwebToken(env, options = {}) {
   const clientSecret = clean(env.IMWEB_CLIENT_SECRET);
   const storedTokens = await getStoredImwebTokens(env);
   const refreshToken = storedTokens.refreshToken;
+  const lockValue = await acquireRefreshLock(env);
+
+  if (env.ATHOCE_KV && !lockValue) {
+    const reusedTokens = await reuseUpdatedTokensAfterRefreshRace(env, storedTokens);
+
+    if (reusedTokens) {
+      return reusedTokens;
+    }
+
+    return {
+      ok: false,
+      error: {
+        code: 'REFRESH_IN_PROGRESS',
+        message: '다른 요청이 Imweb 토큰을 갱신하는 중입니다.',
+      },
+    };
+  }
 
   if (!clientSecret || !refreshToken) {
     const error = {
@@ -218,6 +268,7 @@ export async function refreshImwebToken(env, options = {}) {
       message: 'IMWEB_CLIENT_SECRET 또는 IMWEB_REFRESH_TOKEN 환경변수가 없습니다.',
     };
     await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
+    await releaseRefreshLock(env, lockValue);
 
     return {
       ok: false,
@@ -231,48 +282,52 @@ export async function refreshImwebToken(env, options = {}) {
   form.set('refreshToken', refreshToken);
   form.set('grantType', 'refresh_token');
 
-  const response = await fetch('https://openapi.imweb.me/oauth2/token', {
-    method: 'POST',
-    headers: {
-      accept: 'application/json',
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-    body: form,
-  });
-  const payload = await parseJsonResponse(response);
-  const accessToken = payload?.data?.accessToken || payload?.accessToken;
+  try {
+    const response = await fetch('https://openapi.imweb.me/oauth2/token', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: form,
+    });
+    const payload = await parseJsonResponse(response);
+    const accessToken = payload?.data?.accessToken || payload?.accessToken;
 
-  if (!response.ok || !accessToken) {
-    const reusedTokens = await reuseUpdatedTokensAfterRefreshRace(env, storedTokens);
+    if (!response.ok || !accessToken) {
+      const reusedTokens = await reuseUpdatedTokensAfterRefreshRace(env, storedTokens);
 
-    if (reusedTokens) {
-      return reusedTokens;
+      if (reusedTokens) {
+        return reusedTokens;
+      }
+
+      const error = payload?.error || {
+        code: payload?.statusCode || response.status,
+        message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
+      };
+      await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
+
+      return {
+        ok: false,
+        error,
+        payload,
+      };
     }
 
-    const error = payload?.error || {
-      code: payload?.statusCode || response.status,
-      message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
+    const nextTokens = {
+      ok: true,
+      accessToken,
+      refreshToken: payload?.data?.refreshToken || payload?.refreshToken || refreshToken,
+      scope: payload?.data?.scope || payload?.scope,
+      expiresAt: getTokenExpiresAt(payload),
     };
-    await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
 
-    return {
-      ok: false,
-      error,
-      payload,
-    };
+    nextTokens.storedInKv = await storeImwebTokens(env, nextTokens);
+
+    return nextTokens;
+  } finally {
+    await releaseRefreshLock(env, lockValue);
   }
-
-  const nextTokens = {
-    ok: true,
-    accessToken,
-    refreshToken: payload?.data?.refreshToken || payload?.refreshToken || refreshToken,
-    scope: payload?.data?.scope || payload?.scope,
-    expiresAt: getTokenExpiresAt(payload),
-  };
-
-  nextTokens.storedInKv = await storeImwebTokens(env, nextTokens);
-
-  return nextTokens;
 }
 
 export async function fetchImwebJson(env, url, init = {}) {

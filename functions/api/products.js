@@ -12,6 +12,7 @@ const ATHOCE_CATEGORY_CODES = [
   's20260613cf1433ba877ee',
 ];
 const PRODUCT_STATUS_QUERIES = ['sale', 'soldout'];
+const PRODUCTS_STALE_KEY_PREFIX = 'athoce_products_last_good:';
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -320,17 +321,63 @@ async function fetchProductPagesForStatus({ env, unitCode, prodStatus }) {
 }
 
 async function fetchProductPages({ env, unitCode }) {
-  const groupedResults = await Promise.all(
-    PRODUCT_STATUS_QUERIES.map((prodStatus) =>
-      fetchProductPagesForStatus({
+  const groupedResults = [];
+
+  for (const prodStatus of PRODUCT_STATUS_QUERIES) {
+    groupedResults.push(
+      await fetchProductPagesForStatus({
         env,
         unitCode,
         prodStatus,
       }),
-    ),
-  );
+    );
+  }
 
   return groupedResults.flat();
+}
+
+function getStaleProductsKey(categoryCodes, rentalAuthorized) {
+  return `${PRODUCTS_STALE_KEY_PREFIX}${rentalAuthorized ? 'rental' : 'public'}:${categoryCodes.join(',')}`;
+}
+
+async function readStaleProducts(env, staleKey, error) {
+  if (!env.ATHOCE_KV || !staleKey) {
+    return null;
+  }
+
+  const stalePayload = await env.ATHOCE_KV.get(staleKey, 'json');
+
+  if (!stalePayload?.items?.length) {
+    return null;
+  }
+
+  return {
+    ...stalePayload,
+    ok: true,
+    stale: true,
+    staleReason: 'imweb_unavailable',
+    error: error
+      ? {
+          code: error.code,
+          message: error.message,
+        }
+      : undefined,
+    servedAt: new Date().toISOString(),
+  };
+}
+
+async function storeStaleProducts(env, staleKey, payload) {
+  if (!env.ATHOCE_KV || !staleKey || !payload?.items?.length) {
+    return;
+  }
+
+  await env.ATHOCE_KV.put(
+    staleKey,
+    JSON.stringify({
+      ...payload,
+      cachedAt: new Date().toISOString(),
+    }),
+  );
 }
 
 export async function onRequestGet({ env, request }) {
@@ -362,6 +409,7 @@ export async function onRequestGet({ env, request }) {
       ? [requestedCategoryCode]
       : []
     : visibleCategoryCodes;
+  const staleKey = getStaleProductsKey(categoryCodes, rentalAuthorized);
 
   if (!categoryCodes.length) {
     return jsonResponse({
@@ -395,6 +443,17 @@ export async function onRequestGet({ env, request }) {
   try {
     results = categoryCodes.length ? await fetchProductPages({ env, unitCode }) : [];
   } catch (error) {
+    const stalePayload = await readStaleProducts(env, staleKey, {
+      code: 'IMWEB_NETWORK_ERROR',
+      message: error?.message || 'Imweb API에 연결하지 못했습니다.',
+    });
+
+    if (stalePayload) {
+      return jsonResponse(stalePayload, 200, {
+        'cache-control': 'public, max-age=30, s-maxage=60',
+      });
+    }
+
     return jsonResponse(
       {
         ok: false,
@@ -427,6 +486,15 @@ export async function onRequestGet({ env, request }) {
 
   if (failedResult) {
     const parsedError = getImwebError(failedResult.payload, failedResult.response.status);
+    const stalePayload = String(parsedError.code) === '30104'
+      ? null
+      : await readStaleProducts(env, staleKey, parsedError);
+
+    if (stalePayload) {
+      return jsonResponse(stalePayload, 200, {
+        'cache-control': 'public, max-age=30, s-maxage=60',
+      });
+    }
 
     return jsonResponse(
       {
@@ -462,7 +530,7 @@ export async function onRequestGet({ env, request }) {
 
   const displayItems = applyAdminConfig(mergedItems, adminConfig, categoryCodes).map(compactProduct);
 
-  const response = jsonResponse({
+  const responsePayload = {
     ok: true,
     unitCode,
     categoryCodes: configuredHomeCategoryCodes,
@@ -483,7 +551,11 @@ export async function onRequestGet({ env, request }) {
     page: 1,
     limit: 100,
     total: displayItems.length,
-  }, 200, {
+  };
+
+  await storeStaleProducts(env, staleKey, responsePayload);
+
+  const response = jsonResponse(responsePayload, 200, {
     'cache-control': rentalAuthorized
       ? 'no-store'
       : `public, max-age=60, s-maxage=${EDGE_CACHE_SECONDS}`,
