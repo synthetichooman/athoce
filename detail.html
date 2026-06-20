@@ -484,7 +484,9 @@
         const productUrl = prodNo
           ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
           : 'https://athoce.kr/detail';
-        const categoryNames = normalizeProductCategories(product);
+        const categoryNames = getProductCategoryCodes(product)
+          .map((categoryCode) => categoryNameByCode.get(categoryCode) || categoryCode)
+          .filter(Boolean);
         const baseJsonLd = {
           '@id': `${productUrl}#main`,
           name,
