@@ -6,23 +6,38 @@
 
 - https://athoce.kr/
 - https://athoce.kr/sitemap.xml
+- https://athoce.kr/robots.txt
 - https://hooman.kr/
 
 ## site context
 
-athoce.kr is the online shop and catalog interface for athoce seoul.
-The site is intended for product browsing, product detail review, and rental availability inquiry.
+athoce.kr is the online shop and catalog interface for athoce seoul, a shop identity based in mangwon-dong, seoul.
+The site is intended for product browsing, product detail review, collection category browsing, and rental availability inquiry.
 Its product data is synchronized through hooman.kr and the Imweb API.
 Orders, payments, shipping, returns, and legal terms follow hooman.kr.
+
+## public page patterns
+
+- Home and category pages: `https://athoce.kr/`
+- Category filter pages: `https://athoce.kr/?categoryCode=...`
+- Product detail pages: `https://athoce.kr/detail?prodNo=...`
+- Sitemap: `https://athoce.kr/sitemap.xml`
+
+## product and category context
+
+Primary public categories include aategois, hooman, cementbay, rental, and athoce made.
+The storefront is organized around one-of-one or limited-availability pieces, so sold items may remain visible as part of the catalog and archive context.
+Rental inquiry is available for styling, editorial, commercial, and project use.
 
 ## important notes
 
 - athoce seoul is the primary brand and shop identity
 - the mirror storefront architecture is a technical implementation detail
 - athoce.kr is not an independent checkout provider
-- public product pages use `/detail.html?prodNo=...`
+- public product pages use `/detail?prodNo=...`
 - rental products may require password access
 - admin and OAuth endpoints are not public content
+- preferred canonical domain is `https://athoce.kr`
 
 ## preferred summary
 

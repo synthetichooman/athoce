@@ -9,6 +9,13 @@
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
+    <meta name="application-name" content="athoce" />
+    <meta name="author" content="athoce seoul" />
+    <meta name="publisher" content="athoce seoul" />
+    <meta
+      name="keywords"
+      content="athoce, athoce seoul, aategois, hooman, cementbay, seoul shop, mangwon-dong"
+    />
     <link rel="canonical" href="https://athoce.kr/" />
     <link rel="preconnect" href="https://cdn.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.imweb.me" />
@@ -24,6 +31,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://athoce.kr/" />
     <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="athoce" />
     <meta
@@ -32,7 +40,7 @@
     />
     <meta name="twitter:image" content="https://athoce.kr/assets/athoce-og.png" />
     <title>athoce</title>
-    <script type="application/ld+json">
+    <script id="homeJsonLd" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
@@ -49,7 +57,7 @@
             }
           },
           {
-            "@type": "Store",
+            "@type": ["Store", "OnlineStore"],
             "@id": "https://athoce.kr/#organization",
             "name": "athoce seoul",
             "alternateName": "아토스 서울",
@@ -57,12 +65,52 @@
             "image": "https://athoce.kr/assets/athoce-og.png",
             "sameAs": ["https://www.instagram.com/athoce.seoul/", "https://hooman.kr/"],
             "logo": "https://athoce.kr/assets/athoce-symbol.svg",
+            "description": "aategois, hooman, cementbay as athoce, in seoul",
+            "knowsAbout": ["aategois", "hooman", "cementbay", "vintage clothing", "rental styling", "seoul"],
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "athoce online shop",
+              "itemListElement": [
+                {
+                  "@type": "OfferCatalog",
+                  "name": "aategois"
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "hooman"
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "cementbay"
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "rental"
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "athoce made"
+                }
+              ]
+            },
             "address": {
               "@type": "PostalAddress",
               "addressLocality": "망원동",
               "addressRegion": "서울",
               "addressCountry": "KR"
             }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://athoce.kr/#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "athoce",
+                "item": "https://athoce.kr/"
+              }
+            ]
           }
         ]
       }
@@ -879,6 +927,107 @@ please check each product detail for handling notes before use</p>
         document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonicalUrl);
       }
 
+      function upsertHomeJsonLd() {
+        const productItems = allProductsState.slice(0, 36).map((product, index) => {
+          const productId = getProductId(product);
+          const name = getProductName(product);
+          const imageUrl = getProductImage(product);
+
+          return {
+            '@type': 'ListItem',
+            position: index + 1,
+            url: productId
+              ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(productId)}`
+              : 'https://athoce.kr/',
+            item: {
+              '@type': 'Product',
+              name,
+              image: imageUrl || undefined,
+              sku: productId ? String(productId) : undefined,
+              brand: {
+                '@type': 'Brand',
+                name: 'athoce seoul',
+              },
+            },
+          };
+        });
+        const categoryItems = categoriesState.map((category, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: formatDisplayText(category.name),
+          item: `https://athoce.kr/?categoryCode=${encodeURIComponent(category.categoryCode)}`,
+        }));
+        const jsonLd = {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              '@id': 'https://athoce.kr/#website',
+              name: 'athoce seoul',
+              alternateName: '아토스 서울',
+              url: 'https://athoce.kr/',
+              inLanguage: ['ko', 'en'],
+              description: 'athoce is an online shop from seoul, featuring aategois, hooman and cementbay',
+              publisher: {
+                '@id': 'https://athoce.kr/#organization',
+              },
+            },
+            {
+              '@type': ['Store', 'OnlineStore'],
+              '@id': 'https://athoce.kr/#organization',
+              name: 'athoce seoul',
+              alternateName: '아토스 서울',
+              url: 'https://athoce.kr/',
+              image: 'https://athoce.kr/assets/athoce-og.png',
+              sameAs: ['https://www.instagram.com/athoce.seoul/', 'https://hooman.kr/'],
+              logo: 'https://athoce.kr/assets/athoce-symbol.svg',
+              description: 'aategois, hooman, cementbay as athoce, in seoul',
+              knowsAbout: ['aategois', 'hooman', 'cementbay', 'vintage clothing', 'rental styling', 'seoul'],
+              address: {
+                '@type': 'PostalAddress',
+                addressLocality: '망원동',
+                addressRegion: '서울',
+                addressCountry: 'KR',
+              },
+            },
+            {
+              '@type': 'BreadcrumbList',
+              '@id': 'https://athoce.kr/#breadcrumb',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'athoce',
+                  item: 'https://athoce.kr/',
+                },
+              ],
+            },
+            categoryItems.length
+              ? {
+                  '@type': 'ItemList',
+                  '@id': 'https://athoce.kr/#categories',
+                  name: 'athoce categories',
+                  itemListElement: categoryItems,
+                }
+              : null,
+            productItems.length
+              ? {
+                  '@type': 'ItemList',
+                  '@id': 'https://athoce.kr/#products',
+                  name: 'athoce products',
+                  numberOfItems: allProductsState.length,
+                  itemListElement: productItems,
+                }
+              : null,
+          ].filter(Boolean),
+        };
+        const script = document.querySelector('#homeJsonLd');
+
+        if (script) {
+          script.textContent = JSON.stringify(jsonLd);
+        }
+      }
+
       function getProductId(product) {
         return pickFirst(
           product.prodNo,
@@ -1405,6 +1554,7 @@ please check each product detail for handling notes before use</p>
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
           excludeUnavailableEl.checked = false;
           statusEl.textContent = `${allProductsState.length}개 상품`;
+          upsertHomeJsonLd();
           renderCategoryFilters();
           applyFilters();
 

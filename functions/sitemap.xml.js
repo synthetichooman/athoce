@@ -40,8 +40,8 @@ function buildUrl(loc, lastmod, priority = '0.7') {
     .join('\n');
 }
 
-export async function onRequestGet({ request }) {
-  const origin = new URL(request.url).origin;
+export async function onRequestGet() {
+  const origin = 'https://athoce.kr';
   const now = new Date().toISOString();
   const urls = [buildUrl(`${origin}/`, now, '1.0')];
 

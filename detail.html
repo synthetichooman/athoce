@@ -9,6 +9,9 @@
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
+    <meta name="application-name" content="athoce" />
+    <meta name="author" content="athoce seoul" />
+    <meta name="publisher" content="athoce seoul" />
     <link id="canonicalUrl" rel="canonical" href="https://athoce.kr/detail" />
     <link rel="preconnect" href="https://cdn-optimized.imweb.me" crossorigin />
     <link rel="dns-prefetch" href="https://cdn-optimized.imweb.me" />
@@ -24,6 +27,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://athoce.kr/detail" />
     <meta property="og:locale" content="ko_KR" />
+    <meta property="og:locale:alternate" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="athoce product" />
     <meta name="twitter:description" content="product detail from athoce seoul" />
@@ -476,16 +480,22 @@
         const productUrl = prodNo
           ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(prodNo)}`
           : 'https://athoce.kr/detail';
+        const categoryNames = normalizeProductCategories(product);
         const baseJsonLd = {
-          '@context': 'https://schema.org',
+          '@id': `${productUrl}#main`,
           name,
           image: images.map((imageUrl) => getOptimizedImwebImageUrl(imageUrl, 1200)),
           description:
             stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
             `${name} product detail from athoce seoul.`,
           url: productUrl,
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': productUrl,
+          },
           provider: {
             '@type': 'Store',
+            '@id': 'https://athoce.kr/#organization',
             name: 'athoce seoul',
             url: 'https://athoce.kr/',
             sameAs: ['https://www.instagram.com/athoce.seoul/', 'https://hooman.kr/'],
@@ -495,6 +505,7 @@
           ...baseJsonLd,
           '@type': 'Product',
           sku: String(pickFirst(product.prodNo, product.prodCode, prodNo, '')),
+          category: categoryNames.join(', ') || undefined,
           brand: {
             '@type': 'Brand',
             name: 'athoce seoul',
@@ -503,6 +514,11 @@
             '@type': 'Offer',
             url: getOriginalProductUrl(product),
             priceCurrency: 'KRW',
+            seller: {
+              '@type': 'Store',
+              '@id': 'https://athoce.kr/#organization',
+              name: 'athoce seoul',
+            },
             availability: unavailable
               ? 'https://schema.org/OutOfStock'
               : 'https://schema.org/InStock',
@@ -541,7 +557,30 @@
           document.head.append(script);
         }
 
-        script.textContent = JSON.stringify(jsonLd);
+        script.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'BreadcrumbList',
+              '@id': `${productUrl}#breadcrumb`,
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'athoce',
+                  item: 'https://athoce.kr/',
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name,
+                  item: productUrl,
+                },
+              ],
+            },
+            jsonLd,
+          ],
+        });
       }
 
       function updateSeo(product, images, name, price, unavailable, productType) {
