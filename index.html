@@ -831,6 +831,13 @@ please check each product detail for handling notes before use</p>
         rental: 'rental',
         'athoce-made': 'athoce made',
       };
+      const CATEGORY_CODE_BY_PATH = {
+        aategois: 's202606130219c191c0d3e',
+        hooman: 's20260613114d8f3179b7b',
+        cementbay: 's2026061356787cc1788a8',
+        rental: RENTAL_CATEGORY_CODE,
+        'athoce-made': 's20260613cf1433ba877ee',
+      };
       const LOADING_LINES = [
         'checking the rack',
         'asking hooman',
@@ -922,6 +929,10 @@ please check each product detail for handling notes before use</p>
 
         if (!slug) {
           return '';
+        }
+
+        if (CATEGORY_CODE_BY_PATH[slug]) {
+          return CATEGORY_CODE_BY_PATH[slug];
         }
 
         const targetName = CATEGORY_PATH_ALIASES[slug] || slug.replace(/-/g, ' ');
