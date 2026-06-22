@@ -1591,7 +1591,7 @@ please check each product detail for handling notes before use</p>
 
         try {
           const pageParams = new URLSearchParams(window.location.search);
-          const categoryCode = pageParams.get('categoryCode');
+          const categoryCode = pageParams.get('categoryCode') || getCategoryCodeFromRoute();
           const apiUrl = new URL('/api/products', window.location.origin);
 
           if (categoryCode) {
@@ -1636,7 +1636,7 @@ please check each product detail for handling notes before use</p>
           displayState = payload.display || {};
           lockedCategoryCodes = new Set((displayState.lockedCategoryCodes || []).map(String));
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
-          activeCategoryCode = getCategoryCodeFromRoute();
+          activeCategoryCode = categoryCode || getCategoryCodeFromRoute();
 
           if (activeCategoryCode && isLockedCategory(activeCategoryCode)) {
             showRentalGate(activeCategoryCode);
