@@ -824,6 +824,13 @@ please check each product detail for handling notes before use</p>
       const RENDER_BATCH_SIZE = 24;
       const HIGH_PRIORITY_IMAGE_COUNT = 8;
       const CATEGORY_NAME_ORDER = ['aategois', 'hooman', 'cementbay', 'rental', 'archive', 'vault', 'log', 'athoce made'];
+      const CATEGORY_PATH_ALIASES = {
+        aategois: 'aategois',
+        hooman: 'hooman',
+        cementbay: 'cementbay',
+        rental: 'rental',
+        'athoce-made': 'athoce made',
+      };
       const LOADING_LINES = [
         'checking the rack',
         'asking hooman',
@@ -874,6 +881,67 @@ please check each product detail for handling notes before use</p>
         return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
       }
 
+      function normalizePathSlug(value) {
+        return String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+
+      function getRouteSlug() {
+        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+
+        if (!path || ['index.html', 'index'].includes(path)) {
+          return '';
+        }
+
+        return normalizePathSlug(path.split('/')[0]);
+      }
+
+      function getCategorySlug(category) {
+        return normalizePathSlug(formatDisplayText(category?.name || ''));
+      }
+
+      function getCategoryPath(categoryCode) {
+        const category = getCategoryByCode(categoryCode);
+        const slug = getCategorySlug(category);
+
+        return slug ? `/${slug}` : '/';
+      }
+
+      function getCategoryCodeFromRoute() {
+        const params = new URLSearchParams(window.location.search);
+        const categoryCode = params.get('categoryCode');
+
+        if (categoryCode) {
+          return String(categoryCode);
+        }
+
+        const slug = getRouteSlug();
+
+        if (!slug) {
+          return '';
+        }
+
+        const targetName = CATEGORY_PATH_ALIASES[slug] || slug.replace(/-/g, ' ');
+        const targetSlug = normalizePathSlug(targetName);
+        const matchedCategory = categoriesState.find((category) => getCategorySlug(category) === targetSlug);
+
+        return matchedCategory?.categoryCode || '';
+      }
+
+      function setBrowserCategoryPath(categoryCode, replace = false) {
+        const nextPath = categoryCode ? getCategoryPath(categoryCode) : '/';
+        const nextUrl = `${nextPath}${window.location.search && !window.location.search.includes('categoryCode=') ? window.location.search : ''}`;
+
+        if (nextUrl === `${window.location.pathname}${window.location.search}`) {
+          return;
+        }
+
+        window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
+      }
+
       function getLoadingLine() {
         return LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)];
       }
@@ -918,7 +986,7 @@ please check each product detail for handling notes before use</p>
           ? `${categoryName} from athoce, an online shop from seoul`
           : 'athoce is an online shop from seoul, featuring aategois, hooman and cementbay';
         const canonicalUrl = activeCategoryCode
-          ? `https://athoce.kr/?categoryCode=${encodeURIComponent(activeCategoryCode)}`
+          ? `https://athoce.kr${getCategoryPath(activeCategoryCode)}`
           : 'https://athoce.kr/';
 
         document.title = title;
@@ -959,7 +1027,7 @@ please check each product detail for handling notes before use</p>
           '@type': 'ListItem',
           position: index + 1,
           name: formatDisplayText(category.name),
-          item: `https://athoce.kr/?categoryCode=${encodeURIComponent(category.categoryCode)}`,
+          item: `https://athoce.kr${getCategoryPath(category.categoryCode)}`,
         }));
         const jsonLd = {
           '@context': 'https://schema.org',
@@ -1404,6 +1472,7 @@ please check each product detail for handling notes before use</p>
             }
 
             activeCategoryCode = category.categoryCode;
+            setBrowserCategoryPath(activeCategoryCode);
             applyFilters();
           });
 
@@ -1556,6 +1625,13 @@ please check each product detail for handling notes before use</p>
           displayState = payload.display || {};
           lockedCategoryCodes = new Set((displayState.lockedCategoryCodes || []).map(String));
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
+          activeCategoryCode = getCategoryCodeFromRoute();
+
+          if (activeCategoryCode && isLockedCategory(activeCategoryCode)) {
+            showRentalGate(activeCategoryCode);
+            activeCategoryCode = '';
+          }
+
           excludeUnavailableEl.checked = false;
           statusEl.textContent = `${allProductsState.length}개 상품`;
           upsertHomeJsonLd();
@@ -1570,6 +1646,16 @@ please check each product detail for handling notes before use</p>
 
       loadMoreButton.addEventListener('click', renderNextBatch);
       window.addEventListener('keydown', handleEasterEggInput);
+      window.addEventListener('popstate', () => {
+        activeCategoryCode = getCategoryCodeFromRoute();
+
+        if (activeCategoryCode && isLockedCategory(activeCategoryCode)) {
+          showRentalGate(activeCategoryCode);
+          activeCategoryCode = '';
+        }
+
+        applyFilters();
+      });
       excludeUnavailableEl.addEventListener('change', applyFilters);
       bundleToggleButton.addEventListener('click', () => {
         bundleMode = !bundleMode;
@@ -1667,6 +1753,7 @@ please check each product detail for handling notes before use</p>
           const targetCategoryCode = pendingRentalCategoryCode || RENTAL_CATEGORY_CODE;
           hideRentalGate();
           activeCategoryCode = targetCategoryCode;
+          setBrowserCategoryPath(activeCategoryCode, true);
           await loadProducts();
         } catch (error) {
           rentalGateStatusEl.textContent = formatDisplayText(error.message);

@@ -21,6 +21,19 @@ function getProductId(product) {
   return product?.prodNo || product?.idx || product?.id || product?.productNo || '';
 }
 
+const CATEGORY_PATH_BY_CODE = {
+  s202606130219c191c0d3e: '/aategois',
+  s20260613114d8f3179b7b: '/hooman',
+  s2026061356787cc1788a8: '/cementbay',
+  s20260613e8746a4f236be: '/rental',
+  s20260613cf1433ba877ee: '/athoce-made',
+};
+
+function getCategoryUrl(origin, categoryCode) {
+  const path = CATEGORY_PATH_BY_CODE[String(categoryCode || '')];
+  return path ? `${origin}${path}` : `${origin}/?categoryCode=${encodeURIComponent(categoryCode)}`;
+}
+
 function toIsoDate(value, fallback) {
   const date = value ? new Date(value) : null;
   const time = date ? date.getTime() : NaN;
@@ -61,7 +74,7 @@ export async function onRequestGet() {
       }
 
       urls.push(
-        buildUrl(`${origin}/?categoryCode=${encodeURIComponent(categoryCode)}`, payload.fetchedAt || now, '0.7'),
+        buildUrl(getCategoryUrl(origin, categoryCode), payload.fetchedAt || now, '0.7'),
       );
     }
 
