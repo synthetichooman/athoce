@@ -1016,13 +1016,32 @@ please check each product detail for handling notes before use</p>
           const productId = getProductId(product);
           const name = getProductName(product);
           const imageUrl = getProductImage(product);
+          const price = getProductPrice(product);
+          const productUrl = productId
+            ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(productId)}`
+            : 'https://athoce.kr/';
+          const offer = {
+            '@type': 'Offer',
+            url: productUrl,
+            priceCurrency: 'KRW',
+            availability: isUnavailable(product)
+              ? 'https://schema.org/OutOfStock'
+              : 'https://schema.org/InStock',
+            seller: {
+              '@type': 'Store',
+              '@id': 'https://athoce.kr/#organization',
+              name: 'athoce seoul',
+            },
+          };
+
+          if (price) {
+            offer.price = String(price);
+          }
 
           return {
             '@type': 'ListItem',
             position: index + 1,
-            url: productId
-              ? `https://athoce.kr/detail?prodNo=${encodeURIComponent(productId)}`
-              : 'https://athoce.kr/',
+            url: productUrl,
             item: {
               '@type': 'Product',
               name,
@@ -1032,6 +1051,7 @@ please check each product detail for handling notes before use</p>
                 '@type': 'Brand',
                 name: 'athoce seoul',
               },
+              offers: offer,
             },
           };
         });
