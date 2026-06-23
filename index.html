@@ -1595,10 +1595,6 @@ please check each product detail for handling notes before use</p>
           const categoryCode = pageParams.get('categoryCode') || getCategoryCodeFromRoute();
           const apiUrl = new URL('/api/products', window.location.origin);
 
-          if (categoryCode) {
-            apiUrl.searchParams.set('categoryCode', categoryCode);
-          }
-
           if (options.bypassCache) {
             apiUrl.searchParams.set('cache', 'refresh');
           }
