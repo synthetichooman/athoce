@@ -889,6 +889,34 @@ please check each product detail for handling notes before use</p>
         return String(value || '').replace(/[A-Z]/g, (letter) => letter.toLowerCase());
       }
 
+      function stripHtml(value) {
+        const container = document.createElement('div');
+        container.innerHTML = String(value || '');
+        return container.textContent.replace(/\s+/g, ' ').trim();
+      }
+
+      function getProductDescription(product, name) {
+        return (
+          stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, product.summary, ''))
+            .slice(0, 300) ||
+          `${name} from athoce seoul, an online shop featuring aategois, hooman and cementbay.`
+        );
+      }
+
+      function getMerchantPolicyReferences() {
+        return {
+          hasMerchantReturnPolicy: {
+            '@id': 'https://athoce.kr/#return-policy',
+          },
+          shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            hasShippingService: {
+              '@id': 'https://athoce.kr/#shipping-policy',
+            },
+          },
+        };
+      }
+
       function normalizePathSlug(value) {
         return String(value || '')
           .trim()
@@ -1032,6 +1060,7 @@ please check each product detail for handling notes before use</p>
               '@id': 'https://athoce.kr/#organization',
               name: 'athoce seoul',
             },
+            ...getMerchantPolicyReferences(),
           };
 
           if (price) {
@@ -1045,6 +1074,7 @@ please check each product detail for handling notes before use</p>
             item: {
               '@type': 'Product',
               name,
+              description: getProductDescription(product, name),
               image: imageUrl || undefined,
               sku: productId ? String(productId) : undefined,
               brand: {
@@ -1093,6 +1123,32 @@ please check each product detail for handling notes before use</p>
                 addressRegion: '서울',
                 addressCountry: 'KR',
               },
+              hasMerchantReturnPolicy: {
+                '@id': 'https://athoce.kr/#return-policy',
+              },
+              hasShippingService: {
+                '@id': 'https://athoce.kr/#shipping-policy',
+              },
+            },
+            {
+              '@type': 'MerchantReturnPolicy',
+              '@id': 'https://athoce.kr/#return-policy',
+              name: 'hooman.kr return policy',
+              url: 'https://hooman.kr',
+              applicableCountry: 'KR',
+              description:
+                'orders, payments, shipping, returns, and service policies follow hooman.kr.',
+            },
+            {
+              '@type': 'ShippingService',
+              '@id': 'https://athoce.kr/#shipping-policy',
+              name: 'hooman.kr shipping policy',
+              url: 'https://hooman.kr',
+              provider: {
+                '@id': 'https://athoce.kr/#organization',
+              },
+              description:
+                'orders, payments, shipping, returns, and service policies follow hooman.kr.',
             },
             {
               '@type': 'BreadcrumbList',

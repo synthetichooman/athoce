@@ -468,6 +468,20 @@
         return container.textContent.replace(/\s+/g, ' ').trim();
       }
 
+      function getMerchantPolicyReferences() {
+        return {
+          hasMerchantReturnPolicy: {
+            '@id': 'https://athoce.kr/#return-policy',
+          },
+          shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            hasShippingService: {
+              '@id': 'https://athoce.kr/#shipping-policy',
+            },
+          },
+        };
+      }
+
       function setMeta(selector, attribute, value) {
         if (!value) {
           return;
@@ -487,13 +501,14 @@
         const categoryNames = getProductCategoryCodes(product)
           .map((categoryCode) => categoryNameByCode.get(categoryCode) || categoryCode)
           .filter(Boolean);
+        const description =
+          stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
+          `${name} product detail from athoce seoul.`;
         const baseJsonLd = {
           '@id': `${productUrl}#main`,
           name,
           image: images.map((imageUrl) => getOptimizedImwebImageUrl(imageUrl, 1200)),
-          description:
-            stripHtml(pickFirst(product.content, product.simpleContent, product.mobileContent, '')) ||
-            `${name} product detail from athoce seoul.`,
+          description,
           url: productUrl,
           mainEntityOfPage: {
             '@type': 'WebPage',
@@ -528,6 +543,7 @@
             availability: unavailable
               ? 'https://schema.org/OutOfStock'
               : 'https://schema.org/InStock',
+            ...getMerchantPolicyReferences(),
           },
         };
 
@@ -585,6 +601,39 @@
               ],
             },
             jsonLd,
+            {
+              '@type': ['Store', 'OnlineStore'],
+              '@id': 'https://athoce.kr/#organization',
+              name: 'athoce seoul',
+              url: 'https://athoce.kr/',
+              sameAs: ['https://www.instagram.com/athoce.seoul/', 'https://hooman.kr/'],
+              hasMerchantReturnPolicy: {
+                '@id': 'https://athoce.kr/#return-policy',
+              },
+              hasShippingService: {
+                '@id': 'https://athoce.kr/#shipping-policy',
+              },
+            },
+            {
+              '@type': 'MerchantReturnPolicy',
+              '@id': 'https://athoce.kr/#return-policy',
+              name: 'hooman.kr return policy',
+              url: 'https://hooman.kr',
+              applicableCountry: 'KR',
+              description:
+                'orders, payments, shipping, returns, and service policies follow hooman.kr.',
+            },
+            {
+              '@type': 'ShippingService',
+              '@id': 'https://athoce.kr/#shipping-policy',
+              name: 'hooman.kr shipping policy',
+              url: 'https://hooman.kr',
+              provider: {
+                '@id': 'https://athoce.kr/#organization',
+              },
+              description:
+                'orders, payments, shipping, returns, and service policies follow hooman.kr.',
+            },
           ],
         });
       }
