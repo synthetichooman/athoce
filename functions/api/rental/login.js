@@ -11,7 +11,18 @@ function jsonResponse(body, status = 200, headers = {}) {
   });
 }
 
-export async function onRequestPost({ env, request }) {
+function recordRentalEventInBackground(context, event) {
+  const task = recordRentalEvent(context.env, context.request, event).catch(() => {
+    // Rental access should never fail because usage logging is temporarily unavailable.
+  });
+
+  if (typeof context.waitUntil === 'function') {
+    context.waitUntil(task);
+  }
+}
+
+export async function onRequestPost(context) {
+  const { env, request } = context;
   let payload;
 
   try {
@@ -23,7 +34,7 @@ export async function onRequestPost({ env, request }) {
   const access = await findRentalAccess(payload?.password, env);
 
   if (!access.ok) {
-    await recordRentalEvent(env, request, {
+    recordRentalEventInBackground(context, {
       event: 'rental_login',
       keyId: 'unknown',
       label: '',
@@ -42,7 +53,9 @@ export async function onRequestPost({ env, request }) {
     );
   }
 
-  await recordRentalEvent(env, request, {
+  const sessionCookie = await createRentalSessionCookie(env, access);
+
+  recordRentalEventInBackground(context, {
     event: 'rental_login',
     keyId: access.keyId,
     label: access.label,
@@ -60,7 +73,7 @@ export async function onRequestPost({ env, request }) {
     },
     200,
     {
-      'set-cookie': await createRentalSessionCookie(env, access),
+      'set-cookie': sessionCookie,
     },
   );
 }

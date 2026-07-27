@@ -868,6 +868,7 @@ please check each product detail for handling notes before use</p>
       const rentalPasswordEl = document.querySelector('#rentalPassword');
       const rentalGateStatusEl = document.querySelector('#rentalGateStatus');
       const rentalGateCancelButton = document.querySelector('#rentalGateCancel');
+      const rentalGateSubmitButton = rentalGateForm.querySelector('button[type="submit"]');
       const priceFormatter = new Intl.NumberFormat('ko-KR');
       let allProductsState = [];
       let productsState = [];
@@ -1418,6 +1419,7 @@ please check each product detail for handling notes before use</p>
         document.body.classList.add('rental-gate-open');
         rentalGateStatusEl.textContent = '';
         rentalPasswordEl.value = '';
+        rentalGateSubmitButton.disabled = false;
         rentalPasswordEl.focus();
       }
 
@@ -1708,6 +1710,13 @@ please check each product detail for handling notes before use</p>
           allProductsState = Array.isArray(payload.items) ? payload.items : [];
           displayState = payload.display || {};
           lockedCategoryCodes = new Set((displayState.lockedCategoryCodes || []).map(String));
+
+          if (options.requireRentalUnlock && isLockedCategory(RENTAL_CATEGORY_CODE)) {
+            const error = new Error('rental session was not activated. please try again.');
+            error.code = 'RENTAL_SESSION_NOT_ACTIVE';
+            throw error;
+          }
+
           categoriesState = getVisibleCategories(categoriesPayload.items || [], displayState);
           activeCategoryCode = categoryCode || getCategoryCodeFromRoute();
 
@@ -1725,6 +1734,10 @@ please check each product detail for handling notes before use</p>
           return;
         } catch (error) {
           renderLoadError(error);
+
+          if (options.throwOnError) {
+            throw error;
+          }
         }
       }
 
@@ -1816,6 +1829,7 @@ please check each product detail for handling notes before use</p>
       rentalGateForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         rentalGateStatusEl.textContent = 'checking';
+        rentalGateSubmitButton.disabled = true;
 
         try {
           const response = await fetch('/api/rental/login', {
@@ -1835,12 +1849,18 @@ please check each product detail for handling notes before use</p>
           }
 
           const targetCategoryCode = pendingRentalCategoryCode || RENTAL_CATEGORY_CODE;
-          hideRentalGate();
           activeCategoryCode = targetCategoryCode;
           setBrowserCategoryPath(activeCategoryCode, true);
-          await loadProducts();
+          await loadProducts({
+            bypassCache: true,
+            requireRentalUnlock: true,
+            throwOnError: true,
+          });
+          hideRentalGate();
         } catch (error) {
           rentalGateStatusEl.textContent = formatDisplayText(error.message);
+        } finally {
+          rentalGateSubmitButton.disabled = false;
         }
       });
       loadProducts();
