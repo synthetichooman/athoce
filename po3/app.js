@@ -1,5 +1,6 @@
 (() => {
   const EDITORIAL_COUNT = 13;
+  const IDLE_RESET_MS = 90_000;
   const LOGO_PATHS = [
     "M32.9,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
     "M70.8,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
@@ -125,6 +126,7 @@
   let selectedLookId = "";
   let editorialFrame = 0;
   let horizontalFrame = 0;
+  let idleResetTimer = 0;
 
   function editorialPath(index) {
     return `./assets/images/editorial/editorial-${String(index + 1).padStart(2, "0")}.webp`;
@@ -431,6 +433,32 @@
     );
   }
 
+  function resetExhibition() {
+    clearLook();
+    const exhibitionScrollBehavior = exhibition.style.scrollBehavior;
+    const editorialScrollBehavior = editorialRail.style.scrollBehavior;
+
+    exhibition.style.scrollBehavior = "auto";
+    editorialRail.style.scrollBehavior = "auto";
+    exhibition.scrollLeft = 0;
+    editorialRail.scrollTop = 0;
+    activeEditorialIndex = 0;
+    editorialCounter.textContent = `01 / ${EDITORIAL_COUNT}`;
+    updateEditorialWindow(0);
+    updatePageLogo(0);
+    document.activeElement?.blur();
+
+    window.requestAnimationFrame(() => {
+      exhibition.style.scrollBehavior = exhibitionScrollBehavior;
+      editorialRail.style.scrollBehavior = editorialScrollBehavior;
+    });
+  }
+
+  function scheduleIdleReset() {
+    window.clearTimeout(idleResetTimer);
+    idleResetTimer = window.setTimeout(resetExhibition, IDLE_RESET_MS);
+  }
+
   function selectAdjacentLook(direction) {
     const match = findLook(selectedLookId);
     if (!match) return;
@@ -495,7 +523,12 @@
     }
   });
 
+  ["pointerdown", "pointermove", "wheel", "touchstart", "keydown"].forEach((eventName) => {
+    document.addEventListener(eventName, scheduleIdleReset, { passive: true });
+  });
+
   makePageLogo();
   makeEditorialSlides();
   makeLookCards();
+  scheduleIdleReset();
 })();
