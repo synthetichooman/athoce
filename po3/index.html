@@ -21,7 +21,7 @@
     <meta property="og:url" content="https://athoce.kr/po3/" />
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <link rel="preload" href="./assets/images/editorial/editorial-01.webp" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260819-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260819-4" />
     <title>3² — athoce seoul</title>
   </head>
   <body>
@@ -83,7 +83,9 @@
           <dl class="brand-list" data-brand-list></dl>
           <button class="look-close" type="button">close</button>
         </aside>
-        <button class="screen-link screen-link-back" type="button" data-screen="intro">back</button>
+        <button class="screen-link screen-link-prev" type="button" data-screen="intro" aria-label="인트로 페이지로 이동">
+          <span class="cue-chevron cue-chevron-left" aria-hidden="true"></span>
+        </button>
         <button class="screen-link screen-link-next" type="button" data-screen="hooman" aria-label="hooman 페이지로 이동">
           <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
         </button>
@@ -102,7 +104,9 @@
           <dl class="brand-list" data-brand-list></dl>
           <button class="look-close" type="button">close</button>
         </aside>
-        <button class="screen-link screen-link-back" type="button" data-screen="aategois">back</button>
+        <button class="screen-link screen-link-prev" type="button" data-screen="aategois" aria-label="aategois 페이지로 이동">
+          <span class="cue-chevron cue-chevron-left" aria-hidden="true"></span>
+        </button>
         <button class="screen-link screen-link-next" type="button" data-screen="cementbay" aria-label="cementbay 페이지로 이동">
           <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
         </button>
@@ -121,10 +125,12 @@
           <dl class="brand-list" data-brand-list></dl>
           <button class="look-close" type="button">close</button>
         </aside>
-        <button class="screen-link screen-link-back" type="button" data-screen="hooman">back</button>
+        <button class="screen-link screen-link-prev" type="button" data-screen="hooman" aria-label="hooman 페이지로 이동">
+          <span class="cue-chevron cue-chevron-left" aria-hidden="true"></span>
+        </button>
       </section>
     </main>
 
-    <script src="./app.js?v=20260819-2"></script>
+    <script src="./app.js?v=20260819-4"></script>
   </body>
 </html>

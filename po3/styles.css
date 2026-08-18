@@ -246,6 +246,20 @@ button:focus-visible,
   transform: translateY(-50%);
 }
 
+.screen-link-prev {
+  top: 50%;
+  left: clamp(14px, 1.9vw, 48px);
+  bottom: auto;
+  display: grid;
+  width: 56px;
+  min-width: 56px;
+  height: 80px;
+  padding: 0;
+  place-items: center;
+  text-decoration: none;
+  transform: translateY(-50%);
+}
+
 .cue-chevron-right {
   width: 18px;
   height: 18px;
@@ -255,15 +269,23 @@ button:focus-visible,
   transition: transform 220ms ease;
 }
 
+.cue-chevron-left {
+  width: 18px;
+  height: 18px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+  transform: rotate(-45deg);
+  transition: transform 220ms ease;
+}
+
 .screen-link-next:hover .cue-chevron-right,
 .screen-link-next:focus-visible .cue-chevron-right {
   transform: translateX(4px) rotate(45deg);
 }
 
-.screen-link-back {
-  left: var(--page-pad);
-  bottom: clamp(14px, 2vh, 28px);
-  text-align: left;
+.screen-link-prev:hover .cue-chevron-left,
+.screen-link-prev:focus-visible .cue-chevron-left {
+  transform: translateX(-4px) rotate(-45deg);
 }
 
 .shop-screen {
@@ -286,9 +308,7 @@ button:focus-visible,
   position: absolute;
   inset: clamp(130px, 18.3vh, 264px) var(--shop-pad-x) clamp(80px, 10.5vh, 152px);
   transform-origin: center top;
-  transition:
-    inset 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shop-look-grid {
@@ -350,14 +370,13 @@ button:focus-visible,
 }
 
 .look-card:hover .look-image img,
-.look-card:focus-visible .look-image img,
-.look-card.is-selected .look-image img {
+.look-card:focus-visible .look-image img {
   filter: grayscale(0) contrast(1);
   transform: scale(1.025);
 }
 
-.look-card.is-selected {
-  transform: translateY(-8px);
+.look-card.is-selected .look-image img {
+  filter: grayscale(0) contrast(1);
 }
 
 .look-card.is-selected .look-image {
@@ -365,11 +384,15 @@ button:focus-visible,
 }
 
 .shop-screen.has-selection .shop-look-stage {
-  bottom: 34vh;
+  transform: translateX(clamp(-110px, -4vw, -48px));
+}
+
+.shop-screen.has-exhibition-selection .shop-look-stage {
+  transform: translateX(clamp(-420px, -14vw, -260px));
 }
 
 .shop-screen.has-selection .look-card:not(.is-selected) {
-  opacity: 0.2;
+  opacity: 0.58;
 }
 
 .shop-screen.has-selection .look-image img {
@@ -379,18 +402,16 @@ button:focus-visible,
 .look-info {
   position: absolute;
   z-index: 6;
-  left: 0;
+  top: 0;
   right: 0;
   bottom: 0;
-  display: grid;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 2.4fr) auto;
-  gap: clamp(32px, 5vw, 128px);
-  align-items: start;
-  min-height: 28vh;
-  padding: clamp(28px, 3.2vh, 48px) var(--page-pad);
-  border-top: 1px solid var(--ink);
-  background: rgba(255, 255, 255, 0.97);
-  transform: translateY(102%);
+  display: flex;
+  flex-direction: column;
+  width: clamp(320px, 18vw, 520px);
+  padding: clamp(44px, 7.2vh, 104px) clamp(28px, 2.4vw, 62px) clamp(36px, 5vh, 72px);
+  border-left: 1px solid var(--ink);
+  background: var(--paper);
+  transform: translateX(102%);
   visibility: hidden;
   transition:
     transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -423,9 +444,9 @@ button:focus-visible,
 
 .brand-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(20px, 3vw, 76px);
-  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(32px, 5vh, 72px) clamp(24px, 2vw, 48px);
+  margin: clamp(64px, 9vh, 130px) 0 0;
 }
 
 .brand-item dt,
@@ -452,6 +473,7 @@ button:focus-visible,
 
 .look-close {
   min-width: 64px;
+  margin-top: auto;
   padding: 0 0 8px;
   font-size: clamp(12px, 0.72vw, 18px);
   line-height: 1;
@@ -460,7 +482,7 @@ button:focus-visible,
   cursor: pointer;
 }
 
-.shop-screen.has-selection .screen-link-back,
+.shop-screen.has-selection .screen-link-prev,
 .shop-screen.has-selection .screen-link-next {
   opacity: 0;
   pointer-events: none;

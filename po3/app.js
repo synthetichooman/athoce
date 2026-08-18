@@ -274,6 +274,7 @@
     const lookNumber = screen.querySelector("[data-look-number]");
 
     screen.classList.add("has-selection");
+    screen.classList.toggle("has-exhibition-selection", look.role === "exhibition");
     lookInfo.setAttribute("aria-hidden", "false");
     lookName.textContent = `${shop.model} — look ${look.look}`;
     lookNumber.textContent = `${String(lookIndex + 1).padStart(2, "0")} / ${String(shop.looks.length).padStart(2, "0")}`;
@@ -289,7 +290,7 @@
   function clearLook() {
     selectedLookId = "";
     document.querySelectorAll(".shop-screen").forEach((screen) => {
-      screen.classList.remove("has-selection");
+      screen.classList.remove("has-selection", "has-exhibition-selection");
       screen.querySelector("[data-look-info]")?.setAttribute("aria-hidden", "true");
       screen.querySelectorAll(".look-card").forEach((card) => {
         card.classList.remove("is-selected");
