@@ -195,7 +195,7 @@ button:focus-visible,
   position: fixed;
   z-index: 20;
   top: clamp(44px, 7.2vh, 104px);
-  right: var(--page-pad);
+  right: var(--shop-pad-x);
   width: clamp(50px, 3.42vw, 87px);
   height: clamp(30px, 2.05vw, 52px);
   pointer-events: none;
