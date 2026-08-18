@@ -196,9 +196,45 @@
     });
 
     imageWrap.append(image);
-    card.append(imageWrap);
+
+    const label = document.createElement("span");
+    label.className = "look-label";
+    label.textContent = `${shop.model} - ${look.look}`;
+
+    card.append(imageWrap, label);
     card.addEventListener("click", () => selectLook(look.id));
     return card;
+  }
+
+  function makeLookPreview(shop) {
+    const preview = document.createElement("button");
+    preview.className = "selected-look-preview";
+    preview.type = "button";
+    preview.dataset.lookPreview = "";
+    preview.setAttribute("aria-hidden", "true");
+    preview.tabIndex = -1;
+
+    const imageWrap = document.createElement("span");
+    imageWrap.className = "selected-look-image";
+
+    const image = document.createElement("img");
+    image.decoding = "async";
+    image.draggable = false;
+    image.addEventListener("error", () => {
+      if (image.dataset.fallbackApplied === "true" || !image.dataset.fallback) return;
+      image.dataset.fallbackApplied = "true";
+      image.classList.add("is-fallback");
+      image.src = image.dataset.fallback;
+    });
+
+    const label = document.createElement("span");
+    label.className = "selected-look-label";
+
+    imageWrap.append(image);
+    preview.append(imageWrap, label);
+    preview.addEventListener("click", clearLook);
+    preview.setAttribute("aria-label", `${shop.model} 선택 해제`);
+    return preview;
   }
 
   function makeLookCards() {
@@ -207,7 +243,29 @@
       const grid = screen?.querySelector("[data-look-grid]");
       if (!grid) return;
       grid.replaceChildren(...shop.looks.map((look) => makeLookCard(shop, look)));
+
+      const stage = grid.closest(".shop-look-stage");
+      if (!screen.querySelector("[data-look-preview]")) {
+        stage.insertAdjacentElement("afterend", makeLookPreview(shop));
+      }
     });
+  }
+
+  function updateLookPreview(screen, shop, look) {
+    const preview = screen.querySelector("[data-look-preview]");
+    const image = preview?.querySelector("img");
+    const label = preview?.querySelector(".selected-look-label");
+    if (!preview || !image || !label) return;
+
+    image.dataset.fallbackApplied = "false";
+    image.dataset.fallback = look.fallback;
+    image.classList.remove("is-fallback");
+    image.alt = `${shop.model} 착장 ${look.look}`;
+    image.src = look.image;
+    label.textContent = `${shop.model} - ${look.look}`;
+    preview.setAttribute("aria-label", `${shop.model} - ${look.look} 선택 해제`);
+    preview.setAttribute("aria-hidden", "false");
+    preview.tabIndex = 0;
   }
 
   function renderBrands(screen, brands = {}) {
@@ -273,10 +331,11 @@
     const lookName = screen.querySelector("[data-look-name]");
     const lookNumber = screen.querySelector("[data-look-number]");
 
+    updateLookPreview(screen, shop, look);
     screen.classList.add("has-selection");
     screen.classList.toggle("has-exhibition-selection", look.role === "exhibition");
     lookInfo.setAttribute("aria-hidden", "false");
-    lookName.textContent = `${shop.model} — look ${look.look}`;
+    lookName.textContent = `${shop.model} - ${look.look}`;
     lookNumber.textContent = `${String(lookIndex + 1).padStart(2, "0")} / ${String(shop.looks.length).padStart(2, "0")}`;
     renderBrands(screen, look.brands);
 
@@ -292,6 +351,9 @@
     document.querySelectorAll(".shop-screen").forEach((screen) => {
       screen.classList.remove("has-selection", "has-exhibition-selection");
       screen.querySelector("[data-look-info]")?.setAttribute("aria-hidden", "true");
+      const preview = screen.querySelector("[data-look-preview]");
+      preview?.setAttribute("aria-hidden", "true");
+      if (preview) preview.tabIndex = -1;
       screen.querySelectorAll(".look-card").forEach((card) => {
         card.classList.remove("is-selected");
         card.setAttribute("aria-pressed", "false");
