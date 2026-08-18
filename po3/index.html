@@ -21,7 +21,7 @@
     <meta property="og:url" content="https://athoce.kr/po3/" />
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <link rel="preload" href="./assets/images/editorial/editorial-01.webp" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260818-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260818-3" />
     <title>3² — athoce seoul</title>
   </head>
   <body>
@@ -35,7 +35,10 @@
         >
           <div class="editorial-list" id="editorialList"></div>
           <p class="editorial-counter" id="editorialCounter" aria-live="polite">01 / 13</p>
-          <div class="vertical-cue" aria-hidden="true"><span>&lt;&gt;</span></div>
+          <div class="vertical-cue" aria-hidden="true">
+            <span class="cue-chevron cue-chevron-up"></span>
+            <span class="cue-chevron cue-chevron-down"></span>
+          </div>
         </div>
 
         <article class="intro-copy">
@@ -62,7 +65,7 @@
             data-screen="looks"
             aria-label="착장 페이지로 이동"
           >
-            <span aria-hidden="true">&gt;</span>
+            <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
           </button>
         </article>
       </section>
@@ -89,6 +92,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260818-2"></script>
+    <script src="./app.js?v=20260818-3"></script>
   </body>
 </html>
