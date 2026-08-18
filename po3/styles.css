@@ -308,7 +308,9 @@ button:focus-visible,
   position: absolute;
   inset: clamp(130px, 18.3vh, 264px) var(--shop-pad-x) clamp(80px, 10.5vh, 152px);
   transform-origin: center top;
-  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    right 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shop-look-grid {
@@ -359,7 +361,7 @@ button:focus-visible,
   height: 100%;
   object-fit: contain;
   object-position: 50% 50%;
-  filter: grayscale(1) contrast(0.92);
+  filter: grayscale(0) contrast(1);
   transition:
     filter 320ms ease,
     transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -371,7 +373,6 @@ button:focus-visible,
 
 .look-card:hover .look-image img,
 .look-card:focus-visible .look-image img {
-  filter: grayscale(0) contrast(1);
   transform: scale(1.025);
 }
 
@@ -384,19 +385,30 @@ button:focus-visible,
 }
 
 .shop-screen.has-selection .shop-look-stage {
-  transform: translateX(clamp(-110px, -4vw, -48px));
+  right: 50vw;
+  transform: none;
 }
 
-.shop-screen.has-exhibition-selection .shop-look-stage {
-  transform: translateX(clamp(-420px, -14vw, -260px));
+.shop-screen.has-selection .shop-look-grid {
+  position: relative;
+  display: block;
 }
 
-.shop-screen.has-selection .look-card:not(.is-selected) {
-  opacity: 0.58;
+.shop-screen.has-selection .look-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.97);
 }
 
-.shop-screen.has-selection .look-image img {
-  filter: grayscale(0) contrast(1);
+.shop-screen.has-selection .look-card.is-selected {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
 }
 
 .look-info {
@@ -407,7 +419,7 @@ button:focus-visible,
   bottom: 0;
   display: flex;
   flex-direction: column;
-  width: clamp(320px, 18vw, 520px);
+  width: 50vw;
   padding: clamp(44px, 7.2vh, 104px) clamp(28px, 2.4vw, 62px) clamp(36px, 5vh, 72px);
   border-left: 1px solid var(--ink);
   background: var(--paper);
@@ -419,7 +431,7 @@ button:focus-visible,
 }
 
 .shop-screen.has-selection .look-info {
-  transform: translateY(0);
+  transform: translateX(0);
   visibility: visible;
   transition-delay: 0s;
 }
