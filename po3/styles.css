@@ -260,6 +260,7 @@ button:focus-visible,
 
 .screen-link-back {
   left: var(--page-pad);
+  bottom: clamp(14px, 2vh, 28px);
   text-align: left;
 }
 
@@ -269,7 +270,7 @@ button:focus-visible,
 
 .look-stage {
   position: absolute;
-  inset: clamp(74px, 7vh, 104px) var(--page-pad) clamp(70px, 7vh, 108px);
+  inset: clamp(74px, 7vh, 104px) var(--page-pad) clamp(80px, 7vh, 108px);
   transform-origin: center top;
   transition:
     inset 480ms cubic-bezier(0.22, 1, 0.36, 1),
