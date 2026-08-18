@@ -294,7 +294,7 @@ button:focus-visible,
 
 .shop-title {
   position: absolute;
-  z-index: 4;
+  z-index: 7;
   top: clamp(44px, 7.2vh, 104px);
   left: var(--shop-pad-x);
   margin: 0;
@@ -392,8 +392,7 @@ button:focus-visible,
     visibility 0s linear 220ms;
 }
 
-.look-label,
-.selected-look-label {
+.look-label {
   display: block;
   margin: 0;
   font-size: clamp(12px, 0.72vw, 18px);
@@ -405,13 +404,11 @@ button:focus-visible,
 .selected-look-preview {
   position: absolute;
   z-index: 5;
-  top: clamp(130px, 18.3vh, 264px);
+  top: clamp(96px, 8.3vh, 120px);
   right: 50vw;
-  bottom: clamp(80px, 10.5vh, 152px);
-  left: var(--shop-pad-x);
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  row-gap: clamp(10px, 1vh, 16px);
+  bottom: clamp(32px, 3.35vh, 48px);
+  left: 0;
+  display: block;
   min-width: 0;
   min-height: 0;
   color: var(--ink);
@@ -430,9 +427,9 @@ button:focus-visible,
 .selected-look-image {
   display: block;
   width: 100%;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
-  border-bottom: 1px solid var(--ink);
 }
 
 .selected-look-image img {

@@ -227,11 +227,8 @@
       image.src = image.dataset.fallback;
     });
 
-    const label = document.createElement("span");
-    label.className = "selected-look-label";
-
     imageWrap.append(image);
-    preview.append(imageWrap, label);
+    preview.append(imageWrap);
     preview.addEventListener("click", clearLook);
     preview.setAttribute("aria-label", `${shop.model} 선택 해제`);
     return preview;
@@ -254,15 +251,13 @@
   function updateLookPreview(screen, shop, look) {
     const preview = screen.querySelector("[data-look-preview]");
     const image = preview?.querySelector("img");
-    const label = preview?.querySelector(".selected-look-label");
-    if (!preview || !image || !label) return;
+    if (!preview || !image) return;
 
     image.dataset.fallbackApplied = "false";
     image.dataset.fallback = look.fallback;
     image.classList.remove("is-fallback");
     image.alt = `${shop.model} 착장 ${look.look}`;
     image.src = look.image;
-    label.textContent = `${shop.model} - ${look.look}`;
     preview.setAttribute("aria-label", `${shop.model} - ${look.look} 선택 해제`);
     preview.setAttribute("aria-hidden", "false");
     preview.tabIndex = 0;
