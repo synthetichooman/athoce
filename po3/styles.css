@@ -293,6 +293,61 @@ button:focus-visible,
   background: var(--paper);
 }
 
+.credit-screen {
+  padding: clamp(44px, 7.2vh, 104px) var(--shop-pad-x) clamp(36px, 5vh, 72px);
+  background: var(--paper);
+}
+
+.credit-title {
+  margin: 0;
+  font-size: clamp(22px, 1.8vw, 46px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.credit-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.2fr 1fr;
+  gap: clamp(40px, 4.25vw, 108px);
+  margin-top: clamp(160px, 24vh, 346px);
+}
+
+.credit-block p {
+  margin: 0;
+}
+
+.credit-role {
+  margin-bottom: 1.25em !important;
+  color: var(--muted);
+  font-size: clamp(11px, 0.66vw, 17px);
+  line-height: 1;
+}
+
+.credit-name,
+.credit-detail {
+  font-size: clamp(17px, 1.12vw, 29px);
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+}
+
+.credit-name + .credit-name {
+  margin-top: 0.24em;
+}
+
+.credit-detail {
+  margin-top: 0.72em !important;
+  color: var(--muted);
+  font-size: clamp(13px, 0.78vw, 20px);
+  letter-spacing: 0;
+}
+
+.credit-handle {
+  color: var(--muted);
+  font-size: 0.72em;
+  letter-spacing: 0;
+}
+
 .shop-title {
   position: absolute;
   z-index: 7;

@@ -99,7 +99,7 @@
     },
   ];
 
-  const screenOrder = ["intro", ...shops.map((shop) => shop.id)];
+  const screenOrder = ["intro", ...shops.map((shop) => shop.id), "credit"];
   const exhibition = document.querySelector("#exhibition");
   const editorialRail = document.querySelector("#editorialRail");
   const editorialList = document.querySelector("#editorialList");

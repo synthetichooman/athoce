@@ -21,7 +21,7 @@
     <meta property="og:url" content="https://athoce.kr/po3/" />
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <link rel="preload" href="./assets/images/editorial/editorial-01.webp" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260819-9" />
+    <link rel="stylesheet" href="./styles.css?v=20260819-10" />
     <title>3² — athoce seoul</title>
   </head>
   <body>
@@ -128,9 +128,44 @@
         <button class="screen-link screen-link-prev" type="button" data-screen="hooman" aria-label="hooman 페이지로 이동">
           <span class="cue-chevron cue-chevron-left" aria-hidden="true"></span>
         </button>
+        <button class="screen-link screen-link-next" type="button" data-screen="credit" aria-label="크레딧 페이지로 이동">
+          <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="screen credit-screen" id="credit" aria-labelledby="creditTitle">
+        <h2 class="credit-title" id="creditTitle">credit</h2>
+
+        <div class="credit-layout">
+          <div class="credit-block credit-by">
+            <p class="credit-name">by athoce.seoul</p>
+            <p class="credit-detail">aategois hooman cementbay</p>
+          </div>
+
+          <div class="credit-block">
+            <p class="credit-role">photo</p>
+            <p class="credit-name">성훈 <span class="credit-handle">@iisunghuns</span></p>
+          </div>
+
+          <div class="credit-block">
+            <p class="credit-role">model</p>
+            <p class="credit-name">유민 <span class="credit-handle">@imimyourmean</span></p>
+            <p class="credit-name">가영 <span class="credit-handle">@yelkk0</span></p>
+            <p class="credit-name">세연 <span class="credit-handle">@s.y.eon</span></p>
+          </div>
+
+          <div class="credit-block">
+            <p class="credit-role">soundscape</p>
+            <p class="credit-name">jaw <span class="credit-handle">@jaw___1234</span></p>
+          </div>
+        </div>
+
+        <button class="screen-link screen-link-prev" type="button" data-screen="cementbay" aria-label="cementbay 페이지로 이동">
+          <span class="cue-chevron cue-chevron-left" aria-hidden="true"></span>
+        </button>
       </section>
     </main>
 
-    <script src="./app.js?v=20260819-8"></script>
+    <script src="./app.js?v=20260819-10"></script>
   </body>
 </html>
