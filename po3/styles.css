@@ -99,6 +99,7 @@ button:focus-visible,
   position: relative;
   width: 100%;
   height: 100vh;
+  margin: 0;
   overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
