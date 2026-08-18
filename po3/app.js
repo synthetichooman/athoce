@@ -211,6 +211,11 @@
   }
 
   function selectLook(id) {
+    if (selectedLookId === id) {
+      clearLook();
+      return;
+    }
+
     const lookIndex = looks.findIndex((look) => look.id === id);
     const look = looks[lookIndex];
     if (!look) return;

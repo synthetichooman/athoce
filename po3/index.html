@@ -35,7 +35,7 @@
         >
           <div class="editorial-list" id="editorialList"></div>
           <p class="editorial-counter" id="editorialCounter" aria-live="polite">01 / 13</p>
-          <p class="editorial-instruction">vertical scroll</p>
+          <div class="vertical-cue" aria-hidden="true"><span>&lt;&gt;</span></div>
         </div>
 
         <article class="intro-copy">
@@ -56,17 +56,19 @@
             </p>
           </div>
 
-          <button class="screen-link screen-link-next" type="button" data-screen="looks">
-            looks
+          <button
+            class="screen-link screen-link-next"
+            type="button"
+            data-screen="looks"
+            aria-label="착장 페이지로 이동"
+          >
+            <span aria-hidden="true">&gt;</span>
           </button>
         </article>
       </section>
 
       <section class="screen looks-screen" id="looks" aria-labelledby="looksTitle">
-        <header class="looks-header">
-          <h2 id="looksTitle">six looks</h2>
-          <p>select a look</p>
-        </header>
+        <h2 class="visually-hidden" id="looksTitle">착장 선택</h2>
 
         <div class="look-stage" id="lookStage">
           <div class="look-grid" id="lookGrid"></div>
@@ -82,9 +84,8 @@
         </aside>
 
         <button class="screen-link screen-link-back" type="button" data-screen="intro">
-          intro
+          back
         </button>
-        <p class="trackpad-hint">horizontal swipe</p>
       </section>
     </main>
 
