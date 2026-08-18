@@ -1,77 +1,114 @@
 (() => {
   const EDITORIAL_COUNT = 13;
 
-  const looks = [
+  const shops = [
     {
-      id: "yumin-01",
+      id: "aategois",
       model: "유민",
-      look: "01",
-      image: "./assets/images/looks/yumin-01.webp",
-      fallback: "./assets/images/editorial/editorial-02.webp",
-      brands: {
-        top: ["kenzo jungle"],
-        bottom: ["emporio armani"],
-        acc: ["belt", "prada"],
-        shoes: ["puma", "japandal"],
-      },
+      looks: [
+        {
+          id: "yumin-01",
+          look: "01",
+          role: "editorial",
+          image: "./assets/images/looks/yumin-01.webp",
+          fallback: "./assets/images/editorial/editorial-02.webp",
+          brands: {
+            top: ["kenzo jungle"],
+            bottom: ["emporio armani"],
+            acc: ["belt", "prada"],
+            shoes: ["puma", "japandal"],
+          },
+        },
+        {
+          id: "yumin-02",
+          look: "02",
+          role: "editorial",
+          image: "./assets/images/looks/yumin-02.webp",
+          fallback: "./assets/images/editorial/editorial-03.webp",
+          brands: {},
+        },
+        {
+          id: "aategois-exhibition",
+          look: "03",
+          role: "exhibition",
+          image: "./assets/images/looks/aategois-exhibition.webp",
+          fallback: "./assets/images/editorial/editorial-04.webp",
+          brands: {},
+        },
+      ],
     },
     {
-      id: "yumin-02",
-      model: "유민",
-      look: "02",
-      image: "./assets/images/looks/yumin-02.webp",
-      fallback: "./assets/images/editorial/editorial-03.webp",
-      brands: {},
-    },
-    {
-      id: "gayoung-01",
+      id: "hooman",
       model: "가영",
-      look: "01",
-      image: "./assets/images/looks/gayoung-01.webp",
-      fallback: "./assets/images/editorial/editorial-05.webp",
-      brands: {},
+      looks: [
+        {
+          id: "gayoung-01",
+          look: "01",
+          role: "editorial",
+          image: "./assets/images/looks/gayoung-01.webp",
+          fallback: "./assets/images/editorial/editorial-05.webp",
+          brands: {},
+        },
+        {
+          id: "gayoung-02",
+          look: "02",
+          role: "editorial",
+          image: "./assets/images/looks/gayoung-02.webp",
+          fallback: "./assets/images/editorial/editorial-06.webp",
+          brands: {},
+        },
+        {
+          id: "hooman-exhibition",
+          look: "03",
+          role: "exhibition",
+          image: "./assets/images/looks/hooman-exhibition.webp",
+          fallback: "./assets/images/editorial/editorial-07.webp",
+          brands: {},
+        },
+      ],
     },
     {
-      id: "gayoung-02",
-      model: "가영",
-      look: "02",
-      image: "./assets/images/looks/gayoung-02.webp",
-      fallback: "./assets/images/editorial/editorial-06.webp",
-      brands: {},
-    },
-    {
-      id: "seyeon-01",
+      id: "cementbay",
       model: "세연",
-      look: "01",
-      image: "./assets/images/looks/seyeon-01.webp",
-      fallback: "./assets/images/editorial/editorial-07.webp",
-      brands: {},
-    },
-    {
-      id: "seyeon-02",
-      model: "세연",
-      look: "02",
-      image: "./assets/images/looks/seyeon-02.webp",
-      fallback: "./assets/images/editorial/editorial-09.webp",
-      brands: {},
+      looks: [
+        {
+          id: "seyeon-01",
+          look: "01",
+          role: "editorial",
+          image: "./assets/images/looks/seyeon-01.webp",
+          fallback: "./assets/images/editorial/editorial-07.webp",
+          brands: {},
+        },
+        {
+          id: "seyeon-02",
+          look: "02",
+          role: "editorial",
+          image: "./assets/images/looks/seyeon-02.webp",
+          fallback: "./assets/images/editorial/editorial-09.webp",
+          brands: {},
+        },
+        {
+          id: "cementbay-exhibition",
+          look: "03",
+          role: "exhibition",
+          image: "./assets/images/looks/cementbay-exhibition.webp",
+          fallback: "./assets/images/editorial/editorial-08.webp",
+          brands: {},
+        },
+      ],
     },
   ];
 
+  const screenOrder = ["intro", ...shops.map((shop) => shop.id)];
   const exhibition = document.querySelector("#exhibition");
   const editorialRail = document.querySelector("#editorialRail");
   const editorialList = document.querySelector("#editorialList");
   const editorialCounter = document.querySelector("#editorialCounter");
-  const looksScreen = document.querySelector("#looks");
-  const lookGrid = document.querySelector("#lookGrid");
-  const lookInfo = document.querySelector("#lookInfo");
-  const lookName = document.querySelector("#lookName");
-  const lookNumber = document.querySelector("#lookNumber");
-  const brandList = document.querySelector("#brandList");
-  const lookClose = document.querySelector("#lookClose");
 
   let activeEditorialIndex = 0;
   let selectedLookId = "";
   let editorialFrame = 0;
+  let horizontalFrame = 0;
 
   function editorialPath(index) {
     return `./assets/images/editorial/editorial-${String(index + 1).padStart(2, "0")}.webp`;
@@ -107,9 +144,7 @@
       const distance = Math.abs(imageIndex - index);
 
       if (distance <= 1) {
-        if (!image.getAttribute("src")) {
-          image.src = image.dataset.src;
-        }
+        if (!image.getAttribute("src")) image.src = image.dataset.src;
         return;
       }
 
@@ -133,48 +168,50 @@
     updateEditorialWindow(nextIndex);
   }
 
-  function makeLookCards() {
-    const fragment = document.createDocumentFragment();
+  function makeLookCard(shop, look) {
+    const card = document.createElement("button");
+    card.className = "look-card";
+    card.type = "button";
+    card.dataset.lookId = look.id;
+    card.dataset.lookRole = look.role;
+    card.setAttribute("aria-pressed", "false");
+    card.setAttribute(
+      "aria-label",
+      `${shop.id} ${shop.model} ${look.role === "editorial" ? "에디토리얼" : "전시 추가"} 착장 ${look.look}`,
+    );
 
-    looks.forEach((look, index) => {
-      const card = document.createElement("button");
-      card.className = "look-card";
-      card.type = "button";
-      card.dataset.lookId = look.id;
-      card.setAttribute("aria-pressed", "false");
-      card.setAttribute("aria-label", `${look.model} 착장 ${look.look}`);
+    const imageWrap = document.createElement("span");
+    imageWrap.className = "look-image";
 
-      const imageWrap = document.createElement("span");
-      imageWrap.className = "look-image";
-
-      const image = document.createElement("img");
-      image.src = look.image;
-      image.alt = `${look.model} 착장 ${look.look}`;
-      image.decoding = "async";
-      image.draggable = false;
-      image.addEventListener(
-        "error",
-        () => {
-          if (image.src.endsWith(look.fallback.replace(/^\.\//, "/"))) return;
-          image.src = look.fallback;
-        },
-        { once: true },
-      );
-
-      const label = document.createElement("span");
-      label.className = "look-label";
-      label.innerHTML = `<span>${look.model}</span><span>${String(index + 1).padStart(2, "0")}</span>`;
-
-      imageWrap.append(image);
-      card.append(imageWrap, label);
-      card.addEventListener("click", () => selectLook(look.id));
-      fragment.append(card);
+    const image = document.createElement("img");
+    image.src = look.image;
+    image.alt = `${shop.model} 착장 ${look.look}`;
+    image.decoding = "async";
+    image.draggable = false;
+    image.addEventListener("error", () => {
+      if (image.dataset.fallbackApplied === "true") return;
+      image.dataset.fallbackApplied = "true";
+      image.classList.add("is-fallback");
+      image.src = look.fallback;
     });
 
-    lookGrid.replaceChildren(fragment);
+    imageWrap.append(image);
+    card.append(imageWrap);
+    card.addEventListener("click", () => selectLook(look.id));
+    return card;
   }
 
-  function renderBrands(brands = {}) {
+  function makeLookCards() {
+    shops.forEach((shop) => {
+      const screen = document.querySelector(`[data-shop="${shop.id}"]`);
+      const grid = screen?.querySelector("[data-look-grid]");
+      if (!grid) return;
+      grid.replaceChildren(...shop.looks.map((look) => makeLookCard(shop, look)));
+    });
+  }
+
+  function renderBrands(screen, brands = {}) {
+    const brandList = screen.querySelector("[data-brand-list]");
     const labels = [
       ["top", "top"],
       ["bottom", "bottom"],
@@ -210,24 +247,39 @@
     );
   }
 
+  function findLook(id) {
+    for (const shop of shops) {
+      const lookIndex = shop.looks.findIndex((look) => look.id === id);
+      if (lookIndex >= 0) return { shop, look: shop.looks[lookIndex], lookIndex };
+    }
+    return null;
+  }
+
   function selectLook(id) {
     if (selectedLookId === id) {
       clearLook();
       return;
     }
 
-    const lookIndex = looks.findIndex((look) => look.id === id);
-    const look = looks[lookIndex];
-    if (!look) return;
+    const match = findLook(id);
+    if (!match) return;
 
+    clearLook();
     selectedLookId = id;
-    looksScreen.classList.add("has-selection");
-    lookInfo.setAttribute("aria-hidden", "false");
-    lookName.textContent = `${look.model} — look ${look.look}`;
-    lookNumber.textContent = `${String(lookIndex + 1).padStart(2, "0")} / ${String(looks.length).padStart(2, "0")}`;
-    renderBrands(look.brands);
 
-    lookGrid.querySelectorAll(".look-card").forEach((card) => {
+    const { shop, look, lookIndex } = match;
+    const screen = document.querySelector(`[data-shop="${shop.id}"]`);
+    const lookInfo = screen.querySelector("[data-look-info]");
+    const lookName = screen.querySelector("[data-look-name]");
+    const lookNumber = screen.querySelector("[data-look-number]");
+
+    screen.classList.add("has-selection");
+    lookInfo.setAttribute("aria-hidden", "false");
+    lookName.textContent = `${shop.model} — look ${look.look}`;
+    lookNumber.textContent = `${String(lookIndex + 1).padStart(2, "0")} / ${String(shop.looks.length).padStart(2, "0")}`;
+    renderBrands(screen, look.brands);
+
+    screen.querySelectorAll(".look-card").forEach((card) => {
       const isSelected = card.dataset.lookId === id;
       card.classList.toggle("is-selected", isSelected);
       card.setAttribute("aria-pressed", String(isSelected));
@@ -236,25 +288,36 @@
 
   function clearLook() {
     selectedLookId = "";
-    looksScreen.classList.remove("has-selection");
-    lookInfo.setAttribute("aria-hidden", "true");
-    lookGrid.querySelectorAll(".look-card").forEach((card) => {
-      card.classList.remove("is-selected");
-      card.setAttribute("aria-pressed", "false");
+    document.querySelectorAll(".shop-screen").forEach((screen) => {
+      screen.classList.remove("has-selection");
+      screen.querySelector("[data-look-info]")?.setAttribute("aria-hidden", "true");
+      screen.querySelectorAll(".look-card").forEach((card) => {
+        card.classList.remove("is-selected");
+        card.setAttribute("aria-pressed", "false");
+      });
     });
   }
 
   function goToScreen(screenId) {
     const target = document.querySelector(`#${screenId}`);
     if (!target) return;
+    clearLook();
     target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
   }
 
+  function currentScreenIndex() {
+    return Math.max(
+      0,
+      Math.min(screenOrder.length - 1, Math.round(exhibition.scrollLeft / window.innerWidth)),
+    );
+  }
+
   function selectAdjacentLook(direction) {
-    if (!selectedLookId) return;
-    const currentIndex = looks.findIndex((look) => look.id === selectedLookId);
-    const nextIndex = Math.max(0, Math.min(looks.length - 1, currentIndex + direction));
-    selectLook(looks[nextIndex].id);
+    const match = findLook(selectedLookId);
+    if (!match) return;
+    const nextIndex = Math.max(0, Math.min(match.shop.looks.length - 1, match.lookIndex + direction));
+    if (nextIndex === match.lookIndex) return;
+    selectLook(match.shop.looks[nextIndex].id);
   }
 
   editorialRail.addEventListener("scroll", () => {
@@ -262,30 +325,47 @@
     editorialFrame = requestAnimationFrame(updateEditorialIndex);
   });
 
+  exhibition.addEventListener("scroll", () => {
+    cancelAnimationFrame(horizontalFrame);
+    horizontalFrame = requestAnimationFrame(() => {
+      if (!selectedLookId) return;
+      const match = findLook(selectedLookId);
+      const selectedIndex = screenOrder.indexOf(match?.shop.id);
+      if (Math.abs(exhibition.scrollLeft / window.innerWidth - selectedIndex) > 0.35) clearLook();
+    });
+  });
+
   document.querySelectorAll("[data-screen]").forEach((button) => {
     button.addEventListener("click", () => goToScreen(button.dataset.screen));
   });
 
-  lookClose.addEventListener("click", clearLook);
+  document.querySelectorAll(".look-close").forEach((button) => {
+    button.addEventListener("click", clearLook);
+  });
 
   document.addEventListener("keydown", (event) => {
-    const onLooks = exhibition.scrollLeft >= window.innerWidth * 0.5;
+    const screenIndex = currentScreenIndex();
+    const onIntro = screenIndex === 0;
 
     if (event.key === "Escape" && selectedLookId) {
       clearLook();
       return;
     }
 
-    if (onLooks && selectedLookId && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+    if (!onIntro && selectedLookId && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
       selectAdjacentLook(event.key === "ArrowRight" ? 1 : -1);
       return;
     }
 
-    if (event.key === "ArrowRight") goToScreen("looks");
-    if (event.key === "ArrowLeft") goToScreen("intro");
+    if (!selectedLookId && event.key === "ArrowRight" && screenIndex < screenOrder.length - 1) {
+      goToScreen(screenOrder[screenIndex + 1]);
+    }
+    if (!selectedLookId && event.key === "ArrowLeft" && screenIndex > 0) {
+      goToScreen(screenOrder[screenIndex - 1]);
+    }
 
-    if (!onLooks && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+    if (onIntro && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
       event.preventDefault();
       const direction = event.key === "ArrowDown" ? 1 : -1;
       editorialRail.scrollTo({

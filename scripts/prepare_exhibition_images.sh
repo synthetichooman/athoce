@@ -21,7 +21,7 @@ for input in "$source_root"/editorial/editorial-*; do
     "$input" -o "$output_root/editorial/$stem.webp"
 done
 
-for input in "$source_root"/looks/yumin-* "$source_root"/looks/gayoung-* "$source_root"/looks/seyeon-*; do
+for input in "$source_root"/looks/*; do
   [ -f "$input" ] || continue
   filename=$(basename "$input")
   stem=${filename%.*}

@@ -21,7 +21,7 @@
     <meta property="og:url" content="https://athoce.kr/po3/" />
     <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
     <link rel="preload" href="./assets/images/editorial/editorial-01.webp" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260818-5" />
+    <link rel="stylesheet" href="./styles.css?v=20260819-1" />
     <title>3² — athoce seoul</title>
   </head>
   <body>
@@ -62,7 +62,7 @@
           <button
             class="screen-link screen-link-next"
             type="button"
-            data-screen="looks"
+            data-screen="aategois"
             aria-label="착장 페이지로 이동"
           >
             <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
@@ -70,28 +70,61 @@
         </article>
       </section>
 
-      <section class="screen looks-screen" id="looks" aria-labelledby="looksTitle">
-        <h2 class="visually-hidden" id="looksTitle">착장 선택</h2>
-
-        <div class="look-stage" id="lookStage">
-          <div class="look-grid" id="lookGrid"></div>
+      <section class="screen shop-screen" id="aategois" data-shop="aategois" aria-labelledby="aategoisTitle">
+        <h2 class="shop-title" id="aategoisTitle">aategois</h2>
+        <div class="shop-look-stage">
+          <div class="shop-look-grid" data-look-grid></div>
         </div>
-
-        <aside class="look-info" id="lookInfo" aria-live="polite" aria-hidden="true">
+        <aside class="look-info" data-look-info aria-live="polite" aria-hidden="true">
           <div class="look-info-heading">
-            <p class="look-number" id="lookNumber">01 / 06</p>
-            <h3 id="lookName">유민 — look 01</h3>
+            <p class="look-number" data-look-number>01 / 03</p>
+            <h3 data-look-name>유민 — look 01</h3>
           </div>
-          <dl class="brand-list" id="brandList"></dl>
-          <button class="look-close" id="lookClose" type="button">close</button>
+          <dl class="brand-list" data-brand-list></dl>
+          <button class="look-close" type="button">close</button>
         </aside>
-
-        <button class="screen-link screen-link-back" type="button" data-screen="intro">
-          back
+        <button class="screen-link screen-link-back" type="button" data-screen="intro">back</button>
+        <button class="screen-link screen-link-next" type="button" data-screen="hooman" aria-label="hooman 페이지로 이동">
+          <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
         </button>
+      </section>
+
+      <section class="screen shop-screen" id="hooman" data-shop="hooman" aria-labelledby="hoomanTitle">
+        <h2 class="shop-title" id="hoomanTitle">hooman</h2>
+        <div class="shop-look-stage">
+          <div class="shop-look-grid" data-look-grid></div>
+        </div>
+        <aside class="look-info" data-look-info aria-live="polite" aria-hidden="true">
+          <div class="look-info-heading">
+            <p class="look-number" data-look-number>01 / 03</p>
+            <h3 data-look-name>가영 — look 01</h3>
+          </div>
+          <dl class="brand-list" data-brand-list></dl>
+          <button class="look-close" type="button">close</button>
+        </aside>
+        <button class="screen-link screen-link-back" type="button" data-screen="aategois">back</button>
+        <button class="screen-link screen-link-next" type="button" data-screen="cementbay" aria-label="cementbay 페이지로 이동">
+          <span class="cue-chevron cue-chevron-right" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="screen shop-screen" id="cementbay" data-shop="cementbay" aria-labelledby="cementbayTitle">
+        <h2 class="shop-title" id="cementbayTitle">cementbay</h2>
+        <div class="shop-look-stage">
+          <div class="shop-look-grid" data-look-grid></div>
+        </div>
+        <aside class="look-info" data-look-info aria-live="polite" aria-hidden="true">
+          <div class="look-info-heading">
+            <p class="look-number" data-look-number>01 / 03</p>
+            <h3 data-look-name>세연 — look 01</h3>
+          </div>
+          <dl class="brand-list" data-brand-list></dl>
+          <button class="look-close" type="button">close</button>
+        </aside>
+        <button class="screen-link screen-link-back" type="button" data-screen="hooman">back</button>
       </section>
     </main>
 
-    <script src="./app.js?v=20260818-5"></script>
+    <script src="./app.js?v=20260819-1"></script>
   </body>
 </html>
