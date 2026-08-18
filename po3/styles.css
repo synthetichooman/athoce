@@ -184,9 +184,6 @@ button:focus-visible,
 }
 
 .exhibition-title {
-  display: flex;
-  align-items: center;
-  gap: 0.58em;
   margin: 0;
   font-size: clamp(30px, 2.05vw, 52px);
   font-weight: 600;
@@ -194,28 +191,44 @@ button:focus-visible,
   letter-spacing: -0.045em;
 }
 
-.title-text {
-  display: inline-block;
-  flex: 0 0 auto;
+.page-logo {
+  position: fixed;
+  z-index: 20;
+  top: clamp(44px, 7.2vh, 104px);
+  right: var(--page-pad);
+  width: clamp(50px, 3.42vw, 87px);
+  height: clamp(30px, 2.05vw, 52px);
+  pointer-events: none;
 }
 
-.title-mark {
+.page-logo-layer {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: auto;
-  height: 0.9em;
-  flex: 0 0 auto;
+  width: 100%;
+  height: 100%;
   overflow: visible;
-  color: currentColor;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 420ms ease;
 }
 
-.title-mark path {
+.page-logo-layer.is-visible {
+  opacity: 1;
+}
+
+.page-logo-layer.is-light {
+  color: var(--paper);
+}
+
+.page-logo-layer path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
-.title-mark path.is-filled {
+.page-logo-layer path.is-filled {
   fill: currentColor;
 }
 
@@ -328,9 +341,6 @@ button:focus-visible,
 }
 
 .credit-title {
-  display: flex;
-  align-items: center;
-  gap: 0.58em;
   margin: 0;
   font-size: clamp(22px, 1.8vw, 46px);
   font-weight: 600;
@@ -391,9 +401,6 @@ button:focus-visible,
   z-index: 7;
   top: clamp(44px, 7.2vh, 104px);
   left: var(--shop-pad-x);
-  display: flex;
-  align-items: center;
-  gap: 0.58em;
   margin: 0;
   font-size: clamp(22px, 1.8vw, 46px);
   font-weight: 600;

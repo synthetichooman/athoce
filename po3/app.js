@@ -5,6 +5,13 @@
     "M70.8,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
     "M108.6,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
   ];
+  const LOGO_STATES = {
+    intro: { active: "all", tone: "dark" },
+    aategois: { active: "1", tone: "dark" },
+    hooman: { active: "2", tone: "dark" },
+    cementbay: { active: "3", tone: "dark" },
+    credit: { active: "all", tone: "light" },
+  };
 
   const shops = [
     {
@@ -109,8 +116,12 @@
   const editorialRail = document.querySelector("#editorialRail");
   const editorialList = document.querySelector("#editorialList");
   const editorialCounter = document.querySelector("#editorialCounter");
+  const pageLogo = document.querySelector("#pageLogo");
 
   let activeEditorialIndex = 0;
+  let activeLogoScreenIndex = -1;
+  let activeLogoLayerIndex = 0;
+  let logoLayers = [];
   let selectedLookId = "";
   let editorialFrame = 0;
   let horizontalFrame = 0;
@@ -119,26 +130,49 @@
     return `./assets/images/editorial/editorial-${String(index + 1).padStart(2, "0")}.webp`;
   }
 
-  function makeTitleMarks() {
-    document.querySelectorAll("[data-logo-state]").forEach((title) => {
-      const activeState = title.dataset.logoState;
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.classList.add("title-mark");
-      svg.setAttribute("viewBox", "0 0 141.7 85");
-      svg.setAttribute("aria-hidden", "true");
-      svg.setAttribute("focusable", "false");
+  function createLogoLayer() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("page-logo-layer");
+    svg.setAttribute("viewBox", "0 0 141.7 85");
+    svg.setAttribute("focusable", "false");
 
-      LOGO_PATHS.forEach((pathData, index) => {
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", pathData);
-        if (activeState === "all" || activeState === String(index + 1)) {
-          path.classList.add("is-filled");
-        }
-        svg.append(path);
-      });
-
-      title.append(svg);
+    LOGO_PATHS.forEach((pathData) => {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathData);
+      svg.append(path);
     });
+
+    return svg;
+  }
+
+  function setLogoLayerState(layer, screenIndex) {
+    const state = LOGO_STATES[screenOrder[screenIndex]] ?? LOGO_STATES.intro;
+    layer.classList.toggle("is-light", state.tone === "light");
+    layer.querySelectorAll("path").forEach((path, index) => {
+      path.classList.toggle("is-filled", state.active === "all" || state.active === String(index + 1));
+    });
+  }
+
+  function makePageLogo() {
+    logoLayers = [createLogoLayer(), createLogoLayer()];
+    activeLogoScreenIndex = currentScreenIndex();
+    setLogoLayerState(logoLayers[0], activeLogoScreenIndex);
+    logoLayers[0].classList.add("is-visible");
+    pageLogo.replaceChildren(...logoLayers);
+  }
+
+  function updatePageLogo(screenIndex) {
+    if (screenIndex === activeLogoScreenIndex) return;
+
+    const nextLayerIndex = activeLogoLayerIndex === 0 ? 1 : 0;
+    const currentLayer = logoLayers[activeLogoLayerIndex];
+    const nextLayer = logoLayers[nextLayerIndex];
+
+    setLogoLayerState(nextLayer, screenIndex);
+    nextLayer.classList.add("is-visible");
+    currentLayer.classList.remove("is-visible");
+    activeLogoLayerIndex = nextLayerIndex;
+    activeLogoScreenIndex = screenIndex;
   }
 
   function makeEditorialSlides() {
@@ -413,6 +447,7 @@
   exhibition.addEventListener("scroll", () => {
     cancelAnimationFrame(horizontalFrame);
     horizontalFrame = requestAnimationFrame(() => {
+      updatePageLogo(currentScreenIndex());
       if (!selectedLookId) return;
       const match = findLook(selectedLookId);
       const selectedIndex = screenOrder.indexOf(match?.shop.id);
@@ -460,7 +495,7 @@
     }
   });
 
-  makeTitleMarks();
+  makePageLogo();
   makeEditorialSlides();
   makeLookCards();
 })();
