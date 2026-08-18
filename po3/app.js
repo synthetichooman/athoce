@@ -4,26 +4,21 @@
   const shops = [
     {
       id: "aategois",
-      model: "유민",
+      model: "가영",
       looks: [
         {
-          id: "yumin-01",
+          id: "aategois-01",
           look: "01",
           role: "editorial",
-          image: "./assets/images/looks/yumin-01.webp",
+          image: "./assets/images/looks/aategois-01.webp",
           fallback: "./assets/images/editorial/editorial-02.webp",
-          brands: {
-            top: ["kenzo jungle"],
-            bottom: ["emporio armani"],
-            acc: ["belt", "prada"],
-            shoes: ["puma", "japandal"],
-          },
+          brands: {},
         },
         {
-          id: "yumin-02",
+          id: "aategois-02",
           look: "02",
           role: "editorial",
-          image: "./assets/images/looks/yumin-02.webp",
+          image: "./assets/images/looks/aategois-02.webp",
           fallback: "./assets/images/editorial/editorial-03.webp",
           brands: {},
         },
@@ -39,21 +34,26 @@
     },
     {
       id: "hooman",
-      model: "가영",
+      model: "유민",
       looks: [
         {
-          id: "gayoung-01",
+          id: "hooman-01",
           look: "01",
           role: "editorial",
-          image: "./assets/images/looks/gayoung-01.webp",
+          image: "./assets/images/looks/hooman-01.webp",
           fallback: "./assets/images/editorial/editorial-05.webp",
-          brands: {},
+          brands: {
+            top: ["kenzo jungle"],
+            bottom: ["emporio armani"],
+            acc: ["belt", "prada"],
+            shoes: ["puma", "japandal"],
+          },
         },
         {
-          id: "gayoung-02",
+          id: "hooman-02",
           look: "02",
           role: "editorial",
-          image: "./assets/images/looks/gayoung-02.webp",
+          image: "./assets/images/looks/hooman-02.webp",
           fallback: "./assets/images/editorial/editorial-06.webp",
           brands: {},
         },
@@ -72,18 +72,18 @@
       model: "세연",
       looks: [
         {
-          id: "seyeon-01",
+          id: "cementbay-01",
           look: "01",
           role: "editorial",
-          image: "./assets/images/looks/seyeon-01.webp",
+          image: "./assets/images/looks/cementbay-01.webp",
           fallback: "./assets/images/editorial/editorial-07.webp",
           brands: {},
         },
         {
-          id: "seyeon-02",
+          id: "cementbay-02",
           look: "02",
           role: "editorial",
-          image: "./assets/images/looks/seyeon-02.webp",
+          image: "./assets/images/looks/cementbay-02.webp",
           fallback: "./assets/images/editorial/editorial-09.webp",
           brands: {},
         },

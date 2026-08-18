@@ -25,6 +25,21 @@ for input in "$source_root"/looks/*; do
   [ -f "$input" ] || continue
   filename=$(basename "$input")
   stem=${filename%.*}
+
+  # Keep the photographer-friendly source names while emitting stable,
+  # URL-safe asset names for the exhibition page.
+  case "$stem" in
+    aategois_*_1|aategois-01) stem="aategois-01" ;;
+    aategois_*_2|aategois-02) stem="aategois-02" ;;
+    aategois_*_3|aategois_*exhibition*|aategois-exhibition) stem="aategois-exhibition" ;;
+    hooman_*_1|hooman-01) stem="hooman-01" ;;
+    hooman_*_2|hooman-02) stem="hooman-02" ;;
+    hooman_*_3|hooman_*exhibition*|hooman-exhibition) stem="hooman-exhibition" ;;
+    cementbay_*_1|cementbay-01) stem="cementbay-01" ;;
+    cementbay_*_2|cementbay-02) stem="cementbay-02" ;;
+    cementbay_*_3|cementbay_*exhibition*|cementbay-exhibition) stem="cementbay-exhibition" ;;
+  esac
+
   cwebp -quiet -mt -q 90 -alpha_q 100 -exact -resize 0 2400 -metadata icc \
     "$input" -o "$output_root/looks/$stem.webp"
 done
