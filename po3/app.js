@@ -1,5 +1,10 @@
 (() => {
   const EDITORIAL_COUNT = 13;
+  const LOGO_PATHS = [
+    "M32.9,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
+    "M70.8,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
+    "M108.6,2.5c-9.6,0-17.4,8.1-17,17.8.4,8.8,7.5,15.9,16.3,16.3,0,0,.1,0,.2,0,5,.2,9,4.2,9,9.2v36.6h8.7V19.9c0-9.5-7.7-17.4-17.2-17.4Z",
+  ];
 
   const shops = [
     {
@@ -112,6 +117,28 @@
 
   function editorialPath(index) {
     return `./assets/images/editorial/editorial-${String(index + 1).padStart(2, "0")}.webp`;
+  }
+
+  function makeTitleMarks() {
+    document.querySelectorAll("[data-logo-state]").forEach((title) => {
+      const activeState = title.dataset.logoState;
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("title-mark");
+      svg.setAttribute("viewBox", "0 0 141.7 85");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+
+      LOGO_PATHS.forEach((pathData, index) => {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathData);
+        if (activeState === "all" || activeState === String(index + 1)) {
+          path.classList.add("is-filled");
+        }
+        svg.append(path);
+      });
+
+      title.append(svg);
+    });
   }
 
   function makeEditorialSlides() {
@@ -433,6 +460,7 @@
     }
   });
 
+  makeTitleMarks();
   makeEditorialSlides();
   makeLookCards();
 })();

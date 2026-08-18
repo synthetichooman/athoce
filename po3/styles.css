@@ -184,11 +184,39 @@ button:focus-visible,
 }
 
 .exhibition-title {
+  display: flex;
+  align-items: center;
+  gap: 0.58em;
   margin: 0;
   font-size: clamp(30px, 2.05vw, 52px);
   font-weight: 600;
   line-height: 0.9;
   letter-spacing: -0.045em;
+}
+
+.title-text {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.title-mark {
+  display: block;
+  width: auto;
+  height: 0.9em;
+  flex: 0 0 auto;
+  overflow: visible;
+  color: currentColor;
+}
+
+.title-mark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.title-mark path.is-filled {
+  fill: currentColor;
 }
 
 .exhibition-title sup,
@@ -295,10 +323,14 @@ button:focus-visible,
 
 .credit-screen {
   padding: clamp(44px, 7.2vh, 104px) var(--shop-pad-x) clamp(36px, 5vh, 72px);
-  background: var(--paper);
+  color: var(--paper);
+  background: var(--ink);
 }
 
 .credit-title {
+  display: flex;
+  align-items: center;
+  gap: 0.58em;
   margin: 0;
   font-size: clamp(22px, 1.8vw, 46px);
   font-weight: 600;
@@ -322,6 +354,12 @@ button:focus-visible,
   color: var(--muted);
   font-size: clamp(11px, 0.66vw, 17px);
   line-height: 1;
+}
+
+.credit-screen .credit-role,
+.credit-screen .credit-detail,
+.credit-screen .credit-handle {
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .credit-name,
@@ -353,6 +391,9 @@ button:focus-visible,
   z-index: 7;
   top: clamp(44px, 7.2vh, 104px);
   left: var(--shop-pad-x);
+  display: flex;
+  align-items: center;
+  gap: 0.58em;
   margin: 0;
   font-size: clamp(22px, 1.8vw, 46px);
   font-weight: 600;
