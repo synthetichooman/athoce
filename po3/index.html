@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,follow" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta
+      name="description"
+      content="3² (power of three), an exhibition by athoce seoul"
+    />
+    <link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://athoce.kr/po3/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="athoce" />
+    <meta property="og:title" content="3² — athoce seoul" />
+    <meta
+      property="og:description"
+      content="3² (power of three), an exhibition by athoce seoul"
+    />
+    <meta property="og:url" content="https://athoce.kr/po3/" />
+    <meta property="og:image" content="https://athoce.kr/assets/athoce-og.png" />
+    <link rel="preload" href="./assets/images/editorial/editorial-01.webp" as="image" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>3² — athoce seoul</title>
+  </head>
+  <body>
+    <main class="exhibition" id="exhibition" aria-label="3² 전시">
+      <section class="screen intro-screen" id="intro" aria-labelledby="introTitle">
+        <div
+          class="editorial-rail"
+          id="editorialRail"
+          tabindex="0"
+          aria-label="에디토리얼 이미지. 위아래 트랙패드 제스처로 탐색"
+        >
+          <div class="editorial-list" id="editorialList"></div>
+          <p class="editorial-counter" id="editorialCounter" aria-live="polite">01 / 13</p>
+          <p class="editorial-instruction">vertical scroll</p>
+        </div>
+
+        <article class="intro-copy">
+          <h1 class="exhibition-title" id="introTitle">3<sup>2</sup></h1>
+
+          <div class="intro-body">
+            <p>
+              아토스 서울은 세 숍으로 구성된다. 셋은 서로 다른 기준으로 이야기를 찾고,
+              해석하고, 입힌다. 아토스 서울은 같은 공간에서 서로의 선택을 밀어내고 당기며
+              어느 한 숍으로 완성될 수 없는 폭과 긴장을 이룬다.
+            </p>
+            <p>
+              <strong>&lt;3<sup>2</sup> (power of three)&gt;</strong>는 그 관계를 세 인물에게
+              옮긴다. 각각의 인물은 한 숍이 쌓아온 취향과 판단을 바탕으로 완성되며, 서로
+              다른 모습을 유지한 채 하나의 이미지 안에 놓인다.<br />
+              셋은 같은 프레임 안에서 연결되고 부딪히며 아토스 서울이 품고 있는 인력과
+              장력을 드러낸다.
+            </p>
+          </div>
+
+          <button class="screen-link screen-link-next" type="button" data-screen="looks">
+            looks
+          </button>
+        </article>
+      </section>
+
+      <section class="screen looks-screen" id="looks" aria-labelledby="looksTitle">
+        <header class="looks-header">
+          <h2 id="looksTitle">six looks</h2>
+          <p>select a look</p>
+        </header>
+
+        <div class="look-stage" id="lookStage">
+          <div class="look-grid" id="lookGrid"></div>
+        </div>
+
+        <aside class="look-info" id="lookInfo" aria-live="polite" aria-hidden="true">
+          <div class="look-info-heading">
+            <p class="look-number" id="lookNumber">01 / 06</p>
+            <h3 id="lookName">유민 — look 01</h3>
+          </div>
+          <dl class="brand-list" id="brandList"></dl>
+          <button class="look-close" id="lookClose" type="button">close</button>
+        </aside>
+
+        <button class="screen-link screen-link-back" type="button" data-screen="intro">
+          intro
+        </button>
+        <p class="trackpad-hint">horizontal swipe</p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
