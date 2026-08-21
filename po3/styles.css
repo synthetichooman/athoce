@@ -10,9 +10,16 @@
   --paper: #fff;
   --muted: #8e898a;
   --edge: rgba(36, 32, 33, 0.22);
+  --viewport-height: 100vh;
   --editorial-column: 40vw;
   --page-pad: clamp(42px, 3.35vw, 86px);
   --shop-pad-x: clamp(72px, 6.5vw, 166px);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --viewport-height: 100dvh;
+  }
 }
 
 * {
@@ -26,6 +33,10 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+html {
+  background: var(--paper);
 }
 
 body {
@@ -54,7 +65,7 @@ button:focus-visible,
   grid-auto-flow: column;
   grid-auto-columns: 100vw;
   width: 100vw;
-  height: 100vh;
+  height: var(--viewport-height);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
@@ -70,7 +81,7 @@ button:focus-visible,
 .screen {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  height: var(--viewport-height);
   overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -84,7 +95,7 @@ button:focus-visible,
 
 .editorial-rail {
   position: relative;
-  height: 100vh;
+  height: var(--viewport-height);
   overflow-x: hidden;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
@@ -100,7 +111,7 @@ button:focus-visible,
 .editorial-slide {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: var(--viewport-height);
   margin: 0;
   overflow: hidden;
   scroll-snap-align: start;
