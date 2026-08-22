@@ -719,12 +719,12 @@ button:focus-visible,
 
   .intro-screen {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 52% minmax(0, 48%);
+    grid-template-rows: 62% minmax(0, 38%);
   }
 
   .editorial-rail,
   .editorial-slide {
-    height: 52dvh;
+    height: 62dvh;
   }
 
   .editorial-rail {
