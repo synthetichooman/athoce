@@ -423,6 +423,7 @@
     const target = document.querySelector(`#${screenId}`);
     if (!target) return;
     clearLook();
+    target.scrollTop = 0;
     target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
   }
 
@@ -442,6 +443,9 @@
     editorialRail.style.scrollBehavior = "auto";
     exhibition.scrollLeft = 0;
     editorialRail.scrollTop = 0;
+    document.querySelectorAll(".shop-screen, .credit-screen").forEach((screen) => {
+      screen.scrollTop = 0;
+    });
     activeEditorialIndex = 0;
     editorialCounter.textContent = `01 / ${EDITORIAL_COUNT}`;
     updateEditorialWindow(0);
