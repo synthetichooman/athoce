@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="same-origin" />
+    <title>interlining 신청 관리 — athoce</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
+    <link rel="stylesheet" href="/interlining/styles.css" />
+    <link rel="stylesheet" href="/interlining/admin/styles.css" />
+    <script src="/interlining/admin/app.js" type="module"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="/interlining/" aria-label="interlining 초대장"><img src="/assets/athoce-symbol.svg" alt="" width="75" height="44" /></a>
+        <span>interlining / admin</span>
+      </div>
+    </header>
+    <main>
+      <div class="page-heading"><div><h1>interlining 신청 관리</h1><p>프레스 데이 · 2026.10.23 (금) 14:00–20:00</p></div><button id="logout" type="button" hidden>로그아웃</button></div>
+      <section id="loginPanel" class="login-panel" hidden aria-labelledby="loginTitle">
+        <h2 id="loginTitle">관리자 로그인</h2>
+        <p>기존 athoce 관리자 비밀번호로 로그인해 주세요.</p>
+        <form id="loginForm">
+          <label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" required />
+          <button id="loginButton" type="submit">로그인</button>
+        </form>
+      </section>
+      <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
+      <section id="connectionPanel" class="connection-panel" hidden aria-label="아임웹 연결">
+        <p>아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 새로고침해 주세요.</p>
+        <a class="action-link" href="/api/interlining/connect" target="_blank" rel="noopener">조회 권한 연결</a>
+        <button id="connectionRefresh" type="button">연결 확인</button>
+      </section>
+      <section id="dashboard" hidden aria-label="신청 목록">
+        <div class="toolbar">
+          <p class="total">총 신청 <strong id="totalCount">0</strong>건</p>
+          <div class="toolbar-actions"><button id="refresh" type="button">새로고침</button><button id="export" type="button">전체 CSV 다운로드</button></div>
+        </div>
+        <label class="search-label" for="search">현재 페이지 검색</label>
+        <input id="search" type="search" placeholder="성함, instagram, 연락처" autocomplete="off" />
+        <div class="table-wrap" tabindex="0" role="region" aria-label="신청자 표 · 작은 화면에서는 좌우로 스크롤하세요">
+          <table><caption class="visually-hidden">interlining 신청자 목록</caption><thead><tr><th scope="col">제출 시각</th><th scope="col">성함</th><th scope="col">instagram</th><th scope="col">연락처</th><th scope="col">동반인원</th><th scope="col">촬영 동의</th><th scope="col">상세</th></tr></thead><tbody id="rows"></tbody></table>
+        </div>
+        <p id="empty" class="empty" hidden>접수된 신청이 없습니다.</p>
+        <nav class="pagination" aria-label="신청 목록 페이지"><button id="previous" type="button">이전</button><span id="pageLabel"></span><button id="next" type="button">다음</button></nav>
+      </section>
+      <dialog id="detail"><div class="detail-heading"><h2>신청 상세</h2><button id="closeDetail" type="button" aria-label="신청 상세 닫기">닫기</button></div><dl id="detailAnswers"></dl></dialog>
+    </main>
+  </body>
+</html>
