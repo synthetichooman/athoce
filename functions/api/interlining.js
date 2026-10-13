@@ -44,7 +44,7 @@ function upstreamHeaders(cookies) {
   };
 }
 
-export async function onRequestPost({ request }) {
+export async function onRequestPost({ request, prepareOnly = false }) {
   if (request.headers.get('origin') !== new URL(request.url).origin) {
     return json({ ok: false, message: '이 페이지에서 직접 제출해 주세요.' }, 403);
   }
@@ -121,6 +121,8 @@ export async function onRequestPost({ request }) {
     payload.set('write_token', token.token);
     payload.set('write_token_key', String(token.token_key));
 
+    if (prepareOnly) return json({ ok: true, ready: true });
+
     // Never automatically retry this POST: a lost response can already be saved.
     submissionStarted = true;
     const submission = await fetch(`${SOURCE_ORIGIN}/ajax/form_add.cm`, {
@@ -136,9 +138,10 @@ export async function onRequestPost({ request }) {
       return json({ ok: false, message: '접수하지 못했습니다. 입력 내용을 확인해 주세요.' }, 422);
     }
     return json({ ok: true, message: '정상적으로 접수되었습니다.' });
-  } catch {
+  } catch (error) {
     return json({
       ok: false,
+      code: submissionStarted ? 'SUBMISSION_UNCONFIRMED' : ({ source_unavailable: 'SOURCE_UNAVAILABLE', source_form_changed: 'SOURCE_FORM_CHANGED', source_fields_changed: 'SOURCE_FIELDS_CHANGED', token_unavailable: 'TOKEN_UNAVAILABLE' }[error.message] || 'PREPARATION_FAILED'),
       message: submissionStarted
         ? '접수 결과를 확인하지 못했습니다. 중복 제출을 피하려면 접수 여부를 먼저 확인해 주세요.'
         : '접수 연결을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.',
