@@ -7,6 +7,7 @@ const address = document.querySelector('#address');
 const addressDetail = document.querySelector('#addressDetail');
 const postcode = document.querySelector('#postcode');
 let submitting = false;
+const submissionId = crypto.randomUUID();
 let postcodeWidget;
 
 function setStatus(message, error = false) {
@@ -92,7 +93,7 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch(form.action, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      body: JSON.stringify({ ...Object.fromEntries(new FormData(form)), submissionId }),
     });
     const result = await response.json();
     if (!response.ok || result.ok !== true) {
@@ -106,7 +107,7 @@ form.addEventListener('submit', async (event) => {
     document.querySelector('#confirmationTitle').textContent = result.message || '정상적으로 접수되었습니다.';
     confirmation.focus();
   } catch {
-    setStatus('접수 결과를 확인하지 못했습니다. 중복 제출을 피하려면 접수 여부를 먼저 확인해 주세요.', true);
+    setStatus('접수 결과를 확인하지 못했습니다. 입력 내용을 유지한 채 다시 시도해 주세요.', true);
   } finally {
     submitting = false;
     submitButton.disabled = false;

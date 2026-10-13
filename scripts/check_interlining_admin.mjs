@@ -98,3 +98,49 @@ test('CSV preserves Unicode, multiline quotes, complete answers and guards sprea
   assert.match(csv, /etc \/ 4/);
   assert.match(csv, /동의/);
 });
+
+function localStorage() {
+  const rows = Array.from({ length: 5 }, (_, i) => ({ code: `athoce-${i}`, submittedAt: `2026-10-13T00:00:0${5-i}Z`, fullName: `Local ${i}`, instagram: '@local', phone: '010-0000-0000', address: 'Sample', guests: '0', filmingConsent: '동의', answers: [], fingerprint: 'private' }));
+  return { rows, kv: {
+    get: async (key) => rows.find((_, i) => key === `interlining:submission:${i}`) || null,
+    list: async ({ prefix, cursor }) => {
+      assert.equal(prefix, 'interlining:submission:');
+      const keys = rows.map((row, i) => ({ name: `interlining:submission:${i}`, metadata: { submittedAt: row.submittedAt } }));
+      return cursor ? { keys: keys.slice(2), list_complete: true } : { keys: keys.slice(0, 2), list_complete: false, cursor: 'remaining' };
+    },
+  } };
+}
+
+test('combined pages contain each local and Imweb record exactly once across a source boundary', async (t) => {
+  const local = localStorage(); const combinedEnv = { ...env, ATHOCE_KV: local.kv };
+  const remote = Array.from({ length: 4 }, (_, i) => ({ ...row, submitCode: `remote-${i}` }));
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === '/community/forms') return result([form]);
+    const page = Number(parsed.searchParams.get('page')); const limit = Number(parsed.searchParams.get('limit'));
+    return result(remote.slice((page-1)*limit, page*limit), page, Math.ceil(remote.length/limit), remote.length);
+  });
+  const codes = [];
+  for (let page = 1; page <= 3; page++) {
+    const response = await onRequestGet({ env: combinedEnv, request: await request(`?page=${page}&limit=3`) });
+    assert.equal(response.status, 200);
+    const data = (await response.json()).data;
+    assert.equal(data.totalCount, 9); assert.equal(data.totalPage, 3); assert.equal(data.list.length, 3);
+    assert.ok(data.list.every((item) => !('fingerprint' in item)));
+    codes.push(...data.list.map((item) => item.code));
+  }
+  assert.deepEqual(codes, [...local.rows.map((item) => item.code), ...remote.map((item) => item.submitCode)]);
+  assert.equal(new Set(codes).size, 9);
+});
+
+test('local responses stay readable when Imweb is unavailable and partial results are clearly marked', async (t) => {
+  const local = localStorage();
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ statusCode: 403, errorCode: 30103 }, { status: 403 }));
+  const response = await onRequestGet({ env: { ...env, ATHOCE_KV: local.kv }, request: await request('?page=2&limit=3') });
+  assert.equal(response.status, 200);
+  const data = (await response.json()).data;
+  assert.equal(data.incomplete, true);
+  assert.equal(data.totalCount, 5);
+  assert.match(data.warning, /아임웹/);
+  assert.deepEqual(data.list.map((item) => item.code), ['athoce-3', 'athoce-4']);
+});

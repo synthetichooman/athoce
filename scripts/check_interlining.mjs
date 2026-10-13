@@ -3,17 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { onRequestPost } from '../functions/api/interlining.js';
 
-const sourceFixture = `<form id="addFormw202610131151c71d9961a">
-  <input name="board_code" value="board-example">
-  <input name="unit_code" value="unit-example">
-  <input name="widget_code" value="w202610131151c71d9961a">
-  <input name="board_name" value="interlining, 2026">
-  <input name="input_39c93ffaf43e1"><input name="input_dC0eEfFepr">
-  <input name="phonenumber1_9074cf8680318"><input name="phonenumber2_9074cf8680318">
-  <input name="phonenumber3_9074cf8680318"><input name="address_4ZQ5r3I60o">
-  <input name="address_detail_4ZQ5r3I60o"><input name="address_post_4ZQ5r3I60o">
-  <input name='radio_6q2cg10z0S'><input name='radio_etc_6q2cg10z0S'><input name='radio_17vc6yN7V6'>
-</form>`;
 const input = {
   fullName: 'Sample', instagram: '@example', phoneFirst: '010', phoneMiddle: '0000',
   phoneLast: '0000', address: 'Sample address', addressDetail: 'Sample detail', postcode: '00000', guests: '0', filmingConsent: '동의', guestsDetail: '', website: '',
@@ -43,91 +32,67 @@ test('invalid requests never reach the original form', async (t) => {
   }
 });
 
-test('submissions preserve Imweb field mapping, session cookies, and numeric token keys', async (t) => {
-  const calls = [];
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
-    calls.push({ url, options });
-    if (calls.length === 1) return new Response(sourceFixture, { headers: { 'set-cookie': 'session=sample; Path=/; HttpOnly' } });
-    if (calls.length === 2) {
-      assert.match(options.headers.cookie, /session=sample/);
-      return Response.json({ token: 'sample-token', token_key: 123 }, { headers: { 'set-cookie': 'token_session=sample; Path=/' } });
-    }
-    assert.equal(url, 'https://hooman.kr/ajax/form_add.cm');
-    assert.match(options.headers.cookie, /session=sample/);
-    assert.match(options.headers.cookie, /token_session=sample/);
-    assert.equal(options.body.get('write_token_key'), '123');
-    assert.equal(options.body.get('input_39c93ffaf43e1'), input.fullName);
-    assert.equal(options.body.get('address_detail_4ZQ5r3I60o'), input.addressDetail);
-    assert.equal(options.body.get('board_name'), 'interlining, 2026');
-    assert.equal(options.body.get('radio_6q2cg10z0S'), 'etc');
-    assert.equal(options.body.get('radio_etc_6q2cg10z0S'), '4');
-    assert.equal(options.body.get('radio_17vc6yN7V6'), '동의');
-    return Response.json({ msg: 'SUCCESS' });
-  });
-  const response = await onRequestPost({ request: request({ ...input, guests: 'etc', guestsDetail: '4' }) });
+function storage() {
+  const rows = new Map();
+  return { rows, get: async (key) => rows.has(key) ? JSON.parse(rows.get(key).value) : null,
+    put: async (key, value, options) => rows.set(key, { value, options }), delete: async (key) => rows.delete(key),
+    list: async ({ prefix }) => ({ keys: [...rows].filter(([key]) => key.startsWith(prefix)).map(([name, row]) => ({ name, metadata: row.options?.metadata })), list_complete: true }),
+  };
+}
+const id = '74c02f48-d126-4c49-92cb-61fd72ae21f9';
+
+test('valid submissions persist complete answers without calling Imweb', async (t) => {
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('unexpected upstream call'); });
+  const kv = storage();
+  const response = await onRequestPost({ env: { ATHOCE_KV: kv }, request: request({ ...input, submissionId: id, guests: 'etc', guestsDetail: '4' }) });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).ok, true);
-  assert.equal(calls.length, 3);
+  const result = await response.json();
+  const row = await kv.get(`interlining:submission:${id}`);
+  assert.equal(result.ok, true);
+  assert.equal(row.code, result.code);
+  assert.equal(row.fullName, input.fullName);
+  assert.equal(row.phone, '010-0000-0000');
+  assert.match(row.address, /Sample detail \/ 00000/);
+  assert.equal(row.guests, '4');
+  assert.equal(row.filmingConsent, '동의');
+  assert.equal(row.answers.length, 6);
+  assert.deepEqual(kv.rows.get(`interlining:submission:${id}`).options.metadata, { submittedAt: row.submittedAt });
 });
 
-test('an original form change blocks submission', async (t) => {
-  const mock = t.mock.method(globalThis, 'fetch', async () => new Response(sourceFixture.replace('address_detail_4ZQ5r3I60o', 'changed_field')));
-  const response = await onRequestPost({ request: request() });
-  assert.equal(response.status, 502);
-  assert.equal(mock.mock.callCount(), 1);
+test('a retry after a lost response reuses the saved record and never overwrites different input', async () => {
+  const kv = storage(); const env = { ATHOCE_KV: kv };
+  const first = await (await onRequestPost({ env, request: request({ ...input, submissionId: id }) })).json();
+  const again = await (await onRequestPost({ env, request: request({ ...input, submissionId: id }) })).json();
+  assert.equal(again.code, first.code);
+  assert.equal(kv.rows.size, 1);
+  const conflict = await onRequestPost({ env, request: request({ ...input, submissionId: id, fullName: 'Changed' }) });
+  assert.equal(conflict.status, 409);
+  assert.equal((await kv.get(`interlining:submission:${id}`)).fullName, input.fullName);
 });
 
-test('Cloudflare legacy cookie headers preserve the upstream session', async (t) => {
-  let count = 0;
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
-    count++;
-    if (count === 1) {
-      return {
-        ok: true,
-        headers: { getAll: (name) => {
-          assert.equal(name, 'Set-Cookie');
-          return ['session=sample; Path=/'];
-        } },
-        text: async () => sourceFixture,
-      };
-    }
-    assert.match(options.headers.cookie, /session=sample/);
-    return count === 2
-      ? Response.json({ token: 'sample-token', token_key: 123 })
-      : Response.json({ msg: 'SUCCESS' });
-  });
-  const response = await onRequestPost({ request: request() });
-  assert.equal((await response.json()).ok, true);
-  assert.equal(count, 3);
+test('simultaneous applicants use separate keys and missing storage is never reported as success', async () => {
+  const kv = storage(); const env = { ATHOCE_KV: kv };
+  const responses = await Promise.all([id, crypto.randomUUID()].map((submissionId) => onRequestPost({ env, request: request({ ...input, submissionId }) })));
+  assert.ok(responses.every((response) => response.status === 200));
+  assert.equal(kv.rows.size, 2);
+  assert.equal((await onRequestPost({ env: {}, request: request() })).status, 503);
+  const failed = await onRequestPost({ env: { ATHOCE_KV: { get: async () => null, put: async () => { throw new Error('write failed'); } } }, request: request() });
+  assert.equal(failed.status, 503);
+  assert.equal((await failed.json()).ok, false);
 });
 
-test('ambiguous submissions are never automatically retried or reported as success', async (t) => {
-  let count = 0;
-  t.mock.method(globalThis, 'fetch', async () => {
-    count++;
-    if (count === 1) return new Response(sourceFixture);
-    if (count === 2) return Response.json({ token: 'sample-token', token_key: 123 });
-    throw new Error('response lost');
-  });
-  const response = await onRequestPost({ request: request() });
-  const body = await response.json();
-  assert.equal(response.status, 502);
-  assert.equal(body.ok, false);
-  assert.match(body.message, /중복 제출/);
-  assert.equal(count, 3);
-});
-
-test('Imweb rejection is not reported as success', async (t) => {
-  let count = 0;
-  t.mock.method(globalThis, 'fetch', async () => {
-    count++;
-    if (count === 1) return new Response(sourceFixture);
-    if (count === 2) return Response.json({ token: 'sample-token', token_key: 123 });
-    return Response.json({ msg: 'FORM_CLOSED' });
-  });
-  const response = await onRequestPost({ request: request() });
-  assert.equal(response.status, 422);
-  assert.equal((await response.json()).ok, false);
+test('health checks use the deployed write path, remove temporary records, and require authentication', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ statusCode: 403 }, { status: 403 }));
+  const { onRequestGet: health } = await import('../functions/api/interlining/health.js');
+  const { createAdminSessionCookie } = await import('../functions/_config.js');
+  const kv = storage(); const env = { ATHOCE_KV: kv, ADMIN_PASSWORD: 'test-only' };
+  const unauthorized = await health({ env, request: new Request('https://athoce.kr/api/interlining/health') });
+  assert.equal(unauthorized.status, 401);
+  assert.equal(kv.rows.size, 0);
+  const cookie = (await createAdminSessionCookie(env)).split(';')[0];
+  const response = await health({ env, request: new Request('https://athoce.kr/api/interlining/health', { headers: { cookie } }) });
+  assert.deepEqual(await response.json(), { ok: true, storage: 'ready', saveVerified: true, repeatVerified: true, listVerified: true });
+  assert.equal(kv.rows.size, 0);
 });
 
 test('both direct URL variants and required input names are present', async () => {

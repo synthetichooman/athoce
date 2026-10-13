@@ -77,7 +77,7 @@ async function load(page = 1) {
     const result = await api(`/api/interlining/submissions?page=${page}&limit=50`);
     if (current !== generation) return;
     data = result.data; dashboard.hidden = false; connectionPanel.hidden = true;
-    status('제출 시각은 한국 시간으로 표시됩니다.'); render();
+    status(data.warning || '제출 시각은 한국 시간으로 표시됩니다.', Boolean(data.incomplete)); render();
   } catch (error) { if (current === generation) { clearData(); failure(error); } }
   finally { loading = false; busy(); }
 }
@@ -110,6 +110,7 @@ $('#export').addEventListener('click', async () => {
       status(`CSV를 준비하고 있습니다. ${page}${pages ? ` / ${pages}` : ''}페이지`);
       const result = (await api(`/api/interlining/submissions?page=${page}&limit=100`)).data;
       if (current !== generation) return;
+      if (result.incomplete) throw new Error(result.warning);
       total ??= result.totalCount; pages ??= Math.max(1, result.totalPage);
       if (result.totalCount !== total || Math.max(1, result.totalPage) !== pages) throw new Error('내보내기 중 신청 목록이 변경되었습니다. 다시 다운로드해 주세요.');
       for (const row of result.list) rows.set(row.code, row);
