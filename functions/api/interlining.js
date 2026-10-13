@@ -1,6 +1,7 @@
 // Keep the original Imweb form as the owner of submissions.
 const SOURCE_URL = 'https://hooman.kr/interlining';
 const SOURCE_ORIGIN = 'https://hooman.kr';
+const USER_AGENT = 'athoce-interlining/1.0 (+https://athoce.kr/interlining)';
 const WIDGET_CODE = 'w202610131151c71d9961a';
 const FIELDS = {
   fullName: 'input_39c93ffaf43e1',
@@ -37,6 +38,7 @@ function upstreamHeaders(cookies) {
   return {
     'content-type': 'application/x-www-form-urlencoded',
     accept: 'application/json',
+    'user-agent': USER_AGENT,
     origin: SOURCE_ORIGIN,
     referer: SOURCE_URL,
     'x-requested-with': 'XMLHttpRequest',
@@ -87,7 +89,7 @@ export async function onRequestPost({ request, prepareOnly = false }) {
   try {
     // A fresh anonymous session keeps tokens/cookies out of the browser and storage.
     const cookies = new Map();
-    const source = await fetch(SOURCE_URL, { signal: AbortSignal.timeout(10000), redirect: 'error' });
+    const source = await fetch(SOURCE_URL, { headers: { accept: 'text/html', 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(10000), redirect: 'error' });
     if (!source.ok) throw new Error('source_unavailable');
     captureCookies(source, cookies);
     const html = await source.text();
