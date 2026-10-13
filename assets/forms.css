@@ -1,0 +1,75 @@
+/* The rental inquiry and interlining application share the same form styles. */
+.athoce-form {
+  display: grid;
+  gap: 10px;
+  width: min(520px, 100%);
+  color: #555;
+  font-size: 13px;
+}
+
+.athoce-form .field { display: grid; gap: 6px; min-width: 0; }
+.athoce-form fieldset { margin: 0; padding: 0; border: 0; }
+.athoce-form legend { margin-bottom: 6px; padding: 0; line-height: normal; }
+.athoce-form label { line-height: normal; }
+
+.athoce-form input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]),
+.athoce-form textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid #d8d8d8;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  appearance: auto;
+  resize: vertical;
+}
+
+.athoce-form textarea { min-height: 82px; }
+.athoce-form input::placeholder, .athoce-form textarea::placeholder { color: #757575; opacity: 1; }
+.athoce-form input:focus, .athoce-form textarea:focus {
+  outline: none;
+  border-color: #111;
+  box-shadow: none;
+}
+
+.athoce-form-options, .athoce-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.athoce-form-options label { display: inline-flex; align-items: center; gap: 6px; }
+.athoce-form input[type="radio"] { width: auto; height: auto; margin: 3px 3px 0 5px; accent-color: #111; }
+.athoce-form-status { min-height: 16px; margin: 0; color: #777; font-size: 13px; line-height: 1.25; }
+.athoce-form-status[data-error="true"] { color: #b3261e; }
+
+.athoce-form button, .athoce-form-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: lowercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+.athoce-form-link { text-transform: none; }
+.athoce-form button:hover, .athoce-form-link:hover { background: #fff; color: #111; }
+.athoce-form button:disabled { color: #888; background: #f4f4f4; border-color: #d8d8d8; cursor: default; }
+
+body.red-room .athoce-form :where(input, textarea, button, label, p, span) { color: #c51616; }
+body.red-room .athoce-form :where(input, textarea, button) { border-color: #c51616; }
+body.red-room .athoce-form :where(input, textarea) { caret-color: #c51616; }
+body.red-room .athoce-form input[type="radio"] { accent-color: #c51616; }

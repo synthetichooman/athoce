@@ -38,11 +38,6 @@ h1, h2, p { margin: 0; font: inherit; }
 h1 { margin-bottom: 4px; }
 .subtitle { margin-bottom: 28px; line-height: 1.6; }
 .event-information { margin-bottom: 28px; line-height: 1.6; }
-.information-form { display: grid; gap: 16px; color: #555; }
-.field { display: grid; gap: 6px; min-width: 0; }
-label, legend { line-height: 1.4; }
-fieldset { margin: 0; padding: 0; border: 0; }
-legend { margin-bottom: 6px; padding: 0; }
 
 input:not([type="radio"]):not([type="hidden"]) {
   display: block;
@@ -60,7 +55,7 @@ input:not([type="radio"]):not([type="hidden"]) {
 
 input::placeholder { color: #888; opacity: 1; }
 input:focus { outline: none; border-color: #111; box-shadow: none; }
-button, .confirmation a {
+button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -76,25 +71,20 @@ button, .confirmation a {
   text-decoration: none;
 }
 
-button:hover, .confirmation a:hover { background: #111; color: #fff; }
+button:hover { background: #111; color: #fff; }
 button:focus-visible, a:focus-visible { outline: 2px solid #111; outline-offset: 3px; }
 button:disabled { color: #888; background: #f4f4f4; border-color: #d8d8d8; cursor: default; }
 .phone-inputs { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: center; }
-.phone-inputs input { text-align: center; }
 .phone-inputs span { color: #999; }
-.guest-options { display: flex; flex-wrap: wrap; gap: 10px 18px; }
-.guest-options label, .filming-consent label { display: inline-flex; align-items: center; gap: 6px; }
-input[type="radio"] { width: 13px; height: 13px; margin: 0; accent-color: #111; }
 .filming-consent { line-height: 1.6; }
-.filming-consent legend { max-width: 100%; line-height: 1.6; margin-bottom: 10px; }
+.athoce-form .filming-consent legend { max-width: 100%; line-height: 1.55; margin-bottom: 6px; }
 .address-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.address-inputs button { min-height: 36px; white-space: nowrap; }
+.address-inputs button { white-space: nowrap; }
 #postcode { width: 116px; }
 .postcode-panel { border: 1px solid #d8d8d8; }
 .postcode-toolbar { display: flex; justify-content: flex-end; padding: 6px; border-bottom: 1px solid #d8d8d8; }
 .postcode-toolbar button { min-height: 28px; padding: 0 10px; }
 .postcode-search { height: 400px; }
-.form-actions { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 4px; }
 .form-status { color: #777; line-height: 1.5; }
 .form-status[data-error="true"] { color: #b3261e; }
 .confirmation { display: grid; gap: 20px; padding-top: 8px; }

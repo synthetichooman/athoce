@@ -9,6 +9,7 @@
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#ffffff" />
+    <link rel="stylesheet" href="/assets/forms.css?v=20261013-rent-1" />
     <link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
     <link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
@@ -382,42 +383,9 @@
         line-height: 1.25;
       }
 
-      .rental-inquiry-form {
-        display: grid;
-        gap: 10px;
-        width: min(520px, 100%);
-      }
-
       .rental-contact-methods label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: #555;
         text-transform: lowercase;
       }
-
-      .rental-contact-methods input {
-        accent-color: #111;
-      }
-
-      .rental-inquiry-form input[type="text"],
-      .rental-inquiry-form textarea {
-        width: 100%;
-        min-height: 36px;
-        border: 1px solid #d8d8d8;
-        border-radius: 0;
-        padding: 8px 10px;
-        font: inherit;
-        font-size: 13px;
-        resize: vertical;
-      }
-
-      .rental-inquiry-form textarea {
-        min-height: 82px;
-      }
-
-      .rental-inquiry-form input:focus,
-      .rental-inquiry-form textarea:focus,
       .rental-gate input:focus {
         outline: none;
         border-color: #111;
@@ -773,8 +741,8 @@ please check each product detail for handling notes before use</p>
           <button type="button" id="bundleToggle">make bundle</button>
           <p id="bundleCount" class="rental-bundle-count" aria-live="polite"></p>
         </div>
-        <form id="rentalInquiryForm" class="rental-inquiry-form" hidden>
-          <div class="rental-contact-methods" aria-label="contact method">
+        <form id="rentalInquiryForm" class="rental-inquiry-form athoce-form" hidden>
+          <div class="rental-contact-methods athoce-form-options" aria-label="contact method">
             <label><input type="radio" name="contactMethod" value="instagram" checked /> instagram</label>
             <label><input type="radio" name="contactMethod" value="phone" /> phone</label>
             <label><input type="radio" name="contactMethod" value="email" /> email</label>
@@ -782,7 +750,7 @@ please check each product detail for handling notes before use</p>
           <input id="inquiryTeamName" type="text" autocomplete="organization" placeholder="team / name" />
           <input id="inquiryContact" type="text" autocomplete="off" placeholder="contact" />
           <textarea id="inquiryPurposeSchedule" placeholder="purpose / schedule"></textarea>
-          <div class="rental-inquiry-submit">
+          <div class="rental-inquiry-submit athoce-form-actions">
             <button type="submit" id="inquirySubmit">send inquiry</button>
             <p id="inquiryStatus" class="rental-inquiry-status" aria-live="polite"></p>
           </div>

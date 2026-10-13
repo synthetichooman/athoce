@@ -8,7 +8,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <link rel="canonical" href="https://athoce.kr/interlining" />
     <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
-    <link rel="stylesheet" href="/interlining/styles.css" />
+    <link rel="stylesheet" href="/interlining/styles.css?v=20261013-rent-1" />
+    <link rel="stylesheet" href="/assets/forms.css?v=20261013-rent-1" />
     <script src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" defer></script>
     <script src="/interlining/app.js?v=20261013-storage-1" defer></script>
   </head>
@@ -29,14 +30,14 @@
         <div class="event-information">
           <p>프레스 데이<br /><time datetime="2026-10-23">2026.10.23 (금)</time><br />14:00 ~ 20:00</p>
         </div>
-        <form id="interliningForm" class="information-form" action="/api/interlining" method="post">
+        <form id="interliningForm" class="information-form athoce-form" action="/api/interlining" method="post">
           <div class="field">
-            <label for="fullName">성함</label>
-            <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required />
+            <label class="visually-hidden" for="fullName">성함</label>
+            <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="성함" maxlength="100" required />
           </div>
           <div class="field">
-            <label for="instagram">instagram</label>
-            <input id="instagram" name="instagram" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" required />
+            <label class="visually-hidden" for="instagram">instagram</label>
+            <input id="instagram" name="instagram" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="instagram" maxlength="100" required />
           </div>
           <fieldset class="field phone-field">
             <legend>연락처</legend>
@@ -49,7 +50,7 @@
             </div>
           </fieldset>
           <div class="field address-field">
-            <label for="address">주소</label>
+            <label class="visually-hidden" for="address">주소</label>
             <div class="address-inputs">
               <input id="address" name="address" type="text" autocomplete="address-line1" placeholder="주소" maxlength="300" readonly required />
               <button id="addressSearch" type="button" aria-expanded="false" aria-controls="postcodePanel">주소 검색</button>
@@ -65,7 +66,7 @@
           </div>
           <fieldset class="field">
             <legend>동반인원 수</legend>
-            <div class="guest-options">
+            <div class="guest-options athoce-form-options">
               <label><input type="radio" name="guests" value="0" required /> 0</label>
               <label><input type="radio" name="guests" value="1" /> 1</label>
               <label><input type="radio" name="guests" value="2" /> 2</label>
@@ -77,20 +78,20 @@
           </fieldset>
           <fieldset class="field filming-consent">
             <legend>행사 당일 현장 기록을 위한 사진 및 영상 촬영이 진행됩니다. 촬영된 콘텐츠는 향후 아카이브 및 홍보 자료로 활용될 수 있는 점 참고 부탁드립니다.</legend>
-            <label><input type="radio" name="filmingConsent" value="동의" required /> 동의</label>
+            <div class="athoce-form-options"><label><input type="radio" name="filmingConsent" value="동의" required /> 동의</label></div>
           </fieldset>
           <div class="honeypot" aria-hidden="true">
             <label for="website">website</label>
             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
-          <div class="form-actions">
+          <div class="form-actions athoce-form-actions">
             <button id="submitButton" type="submit">작성</button>
-            <p id="formStatus" class="form-status" role="status" aria-live="polite"></p>
+            <p id="formStatus" class="form-status athoce-form-status" role="status" aria-live="polite"></p>
           </div>
         </form>
         <section id="confirmation" class="confirmation" aria-labelledby="confirmationTitle" hidden tabindex="-1">
           <h2 id="confirmationTitle">정상적으로 접수되었습니다.</h2>
-          <a href="/">athoce</a>
+          <a class="athoce-form-link" href="https://personal-language.kr/product/list.html?cate_no=46">Personal Language - 'A STAGE"</a>
         </section>
         <noscript><p class="form-status">주소 검색과 제출을 위해 JavaScript를 켜 주세요.</p></noscript>
       </section>
