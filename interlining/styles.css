@@ -1,0 +1,109 @@
+:root {
+  color: #111;
+  background: #fff;
+  font-family: Arial, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+
+.site-header {
+  border-bottom: 1px solid #000;
+  background: #fff;
+}
+
+.site-header-inner, main {
+  width: min(1440px, calc(100% - 28px));
+  margin: 0 auto;
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+}
+
+.brand { display: inline-flex; }
+.brand img { display: block; width: auto; height: 44px; }
+main { padding: 22px 0 64px; }
+.information { width: min(520px, 100%); }
+.invitation-artwork { display: block; width: min(292px, 100%); height: auto; margin-bottom: 28px; }
+h1, h2, p { margin: 0; font: inherit; }
+.invitation { margin-bottom: 28px; }
+h1 { margin-bottom: 4px; }
+.subtitle { margin-bottom: 28px; line-height: 1.6; }
+.event-information { margin-bottom: 28px; line-height: 1.6; }
+.information-form { display: grid; gap: 16px; color: #555; }
+.field { display: grid; gap: 6px; min-width: 0; }
+label, legend { line-height: 1.4; }
+fieldset { margin: 0; padding: 0; border: 0; }
+legend { margin-bottom: 6px; padding: 0; }
+
+input:not([type="radio"]):not([type="hidden"]) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid #d8d8d8;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  padding: 8px 10px;
+  font: inherit;
+  appearance: none;
+}
+
+input::placeholder { color: #888; opacity: 1; }
+input:focus { outline: none; border-color: #111; box-shadow: none; }
+button, .confirmation a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+button:hover, .confirmation a:hover { background: #111; color: #fff; }
+button:focus-visible, a:focus-visible { outline: 2px solid #111; outline-offset: 3px; }
+button:disabled { color: #888; background: #f4f4f4; border-color: #d8d8d8; cursor: default; }
+.phone-inputs { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: center; }
+.phone-inputs input { text-align: center; }
+.phone-inputs span { color: #999; }
+.guest-options { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.guest-options label, .filming-consent label { display: inline-flex; align-items: center; gap: 6px; }
+input[type="radio"] { width: 13px; height: 13px; margin: 0; accent-color: #111; }
+.filming-consent { line-height: 1.6; }
+.filming-consent legend { max-width: 100%; line-height: 1.6; margin-bottom: 10px; }
+.address-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.address-inputs button { min-height: 36px; white-space: nowrap; }
+#postcode { width: 116px; }
+.postcode-panel { border: 1px solid #d8d8d8; }
+.postcode-toolbar { display: flex; justify-content: flex-end; padding: 6px; border-bottom: 1px solid #d8d8d8; }
+.postcode-toolbar button { min-height: 28px; padding: 0 10px; }
+.postcode-search { height: 400px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 4px; }
+.form-status { color: #777; line-height: 1.5; }
+.form-status[data-error="true"] { color: #b3261e; }
+.confirmation { display: grid; gap: 20px; padding-top: 8px; }
+.confirmation a { justify-self: start; }
+.confirmation:focus { outline: none; }
+.honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 560px) {
+  .site-header-inner, main { width: calc(100% - 20px); }
+  .postcode-search { height: 360px; }
+}
