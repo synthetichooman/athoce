@@ -8,10 +8,11 @@ let data = null;
 let loading = false;
 let exporting = false;
 let generation = 0;
+let access = null;
 
 function status(message, error = false) { $('#status').textContent = message; $('#status').dataset.error = String(error); }
 function clearData() { data = null; $('#rows').replaceChildren(); $('#detailAnswers').replaceChildren(); $('#detail').close(); dashboard.hidden = true; }
-function showLogin() { generation++; clearData(); connectionPanel.hidden = true; loginPanel.hidden = false; $('#logout').hidden = true; }
+function showLogin() { generation++; access = null; $('#search').value = ''; clearData(); connectionPanel.hidden = true; loginPanel.hidden = false; $('#logout').hidden = true; }
 
 async function api(url, options = {}) {
   const response = await fetch(url, { cache: 'no-store', ...options });
@@ -66,7 +67,7 @@ function busy() {
 }
 function failure(error) {
   if (error.status === 401) showLogin();
-  if (['COMMUNITY_PERMISSION_REQUIRED', 'IMWEB_CONNECTION_REQUIRED'].includes(error.code)) { clearData(); connectionPanel.hidden = false; }
+  if (['COMMUNITY_PERMISSION_REQUIRED', 'IMWEB_CONNECTION_REQUIRED'].includes(error.code)) { clearData(); connectionPanel.hidden = false; $('#connectLink').hidden = access !== 'owner'; $('#connectionMessage').textContent = access === 'owner' ? '아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 연결을 확인해 주세요.' : '신청 목록의 아임웹 연결이 필요합니다. athoce 담당자에게 연결을 요청해 주세요.'; }
   status(error.message || '연결을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
 }
 async function load(page = 1) {
@@ -83,14 +84,14 @@ async function load(page = 1) {
 $('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault(); $('#loginButton').disabled = true;
   try {
-    await api('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
-    $('#password').value = ''; loginPanel.hidden = true; $('#logout').hidden = false; await load();
+    const login = await api('/api/interlining/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
+    access = login.access; $('#password').value = ''; loginPanel.hidden = true; $('#logout').hidden = false; await load();
   } catch (error) { failure(error); }
   finally { $('#loginButton').disabled = false; }
 });
 $('#logout').addEventListener('click', async () => {
   $('#logout').disabled = true;
-  try { await api('/api/admin/logout', { method: 'POST' }); showLogin(); status('로그아웃했습니다.'); }
+  try { await api('/api/interlining/logout', { method: 'POST' }); showLogin(); status('로그아웃했습니다.'); }
   catch (error) { failure(error); }
   finally { $('#logout').disabled = false; }
 });
@@ -124,7 +125,7 @@ $('#export').addEventListener('click', async () => {
 });
 
 try {
-  const session = await api('/api/admin/session');
-  if (session.authenticated) { $('#logout').hidden = false; await load(); }
+  const session = await api('/api/interlining/session');
+  if (session.authenticated) { access = session.access; $('#logout').hidden = false; await load(); }
   else { showLogin(); status(session.adminConfigured ? '' : '관리자 비밀번호가 아직 설정되지 않았습니다.', !session.adminConfigured); }
 } catch (error) { showLogin(); failure(error); }

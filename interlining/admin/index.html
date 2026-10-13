@@ -22,7 +22,7 @@
       <div class="page-heading"><div><h1>interlining 신청 관리</h1><p>프레스 데이 · 2026.10.23 (금) 14:00–20:00</p></div><button id="logout" type="button" hidden>로그아웃</button></div>
       <section id="loginPanel" class="login-panel" hidden aria-labelledby="loginTitle">
         <h2 id="loginTitle">관리자 로그인</h2>
-        <p>기존 athoce 관리자 비밀번호로 로그인해 주세요.</p>
+        <p>관리자 비밀번호 또는 전달받은 interlining 전용 비밀번호로 로그인해 주세요.</p>
         <form id="loginForm">
           <label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" required />
           <button id="loginButton" type="submit">로그인</button>
@@ -30,8 +30,8 @@
       </section>
       <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
       <section id="connectionPanel" class="connection-panel" hidden aria-label="아임웹 연결">
-        <p>아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 새로고침해 주세요.</p>
-        <a class="action-link" href="/api/interlining/connect" target="_blank" rel="noopener">조회 권한 연결</a>
+        <p id="connectionMessage">아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 연결을 확인해 주세요.</p>
+        <a id="connectLink" class="action-link" href="/api/interlining/connect" target="_blank" rel="noopener">조회 권한 연결</a>
         <button id="connectionRefresh" type="button">연결 확인</button>
       </section>
       <section id="dashboard" hidden aria-label="신청 목록">

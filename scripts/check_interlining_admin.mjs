@@ -79,11 +79,13 @@ test('a malformed page cannot be silently exported', async (t) => {
   assert.equal((await onRequestGet({ env, request: await request() })).status, 502);
 });
 test('authorization retains existing scopes and requests only read access for community', async () => {
-  const response = await connect({ env: { ...env, ATHOCE_KV: { get: async () => ({ accessToken: 'mock', scope: 'order:read product:read' }) } }, request: await request() });
+  const response = await connect({ env: { ...env, ATHOCE_KV: { get: async () => ({ accessToken: 'mock', scope: 'order:read,product:read, community:read' }) } }, request: await request() });
   assert.equal(response.status, 302);
   const scope = new URL(response.headers.get('location')).searchParams.get('scope').split(' ');
   assert.ok(scope.includes('community:read'));
   assert.ok(scope.includes('order:read'));
+  assert.ok(scope.every((value) => !value.includes(',')));
+  assert.equal(scope.filter((value) => value === 'community:read').length, 1);
   assert.ok(!scope.includes('community:write'));
 });
 test('CSV preserves Unicode, multiline quotes, complete answers and guards spreadsheet formulas', () => {

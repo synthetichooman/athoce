@@ -1,11 +1,11 @@
-import { isAdminAuthorized } from '../../_config.js';
+import { interliningAccess } from '../../_interlining-access.js';
 import {
   INTERLINING_FORM, INTERLINING_UNIT, InterliningError, adminJson,
   communityData, errorResponse, normalizeSubmission, resolveInterliningForm,
 } from '../../_interlining-admin.js';
 
 export async function onRequestGet({ env, request }) {
-  if (!(await isAdminAuthorized(request, env))) {
+  if (!(await interliningAccess(request, env))) {
     return adminJson({ ok: false, error: { code: 'UNAUTHORIZED', message: '관리자 로그인이 필요합니다.' } }, 401);
   }
   try {

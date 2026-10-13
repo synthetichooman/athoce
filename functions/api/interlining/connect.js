@@ -7,7 +7,7 @@ export async function onRequestGet({ env, request }) {
     return adminJson({ ok: false, error: { code: 'UNAUTHORIZED', message: '관리자 로그인이 필요합니다.' } }, 401);
   }
   const tokens = await getStoredImwebTokens(env);
-  const scope = [...new Set(['site-info:write', 'product:read', 'community:read', ...tokens.scope.split(/\s+/).filter(Boolean)])].join(' ');
+  const scope = [...new Set(['site-info:write', 'product:read', 'community:read', ...String(tokens.scope || '').split(/[,\s]+/).filter(Boolean)])].join(' ');
   const url = new URL('https://openapi.imweb.me/oauth2/authorize');
   url.search = new URLSearchParams({
     responseType: 'code',

@@ -124,7 +124,7 @@ function getAdminPasswords(env) {
   ].filter(Boolean);
 }
 
-function getAdminSessionSecret(env) {
+export function getAdminSessionSecret(env) {
   return String(env.ADMIN_SESSION_SECRET || getAdminPasswords(env)[0] || '').trim();
 }
 
