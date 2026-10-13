@@ -82,7 +82,7 @@ test('simultaneous applicants use separate keys and missing storage is never rep
 });
 
 test('health checks use the deployed write path, remove temporary records, and require authentication', async (t) => {
-  t.mock.method(globalThis, 'fetch', async () => Response.json({ statusCode: 403 }, { status: 403 }));
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('unexpected external request'); });
   const { onRequestGet: health } = await import('../functions/api/interlining/health.js');
   const { createAdminSessionCookie } = await import('../functions/_config.js');
   const kv = storage(); const env = { ATHOCE_KV: kv, ADMIN_PASSWORD: 'test-only' };

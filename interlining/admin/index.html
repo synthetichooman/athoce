@@ -9,7 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
     <link rel="stylesheet" href="/interlining/styles.css" />
     <link rel="stylesheet" href="/interlining/admin/styles.css" />
-    <script src="/interlining/admin/app.js?v=20261013-storage-1" type="module"></script>
+    <script src="/interlining/admin/app.js?v=20261013-direct-1" type="module"></script>
   </head>
   <body>
     <header class="site-header">
@@ -29,11 +29,6 @@
         </form>
       </section>
       <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
-      <section id="connectionPanel" class="connection-panel" hidden aria-label="아임웹 연결">
-        <p id="connectionMessage">아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 연결을 확인해 주세요.</p>
-        <a id="connectLink" class="action-link" href="/api/interlining/connect" target="_blank" rel="noopener">조회 권한 연결</a>
-        <button id="connectionRefresh" type="button">연결 확인</button>
-      </section>
       <section id="dashboard" hidden aria-label="신청 목록">
         <div class="toolbar">
           <p class="total">총 신청 <strong id="totalCount">0</strong>건</p>

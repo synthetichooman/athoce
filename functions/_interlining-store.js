@@ -34,7 +34,7 @@ export async function saveSubmission(env, fields, id) {
 }
 
 export async function submissionKeys(env) {
-  if (!env?.ATHOCE_KV) return [];
+  if (!env?.ATHOCE_KV) throw new Error('Submission storage is unavailable');
   const keys = [];
   let cursor;
   do {

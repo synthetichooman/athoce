@@ -6,15 +6,13 @@ import { interliningAccess, createInterliningViewerCookie } from '../functions/_
 import { onRequestPost as login } from '../functions/api/interlining/login.js';
 import { onRequestGet as session } from '../functions/api/interlining/session.js';
 import { onRequestPost as logout } from '../functions/api/interlining/logout.js';
-import { onRequestGet as connect } from '../functions/api/interlining/connect.js';
 import { onRequestGet as submissions } from '../functions/api/interlining/submissions.js';
 import { onRequestGet as config } from '../functions/api/admin/config.js';
 import { onRequestGet as rentalKeys } from '../functions/api/admin/rental-keys.js';
 import { onRequestPost as generalLogin } from '../functions/api/admin/login.js';
-import { INTERLINING_FORM, INTERLINING_UNIT } from '../functions/_interlining-admin.js';
 
 const viewerPassword = 'test-only-viewer-password';
-const env = { ADMIN_PASSWORD: 'test-only-owner', IMWEB_ACCESS_TOKEN: 'mock', INTERLINING_VIEWER_PASSWORD_SHA256: createHash('sha256').update(viewerPassword).digest('hex') };
+const env = { ADMIN_PASSWORD: 'test-only-owner', INTERLINING_VIEWER_PASSWORD_SHA256: createHash('sha256').update(viewerPassword).digest('hex') };
 const req = (cookie = '', body) => new Request('https://athoce.kr/api/interlining/login', { headers: { cookie, 'content-type': 'application/json' }, ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }) });
 const cookieValue = (cookie) => cookie.split(';')[0];
 
@@ -30,7 +28,7 @@ test('viewer login grants only scoped interlining access and clears an old owner
   assert.equal(await interliningAccess(request, env), 'viewer');
   assert.equal(await isAdminAuthorized(request, env), false);
   assert.equal((await (await session({ env, request })).json()).access, 'viewer');
-  for (const handler of [config, rentalKeys, connect]) assert.equal((await handler({ env, request })).status, 401);
+  for (const handler of [config, rentalKeys]) assert.equal((await handler({ env, request })).status, 401);
   assert.equal((await generalLogin({ env, request: req('', { password: viewerPassword }) })).status, 401);
 });
 
@@ -58,15 +56,16 @@ test('viewer sessions reject tampering, expiration and password rotation', async
   assert.equal(await interliningAccess(req(cookie), env), null);
 });
 
-test('viewer can retrieve only the pinned form through the submissions endpoint', async (t) => {
-  const form = { formNo: 42, formCode: INTERLINING_FORM, unitCode: INTERLINING_UNIT };
-  t.mock.method(globalThis, 'fetch', async (url) => {
-    const parsed = new URL(url);
-    assert.equal(parsed.searchParams.get('unitCode'), INTERLINING_UNIT);
-    return Response.json({ statusCode: 200, data: { list: parsed.pathname.endsWith('/forms') ? [form] : [], currentPage: 1, totalPage: 1, totalCount: 0 } });
-  });
+test('viewer can retrieve the local submissions without any external request', async (t) => {
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('unexpected external request'); });
+  const localEnv = { ...env, ATHOCE_KV: { list: async ({ prefix }) => {
+    assert.equal(prefix, 'interlining:submission:');
+    return { keys: [], list_complete: true };
+  } } };
   const request = req(cookieValue(await createInterliningViewerCookie(env)));
-  assert.equal((await submissions({ env, request })).status, 200);
+  const response = await submissions({ env: localEnv, request });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).data.totalCount, 0);
 });
 
 test('invalid passwords are limited and successful logins reset attempts', async () => {

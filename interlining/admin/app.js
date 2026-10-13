@@ -3,16 +3,14 @@ import { submissionsCsv } from './csv.js';
 const $ = (selector) => document.querySelector(selector);
 const loginPanel = $('#loginPanel');
 const dashboard = $('#dashboard');
-const connectionPanel = $('#connectionPanel');
 let data = null;
 let loading = false;
 let exporting = false;
 let generation = 0;
-let access = null;
 
 function status(message, error = false) { $('#status').textContent = message; $('#status').dataset.error = String(error); }
 function clearData() { data = null; $('#rows').replaceChildren(); $('#detailAnswers').replaceChildren(); $('#detail').close(); dashboard.hidden = true; }
-function showLogin() { generation++; access = null; $('#search').value = ''; clearData(); connectionPanel.hidden = true; loginPanel.hidden = false; $('#logout').hidden = true; }
+function showLogin() { generation++; $('#search').value = ''; clearData(); loginPanel.hidden = false; $('#logout').hidden = true; }
 
 async function api(url, options = {}) {
   const response = await fetch(url, { cache: 'no-store', ...options });
@@ -62,12 +60,11 @@ function render() {
   $('#empty').textContent = data.totalCount === 0 ? '접수된 신청이 없습니다.' : '현재 페이지에 검색 결과가 없습니다.';
 }
 function busy() {
-  for (const selector of ['#refresh', '#connectionRefresh', '#export']) $(selector).disabled = loading || exporting;
+  for (const selector of ['#refresh', '#export']) $(selector).disabled = loading || exporting;
   render();
 }
 function failure(error) {
   if (error.status === 401) showLogin();
-  if (['COMMUNITY_PERMISSION_REQUIRED', 'IMWEB_CONNECTION_REQUIRED'].includes(error.code)) { clearData(); connectionPanel.hidden = false; $('#connectLink').hidden = access !== 'owner'; $('#connectionMessage').textContent = access === 'owner' ? '아임웹에서 커뮤니티 조회 권한을 승인한 뒤 이 페이지로 돌아와 연결을 확인해 주세요.' : '신청 목록의 아임웹 연결이 필요합니다. athoce 담당자에게 연결을 요청해 주세요.'; }
   status(error.message || '연결을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
 }
 async function load(page = 1) {
@@ -76,16 +73,16 @@ async function load(page = 1) {
   try {
     const result = await api(`/api/interlining/submissions?page=${page}&limit=50`);
     if (current !== generation) return;
-    data = result.data; dashboard.hidden = false; connectionPanel.hidden = true;
-    status(data.warning || '제출 시각은 한국 시간으로 표시됩니다.', Boolean(data.incomplete)); render();
+    data = result.data; dashboard.hidden = false;
+    status('제출 시각은 한국 시간으로 표시됩니다.'); render();
   } catch (error) { if (current === generation) { clearData(); failure(error); } }
   finally { loading = false; busy(); }
 }
 $('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault(); $('#loginButton').disabled = true;
   try {
-    const login = await api('/api/interlining/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
-    access = login.access; $('#password').value = ''; loginPanel.hidden = true; $('#logout').hidden = false; await load();
+    await api('/api/interlining/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
+    $('#password').value = ''; loginPanel.hidden = true; $('#logout').hidden = false; await load();
   } catch (error) { failure(error); }
   finally { $('#loginButton').disabled = false; }
 });
@@ -96,7 +93,6 @@ $('#logout').addEventListener('click', async () => {
   finally { $('#logout').disabled = false; }
 });
 $('#refresh').addEventListener('click', () => load(data?.page || 1));
-$('#connectionRefresh').addEventListener('click', () => load());
 $('#previous').addEventListener('click', () => load(data.page - 1));
 $('#next').addEventListener('click', () => load(data.page + 1));
 $('#search').addEventListener('input', render);
@@ -110,7 +106,6 @@ $('#export').addEventListener('click', async () => {
       status(`CSV를 준비하고 있습니다. ${page}${pages ? ` / ${pages}` : ''}페이지`);
       const result = (await api(`/api/interlining/submissions?page=${page}&limit=100`)).data;
       if (current !== generation) return;
-      if (result.incomplete) throw new Error(result.warning);
       total ??= result.totalCount; pages ??= Math.max(1, result.totalPage);
       if (result.totalCount !== total || Math.max(1, result.totalPage) !== pages) throw new Error('내보내기 중 신청 목록이 변경되었습니다. 다시 다운로드해 주세요.');
       for (const row of result.list) rows.set(row.code, row);
@@ -127,6 +122,6 @@ $('#export').addEventListener('click', async () => {
 
 try {
   const session = await api('/api/interlining/session');
-  if (session.authenticated) { access = session.access; $('#logout').hidden = false; await load(); }
+  if (session.authenticated) { $('#logout').hidden = false; await load(); }
   else { showLogin(); status(session.adminConfigured ? '' : '관리자 비밀번호가 아직 설정되지 않았습니다.', !session.adminConfigured); }
 } catch (error) { showLogin(); failure(error); }
