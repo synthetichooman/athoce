@@ -10,6 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
     <link rel="stylesheet" href="/interlining/styles.css?v=20261013-rent-1" />
     <link rel="stylesheet" href="/assets/forms.css?v=20261013-rent-1" />
+    <link rel="stylesheet" href="/interlining/form.css?v=20261013-black-1" />
     <script src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" defer></script>
     <script src="/interlining/app.js?v=20261013-storage-1" defer></script>
   </head>
@@ -32,12 +33,12 @@
         </div>
         <form id="interliningForm" class="information-form athoce-form" action="/api/interlining" method="post">
           <div class="field">
-            <label class="visually-hidden" for="fullName">성함</label>
-            <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="성함" maxlength="100" required />
+            <label for="fullName">성함</label>
+            <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required />
           </div>
           <div class="field">
-            <label class="visually-hidden" for="instagram">instagram</label>
-            <input id="instagram" name="instagram" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="instagram" maxlength="100" required />
+            <label for="instagram">instagram</label>
+            <input id="instagram" name="instagram" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" required />
           </div>
           <fieldset class="field phone-field">
             <legend>연락처</legend>
@@ -50,7 +51,7 @@
             </div>
           </fieldset>
           <div class="field address-field">
-            <label class="visually-hidden" for="address">주소</label>
+            <label for="address">주소</label>
             <div class="address-inputs">
               <input id="address" name="address" type="text" autocomplete="address-line1" placeholder="주소" maxlength="300" readonly required />
               <button id="addressSearch" type="button" aria-expanded="false" aria-controls="postcodePanel">주소 검색</button>
