@@ -1,3 +1,21 @@
+.recruit-title { line-height: 1.7; }
+.recruit-notice {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 36px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #000;
+  color: #000;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.recruit-terms { display: grid; gap: 8px; margin: 0; }
+.recruit-terms > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; }
+.recruit-terms dt { display: flex; justify-content: space-between; gap: 4px; }
+.recruit-terms dt::after { content: ':'; }
+.recruit-terms dd { margin: 0; }
+.recruit-preferences ul { display: grid; gap: 6px; margin: 10px 0 0; padding-left: 18px; }
+
 .information-form.athoce-form textarea {
   min-height: 180px;
   padding: 10px 12px;
