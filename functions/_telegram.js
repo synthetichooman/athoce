@@ -45,6 +45,7 @@ export async function sendTelegramMessageToChat(env, chatId, text) {
       text: clip(text),
       disable_web_page_preview: true,
     }),
+    signal: AbortSignal.timeout(8000),
   });
 
   let payload = {};

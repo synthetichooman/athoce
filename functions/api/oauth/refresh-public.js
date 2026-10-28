@@ -59,8 +59,8 @@ async function notifyPublicRefresh(env, request, refreshed) {
   );
 }
 
-export async function onRequestPost({ env, request }) {
-  if (await isRateLimited(env)) {
+export async function onRequestPost({ env, request, waitUntil }) {
+  if (!env.IMWEB_TOKEN_MANAGER && await isRateLimited(env)) {
     return jsonResponse({
       ok: false,
       error: {
@@ -71,7 +71,8 @@ export async function onRequestPost({ env, request }) {
   }
 
   const refreshed = await refreshImwebToken(env, { notifyFailure: false });
-  await notifyPublicRefresh(env, request, refreshed);
+  const notification = notifyPublicRefresh(env, request, refreshed).catch(() => {});
+  if (waitUntil) waitUntil(notification);
 
   if (!refreshed.ok) {
     return jsonResponse({
@@ -87,6 +88,7 @@ export async function onRequestPost({ env, request }) {
     ok: true,
     refreshed: {
       storedInKv: Boolean(refreshed.storedInKv),
+      storedInManager: Boolean(refreshed.storedInManager),
     },
   });
 }

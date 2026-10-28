@@ -1,4 +1,4 @@
-import { storeImwebTokens } from '../../_imweb.js';
+import { getTokenExpiresAt, storeImwebTokens } from '../../_imweb.js';
 
 const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 
@@ -166,6 +166,7 @@ export async function onRequestGet({ env, request }) {
       'content-type': 'application/x-www-form-urlencoded',
     },
     body: form,
+    signal: AbortSignal.timeout(15000),
   });
 
   const text = await tokenResponse.text();
@@ -204,13 +205,13 @@ export async function onRequestGet({ env, request }) {
     accessToken,
     refreshToken,
     scope: payload?.data?.scope || payload?.scope,
-    expiresAt: '',
+    expiresAt: getTokenExpiresAt(payload),
   });
 
   return htmlResponse(
     renderResult({
       title: 'accessToken 발급 성공',
-      body: `<p>${storedInKv ? '토큰이 Cloudflare KV에 저장되었습니다. 이제 환경변수 토큰을 손으로 갱신하지 않아도 됩니다.' : 'KV 바인딩이 없어 아래 토큰을 Cloudflare Pages 환경변수에 직접 저장해야 합니다.'}</p>
+      body: `<p>${storedInKv ? '토큰이 서버에 저장되었습니다. 이제 환경변수 토큰을 손으로 갱신하지 않아도 됩니다.' : 'KV 바인딩이 없어 아래 토큰을 Cloudflare Pages 환경변수에 직접 저장해야 합니다.'}</p>
         <div class="box">
           <p><strong>scope</strong>: ${escapeHtml(payload?.data?.scope || payload?.scope || '-')}</p>
           <p><strong>redirectUri</strong>: <code>${escapeHtml(redirectUri)}</code></p>

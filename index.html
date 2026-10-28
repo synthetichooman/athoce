@@ -1617,7 +1617,7 @@ please check each product detail for handling notes before use</p>
               throw new Error(payload?.error?.message || 'sync retry failed.');
             }
 
-            await loadProducts({ bypassCache: true });
+            await loadProducts({ bypassCache: true, throwOnError: true });
           } catch (syncError) {
             retryButton.disabled = false;
             retryButton.textContent = 'retry sync';

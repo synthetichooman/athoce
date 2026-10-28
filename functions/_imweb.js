@@ -1,12 +1,15 @@
 import { sendThrottledTelegramAlert } from './_telegram.js';
+import {
+  getTokenExpiresAt, shouldRefreshBeforeRequest, TOKEN_REFRESH_INTERVAL_SECONDS,
+  TOKEN_REQUEST_TIMEOUT_MS,
+} from './_imweb-policy.js';
+export { getTokenExpiresAt } from './_imweb-policy.js';
 
 export const DEFAULT_CLIENT_ID = '41b37086-2076-4edd-ade4-b447c22544ea';
 export const DEFAULT_UNIT_CODE = 'u20251229236e9cd97a160';
 export const TOKEN_STORAGE_KEY = 'imweb_tokens';
 const TOKEN_REFRESH_LOCK_KEY = 'imweb_refresh_lock';
 const TOKEN_REFRESH_LOCK_SECONDS = 60;
-const TOKEN_REFRESH_INTERVAL_SECONDS = 60 * 60;
-const TOKEN_REFRESH_BUFFER_SECONDS = 60 * 10;
 
 export function clean(value, fallback = '') {
   return String(value || fallback).trim();
@@ -38,7 +41,7 @@ export async function parseJsonResponse(response) {
   }
 }
 
-export async function getStoredImwebTokens(env) {
+async function getLegacyTokens(env) {
   let stored = null;
 
   if (env.ATHOCE_KV) {
@@ -46,8 +49,8 @@ export async function getStoredImwebTokens(env) {
   }
 
   return {
-    accessToken: clean(stored?.accessToken || env.IMWEB_ACCESS_TOKEN),
-    refreshToken: clean(stored?.refreshToken || env.IMWEB_REFRESH_TOKEN),
+    accessToken: clean(stored?.accessToken ? stored.accessToken : env.IMWEB_ACCESS_TOKEN),
+    refreshToken: clean(stored?.accessToken ? stored.refreshToken : env.IMWEB_REFRESH_TOKEN),
     scope: stored?.scope || '',
     updatedAt: stored?.updatedAt || '',
     expiresAt: stored?.expiresAt || '',
@@ -57,55 +60,41 @@ export async function getStoredImwebTokens(env) {
   };
 }
 
+async function tokenManagerRequest(env, path, input = {}) {
+  const namespace = env.IMWEB_TOKEN_MANAGER;
+  const stub = namespace.get(namespace.idFromName('athoce-imweb'));
+  const config = {
+    clientId: clean(env.IMWEB_CLIENT_ID, DEFAULT_CLIENT_ID),
+    clientSecret: clean(env.IMWEB_CLIENT_SECRET),
+  };
+  const call = (route, body) => stub.fetch(`https://token.internal${route}`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...body, config }),
+  });
+  let response = await call(path, input);
+  if (response.status === 428) {
+    const seeded = await call('/initialize', { tokens: await getLegacyTokens(env) });
+    if (!seeded.ok) throw new Error('Imweb token manager initialization failed');
+    response = await call(path, input);
+  }
+  if (!response.ok) throw new Error('Imweb token manager unavailable');
+  return response.json();
+}
+
+export async function getStoredImwebTokens(env) {
+  if (env.IMWEB_TOKEN_MANAGER) {
+    // Never fall back to a stale KV refresh token after the manager becomes authoritative.
+    const state = await tokenManagerRequest(env, '/read');
+    return { ...state.tokens, scheduler: state.scheduler };
+  }
+  return getLegacyTokens(env);
+}
+
 function sanitizeRefreshError(error = {}) {
   return {
     code: String(error?.code || error?.errorCode || error?.statusCode || 'REFRESH_FAILED'),
     message: String(error?.message || 'Imweb accessToken 재발급에 실패했습니다.').slice(0, 240),
   };
-}
-
-function getTokenExpiresAt(payload) {
-  const expiresIn = Number(
-    payload?.data?.expiresIn ||
-      payload?.data?.expires_in ||
-      payload?.expiresIn ||
-      payload?.expires_in ||
-      0,
-  );
-
-  if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
-    return '';
-  }
-
-  return new Date(Date.now() + expiresIn * 1000).toISOString();
-}
-
-function shouldRefreshBeforeRequest(storedTokens) {
-  if (!storedTokens.refreshToken) {
-    return false;
-  }
-
-  const updatedAt = storedTokens.updatedAt ? new Date(storedTokens.updatedAt).getTime() : 0;
-
-  if (Number.isFinite(updatedAt) && updatedAt > 0) {
-    if (Date.now() - updatedAt >= TOKEN_REFRESH_INTERVAL_SECONDS * 1000) {
-      return true;
-    }
-  } else if (storedTokens.source === 'kv') {
-    return true;
-  }
-
-  if (!storedTokens.expiresAt) {
-    return false;
-  }
-
-  const expiresAt = new Date(storedTokens.expiresAt).getTime();
-
-  if (!Number.isFinite(expiresAt)) {
-    return false;
-  }
-
-  return expiresAt - Date.now() <= TOKEN_REFRESH_BUFFER_SECONDS * 1000;
 }
 
 async function recordRefreshFailure(env, error, options = {}) {
@@ -217,6 +206,10 @@ async function releaseRefreshLock(env, lockValue) {
 }
 
 export async function storeImwebTokens(env, tokens) {
+  if (env.IMWEB_TOKEN_MANAGER) {
+    const result = await tokenManagerRequest(env, '/store', { tokens });
+    return result.ok && result.storedInManager;
+  }
   if (!env.ATHOCE_KV) {
     return false;
   }
@@ -239,6 +232,20 @@ export async function storeImwebTokens(env, tokens) {
 }
 
 export async function refreshImwebToken(env, options = {}) {
+  if (env.IMWEB_TOKEN_MANAGER) {
+    try {
+      const result = await tokenManagerRequest(env, '/refresh', {
+        force: options.force !== false,
+        expectedAccessToken: options.expectedAccessToken,
+      });
+      if (!result.ok && options.notifyFailure !== false) {
+        await notifyRefreshFailure(env, result.error || {}, new Date().toISOString());
+      }
+      return result;
+    } catch {
+      return { ok: false, error: { code: 'TOKEN_MANAGER_UNAVAILABLE', message: '연결 복구 중입니다. 잠시 후 다시 시도해주세요.' } };
+    }
+  }
   const shouldNotifyFailure = options.notifyFailure !== false;
   const clientId = clean(env.IMWEB_CLIENT_ID, DEFAULT_CLIENT_ID);
   const clientSecret = clean(env.IMWEB_CLIENT_SECRET);
@@ -290,6 +297,7 @@ export async function refreshImwebToken(env, options = {}) {
         'content-type': 'application/x-www-form-urlencoded',
       },
       body: form,
+      signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
     });
     const payload = await parseJsonResponse(response);
     const accessToken = payload?.data?.accessToken || payload?.accessToken;
@@ -302,7 +310,7 @@ export async function refreshImwebToken(env, options = {}) {
       }
 
       const error = payload?.error || {
-        code: payload?.statusCode || response.status,
+        code: payload?.errorCode || payload?.code || payload?.statusCode || response.status,
         message: payload?.message || 'Imweb accessToken 재발급에 실패했습니다.',
       };
       await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
@@ -325,8 +333,15 @@ export async function refreshImwebToken(env, options = {}) {
     nextTokens.storedInKv = await storeImwebTokens(env, nextTokens);
 
     return nextTokens;
+  } catch (cause) {
+    const error = {
+      code: cause?.name === 'TimeoutError' ? 'REFRESH_TIMEOUT' : 'REFRESH_UNAVAILABLE',
+      message: '아임웹 갱신 서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.',
+    };
+    await recordRefreshFailure(env, error, { notify: shouldNotifyFailure });
+    return { ok: false, error };
   } finally {
-    await releaseRefreshLock(env, lockValue);
+    await releaseRefreshLock(env, lockValue).catch(() => {});
   }
 }
 
@@ -336,7 +351,7 @@ export async function fetchImwebJson(env, url, init = {}) {
   let preemptiveRefresh = null;
 
   if (shouldRefreshBeforeRequest(storedTokens)) {
-    preemptiveRefresh = await refreshImwebToken(env, { notifyFailure: false });
+    preemptiveRefresh = await refreshImwebToken(env, { notifyFailure: false, force: false });
 
     if (preemptiveRefresh.ok) {
       storedTokens = await getStoredImwebTokens(env);
@@ -380,7 +395,8 @@ export async function fetchImwebJson(env, url, init = {}) {
     };
   }
 
-  const refreshed = await refreshImwebToken(env);
+  const refreshed = preemptiveRefresh?.ok === false ? preemptiveRefresh :
+    await refreshImwebToken(env, { expectedAccessToken: accessToken });
 
   if (!refreshed.ok) {
     return {
@@ -437,5 +453,6 @@ export async function getImwebTokenHealth(env) {
     refreshRecommended: shouldRefreshBeforeRequest(storedTokens),
     lastRefreshFailedAt: storedTokens.lastRefreshFailedAt,
     lastRefreshError: storedTokens.lastRefreshError,
+    scheduler: storedTokens.scheduler || { enabled: false },
   };
 }

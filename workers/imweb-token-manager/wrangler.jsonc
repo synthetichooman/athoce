@@ -1,0 +1,13 @@
+{
+  "name": "athoce-imweb-token-manager",
+  "main": "index.js",
+  "compatibility_date": "2026-10-28",
+  "workers_dev": false,
+  "account_id": "69747156ff23948c4f93759a89736dc3",
+  "kv_namespaces": [{ "binding": "ATHOCE_KV", "id": "bf4b7354ec2f48baa6c5008f59b3b6a1" }],
+  "durable_objects": {
+    "bindings": [{ "name": "IMWEB_TOKEN_MANAGER", "class_name": "ImwebTokenManager" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ImwebTokenManager"] }],
+  "triggers": { "crons": ["*/15 * * * *"] }
+}

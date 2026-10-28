@@ -1,4 +1,5 @@
 import { refreshImwebToken } from '../../_imweb.js';
+import { isAdminAuthorized } from '../../_config.js';
 
 function htmlResponse(body, status = 200) {
   return new Response(body, {
@@ -19,8 +20,12 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ env, request }) {
+  if (!(await isAdminAuthorized(request, env))) {
+    return new Response('관리자 로그인이 필요합니다.', { status: 401, headers: { 'cache-control': 'no-store' } });
+  }
   const refreshed = await refreshImwebToken(env);
+  const stored = Boolean(refreshed.storedInKv || refreshed.storedInManager);
 
   if (!refreshed.ok) {
     return htmlResponse(
@@ -44,17 +49,9 @@ export async function onRequestGet({ env }) {
   <body>
     <main style="font-family: system-ui, sans-serif; max-width: 760px; margin: 48px auto; padding: 0 16px;">
       <h1>토큰 갱신 성공</h1>
-      <p>${refreshed.storedInKv ? '새 토큰이 Cloudflare KV에 저장되었습니다.' : 'KV 바인딩이 없어 아래 값을 Cloudflare 환경변수에 직접 저장해야 합니다.'}</p>
+      <p>${stored ? '새 토큰이 서버에 저장되었습니다.' : '토큰 저장소 설정을 확인해주세요.'}</p>
       <p><strong>storedInKv</strong>: ${refreshed.storedInKv ? 'yes' : 'no'}</p>
-      <p>${refreshed.storedInKv ? '재배포 없이 다음 API 요청부터 갱신된 토큰을 사용합니다.' : '저장 후 Cloudflare Pages를 재배포하세요.'}</p>
-      ${
-        refreshed.storedInKv
-          ? ''
-          : `<p><code>IMWEB_ACCESS_TOKEN</code></p>
-            <textarea readonly style="width: 100%; min-height: 120px;">${escapeHtml(refreshed.accessToken)}</textarea>
-            <p><code>IMWEB_REFRESH_TOKEN</code></p>
-            <textarea readonly style="width: 100%; min-height: 120px;">${escapeHtml(refreshed.refreshToken)}</textarea>`
-      }
+      <p>${stored ? '재배포 없이 다음 API 요청부터 갱신된 토큰을 사용합니다.' : '관리자에게 문의해주세요.'}</p>
     </main>
   </body>
 </html>`);
