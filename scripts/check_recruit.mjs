@@ -65,7 +65,7 @@ test('different applicants saving together remain independent; storage failures 
   }
 });
 
-test('only the owner can list recruitment data; old interlining viewer access is rejected', async () => {
+test('owner can list recruitment data; anonymous and old interlining viewer access are rejected', async () => {
   const env = { ...owner, ATHOCE_KV: { list: () => { throw new Error('unauthorized read'); } } };
   for (const cookie of ['', (await createInterliningViewerCookie(owner)).split(';')[0]]) {
     const response = await list({ env, request: new Request('https://athoce.kr/api/recruit/submissions', { headers: { cookie } }) });

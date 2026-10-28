@@ -1,9 +1,9 @@
 import { submissionKeys, readSubmissions } from '../../_recruit-store.js';
-import { isAdminAuthorized } from '../../_config.js';
+import { recruitAccess } from '../../_recruit-access.js';
 import { InterliningError, adminJson, errorResponse } from '../../_interlining-admin.js';
 
 export async function onRequestGet({ env, request }) {
-  if (!(await isAdminAuthorized(request, env))) {
+  if (!(await recruitAccess(request, env))) {
     return adminJson({ ok: false, error: { code: 'UNAUTHORIZED', message: '관리자 로그인이 필요합니다.' } }, 401);
   }
   try {

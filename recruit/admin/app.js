@@ -81,14 +81,14 @@ async function load(page = 1) {
 $('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault(); $('#loginButton').disabled = true;
   try {
-    await api('/api/admin/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
+    await api('/api/recruit/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: $('#password').value }) });
     $('#password').value = ''; loginPanel.hidden = true; $('#logout').hidden = false; await load();
   } catch (error) { failure(error); }
   finally { $('#loginButton').disabled = false; }
 });
 $('#logout').addEventListener('click', async () => {
   $('#logout').disabled = true;
-  try { await api('/api/admin/logout', { method: 'POST' }); showLogin(); status('로그아웃했습니다.'); }
+  try { await api('/api/recruit/logout', { method: 'POST' }); showLogin(); status('로그아웃했습니다.'); }
   catch (error) { failure(error); }
   finally { $('#logout').disabled = false; }
 });
@@ -121,7 +121,7 @@ $('#export').addEventListener('click', async () => {
 });
 
 try {
-  const session = await api('/api/admin/session');
+  const session = await api('/api/recruit/session');
   if (session.authenticated) { $('#logout').hidden = false; await load(); }
   else { showLogin(); status(session.adminConfigured ? '' : '관리자 비밀번호가 아직 설정되지 않았습니다.', !session.adminConfigured); }
 } catch (error) { showLogin(); failure(error); }
