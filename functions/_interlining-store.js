@@ -33,12 +33,12 @@ export async function saveSubmission(env, fields, id) {
   return record;
 }
 
-export async function submissionKeys(env) {
+export async function submissionKeys(env, prefix = SUBMISSION_PREFIX) {
   if (!env?.ATHOCE_KV) throw new Error('Submission storage is unavailable');
   const keys = [];
   let cursor;
   do {
-    const result = await env.ATHOCE_KV.list({ prefix: SUBMISSION_PREFIX, limit: 1000, ...(cursor ? { cursor } : {}) });
+    const result = await env.ATHOCE_KV.list({ prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
     keys.push(...result.keys);
     if (result.list_complete) break;
     if (!result.cursor || result.cursor === cursor) throw new Error('Submission listing is incomplete');

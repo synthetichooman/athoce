@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ATHOCE 채용 지원서" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>recruit — athoce</title>
+    <link rel="canonical" href="https://athoce.kr/recruit" />
+    <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
+    <link rel="stylesheet" href="/interlining/styles.css?v=20261013-rent-1" />
+    <link rel="stylesheet" href="/assets/forms.css?v=20261013-rent-1" />
+    <link rel="stylesheet" href="/interlining/form.css?v=20261013-black-1" />
+    <link rel="stylesheet" href="/recruit/styles.css?v=20261028-1" />
+    <script src="/recruit/app.js?v=20261028-1" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href="/" aria-label="athoce home"><img src="/assets/athoce-symbol.svg" alt="" width="75" height="44" /></a>
+      </div>
+    </header>
+    <main>
+      <section class="information" aria-labelledby="pageTitle">
+        <h1 id="pageTitle">recruit</h1>
+        <p class="subtitle">athoce seoul</p>
+        <form id="recruitForm" class="information-form athoce-form" action="/api/recruit" method="post">
+          <div class="field">
+            <label for="fullName">이름</label>
+            <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required />
+          </div>
+          <div class="field">
+            <label for="instagram">인스타그램</label>
+            <input id="instagram" name="instagram" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" required />
+          </div>
+          <fieldset class="field phone-field">
+            <legend>연락처</legend>
+            <div class="phone-inputs">
+              <input name="phoneFirst" type="tel" aria-label="연락처 앞자리" inputmode="numeric" autocomplete="tel-area-code" pattern="[0-9]{2,4}" minlength="2" maxlength="4" required />
+              <span aria-hidden="true">-</span>
+              <input name="phoneMiddle" type="tel" aria-label="연락처 중간자리" inputmode="numeric" autocomplete="tel-local-prefix" pattern="[0-9]{3,4}" minlength="3" maxlength="4" required />
+              <span aria-hidden="true">-</span>
+              <input name="phoneLast" type="tel" aria-label="연락처 끝자리" inputmode="numeric" autocomplete="tel-local-suffix" pattern="[0-9]{4}" minlength="4" maxlength="4" required />
+            </div>
+          </fieldset>
+          <div class="field">
+            <span id="weekdaysLabel">근무 가능 요일</span>
+            <div id="weekdaysCombo" class="weekdays-combo">
+              <button id="weekdaysToggle" class="weekdays-toggle" type="button" aria-expanded="false" aria-controls="weekdaysOptions" aria-labelledby="weekdaysLabel weekdaysValue">
+                <span id="weekdaysValue">요일 선택 (복수 선택 가능)</span><span class="chevron" aria-hidden="true"></span>
+              </button>
+              <div id="weekdaysOptions" class="weekdays-options" role="group" aria-labelledby="weekdaysLabel" hidden>
+                <label><input type="checkbox" name="availableDays" value="월요일" /> 월요일</label>
+                <label><input type="checkbox" name="availableDays" value="화요일" /> 화요일</label>
+                <label><input type="checkbox" name="availableDays" value="수요일" /> 수요일</label>
+                <label><input type="checkbox" name="availableDays" value="목요일" /> 목요일</label>
+                <label><input type="checkbox" name="availableDays" value="금요일" /> 금요일</label>
+                <label><input type="checkbox" name="availableDays" value="토요일" /> 토요일</label>
+                <label><input type="checkbox" name="availableDays" value="일요일" /> 일요일</label>
+                <button id="weekdaysDone" type="button">선택 완료</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="introduction">자기소개 (양식 자유)</label>
+            <textarea id="introduction" name="introduction" rows="8" maxlength="5000" required></textarea>
+          </div>
+          <div class="honeypot" aria-hidden="true"><label for="website">website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
+          <div class="form-actions athoce-form-actions">
+            <button id="submitButton" type="submit">지원하기</button>
+            <p id="formStatus" class="form-status athoce-form-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+        <section id="confirmation" class="confirmation" aria-labelledby="confirmationTitle" hidden tabindex="-1">
+          <h2 id="confirmationTitle">지원서가 정상적으로 접수되었습니다.</h2>
+          <a class="athoce-form-link" href="/">athoce</a>
+        </section>
+        <noscript><p class="form-status">요일 선택과 제출을 위해 JavaScript를 켜 주세요.</p></noscript>
+      </section>
+    </main>
+  </body>
+</html>
