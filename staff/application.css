@@ -1,0 +1,64 @@
+/* Application-only palette; management pages retain their own hierarchy. */
+.staff-application { background: #fafaf8; color: #303833; }
+.staff-application .site-header { background: #fafaf8; border-color: #dcdfdb; }
+.employee-main { --line: #d4dad5; --muted: #626d65; --sage: #e8efea; --sage-ink: #355441; --blue: #e9eff6; --blue-ink: #395b7c; }
+.employee-main .small, .employee-main .section-title > span { color: var(--muted); }
+.employee-main .intro { gap: 12px; padding-bottom: 30px; }
+.employee-main button, .employee-main select, .employee-main textarea, .employee-main input:not([type="hidden"]) { border-color: var(--line) !important; background: #fff; color: #303833; }
+.employee-main button:hover:not(:disabled) { background: #edf1ed; color: #303833; border-color: #97a59a !important; }
+.employee-main button:disabled { border-style: solid !important; color: #6a736d; background: #f2f4f1; }
+.employee-main button:focus-visible, .employee-main select:focus-visible, .employee-main textarea:focus-visible, .employee-main input:focus-visible { outline: 2px solid #587663; outline-offset: 3px; }
+.employee-main textarea:focus, .employee-main input:focus { border-color: #587663 !important; }
+.employee-main textarea::placeholder { color: #707871; }
+.employee-main button.primary { background: #496653; color: #fff; border-color: #496653 !important; }
+.employee-main button.primary:hover:not(:disabled) { background: #3e5947; color: #fff; }
+.employee-main button.primary:disabled { background: var(--sage); color: var(--sage-ink); border-color: #c4d3c7 !important; }
+.employee-main .month-nav { border-color: var(--line); padding: 28px 0; }
+.employee-main .month-label input { background: transparent; border-color: transparent !important; font-size: 17px; font-weight: 500; }
+.employee-main .section-title { margin-bottom: 18px; }
+.employee-main .section-title h2 { font-size: 15px; }
+.employee-main #selectedCount { padding: 5px 9px; background: #edf1ed; color: #485d4e; }
+.employee-main .slot-summary { background: #f0f3ef; border: 0; color: #506057; padding: 12px 16px; margin-bottom: 22px; }
+.employee-main .weekday-tools { gap: 14px; }
+.employee-main .weekday-tools > span { color: var(--muted); }
+.employee-main .weekday-buttons { gap: 8px; }
+.employee-main .weekday-buttons button[aria-pressed="true"] { background: var(--sage); color: var(--sage-ink); border-color: #9fb5a5 !important; }
+.employee-main .calendar-hint { margin-top: 10px; margin-bottom: 26px; }
+.employee-main .calendar-weekdays, .employee-main .calendar { gap: 8px; }
+.employee-main .calendar-weekdays { padding-bottom: 12px; color: #616c65; font-size: 12px; }
+.employee-main .calendar-weekdays > :first-child, .employee-main [data-weekday="0"] .day-number, .employee-main .weekday-buttons [data-weekday="0"] { color: #a14e4b; }
+.employee-main .calendar-weekdays > :last-child, .employee-main [data-weekday="6"] .day-number, .employee-main .weekday-buttons [data-weekday="6"] { color: #386a9a; }
+.employee-main .calendar .day { position: relative; min-height: 94px; gap: 16px; padding: 12px 10px; border-radius: 4px; background: #fff; color: #303833; }
+.employee-main .calendar .day-number { font-size: 18px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.employee-main .calendar .day-state { font-size: 11px; line-height: 1.4; color: #506057; white-space: nowrap; }
+.employee-main .calendar .day[data-state="unavailable"] { background: #f1f2ef; border-color: #e4e7e1 !important; color: #70776f; }
+.employee-main .calendar .day[data-state="unavailable"] .day-state { color: #6b746d; }
+.employee-main .calendar .day[data-state="selected"], .employee-main .calendar .day[data-state="submitted"] { background: var(--sage); color: var(--sage-ink); border-color: #a7bdad !important; }
+.employee-main .calendar .day[data-state="selected"]::after, .employee-main .calendar .day[data-state="submitted"]::after { content: '✓'; position: absolute; top: 9px; right: 8px; color: #4e715b; font-size: 12px; }
+.employee-main .calendar .day[data-state="confirmed"] { background: var(--blue); color: var(--blue-ink); border-color: #b6c9db !important; }
+.employee-main .calendar .day[data-state="confirmed"] .day-state { color: var(--blue-ink); }
+.employee-main .calendar .day[data-today="true"] .day-number { text-decoration: none; border-bottom: 2px solid #587663; padding-bottom: 4px; }
+.employee-main .legend { margin-top: 18px; margin-bottom: 30px; color: var(--muted); }
+.employee-main .legend-mark { border-color: var(--line); background: #fff; border-radius: 2px; width: 12px; height: 12px; }
+.employee-main .legend-mark.available { background: var(--sage); border-color: #a7bdad; }
+.employee-main .legend-mark.confirmed { background: var(--blue); border-color: #b6c9db; }
+.employee-main .note-label { margin-bottom: 12px; }
+.employee-main .save-row { padding: 18px; background: #f0f3ef; gap: 20px; align-items: center; }
+.employee-main #saveState { color: #536158; }
+.employee-main #saveState[data-saved="true"] { color: #3e6049; }
+.employee-main #status:not(:empty) { padding: 14px 16px; background: var(--sage); color: var(--sage-ink); border-left: 3px solid #99b29f; }
+.employee-main #status[data-error="true"] { background: #f7ece9; color: #96413c; border-left-color: #bf837b; }
+.employee-main .section, .employee-main .notice { border-color: var(--line); margin-top: 40px; padding-top: 28px; }
+.employee-main .shift-line { border-color: #e1e5df; padding: 17px 0; }
+.employee-main .request-item { border-color: var(--line); background: #f5f6f3; }
+@media (max-width: 560px) {
+  .employee-main .calendar, .employee-main .calendar-weekdays { gap: 5px; }
+  .employee-main .calendar .day { min-height: 82px; padding: 10px 5px; gap: 14px; }
+  .employee-main .calendar .day-number { font-size: 16px; }
+  .employee-main .calendar .day-state { font-size: 10px; }
+  .employee-main .calendar .day[data-state="selected"]::after, .employee-main .calendar .day[data-state="submitted"]::after { font-size: 10px; top: 8px; right: 4px; }
+  .employee-main .weekday-buttons { gap: 6px; }
+  .employee-main .save-row { flex-direction: column; align-items: stretch; padding: 16px; gap: 14px; }
+  .employee-main .save-row button { width: 100%; }
+  .employee-main .legend { gap: 10px 14px; }
+}
