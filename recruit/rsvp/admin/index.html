@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="same-origin" />
+  <title>면접 예약 관리 — athoce</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/interlining/admin/styles.css" />
+  <script src="/recruit/rsvp/admin/app.js?v=20261029-1" type="module"></script>
+</head>
+<body>
+  <header class="site-header"><div class="site-header-inner"><a class="brand" href="/recruit/admin/" aria-label="채용 관리"><img src="/assets/athoce-symbol.svg" alt="" width="75" height="44" /></a><a href="/recruit/admin/">채용 지원서 관리</a></div></header>
+  <main>
+    <div class="page-heading"><div><h1>면접 예약 관리</h1><p>10월 30일 (금) 13:00 ~ 20:00 · 한국 시간</p></div><button id="logout" type="button" hidden>로그아웃</button></div>
+    <section id="loginPanel" class="login-panel" hidden><h2>관리자 로그인</h2><p>기존 채용 관리자 비밀번호를 사용해 주세요.</p><form id="loginForm"><label for="password">비밀번호</label><input id="password" type="password" autocomplete="current-password" required /><button id="loginButton" type="submit">로그인</button></form></section>
+    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
+    <section id="dashboard" hidden aria-label="면접 예약 목록">
+      <div class="toolbar"><p class="total">예약 <strong id="count">0</strong> / 14명</p><div class="toolbar-actions"><a href="/recruit/rsvp/" target="_blank" rel="noopener">지원자에게 전달할 예약 페이지 ↗</a><button id="refresh" type="button">새로고침</button></div></div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="면접 예약 표"><table><thead><tr><th scope="col">면접 시간</th><th scope="col">이름</th><th scope="col">연락처</th><th scope="col">예약 시각</th><th scope="col">관리</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <p id="empty" class="empty" hidden>아직 예약된 면접이 없습니다.</p>
+    </section>
+  </main>
+</body>
+</html>

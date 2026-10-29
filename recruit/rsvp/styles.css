@@ -1,0 +1,16 @@
+h1 { margin-bottom: 24px; line-height: 1.6; }
+.interview-notice { display: grid; gap: 20px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #000; line-height: 1.8; color: #000; }
+.slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.information-form .slot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; min-height: 48px; padding: 12px; border: 1px solid #000; cursor: pointer; }
+.slot-time { display: flex; align-items: center; gap: 8px; }
+.slot-state { font-size: 11px; }
+.information-form .slot:has(input:checked) { background: #000; color: #fff; }
+.information-form .slot:has(input:disabled) { cursor: default; border-style: dashed; }
+.slot:has(input:checked) .slot-state { color: #fff; }
+.slot:focus-within { outline: 2px solid #000; outline-offset: 3px; }
+.information-form.athoce-form .slot input[type="radio"] { flex-shrink: 0; }
+.slot-status { margin-top: 12px; line-height: 1.6; }
+.information-form #refreshSlots { margin-top: 12px; min-height: 34px; }
+.privacy-notice { line-height: 1.8; }
+.confirmation p { line-height: 1.8; }
+@media (max-width: 360px) { .slots { grid-template-columns: 1fr; } }

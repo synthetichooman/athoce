@@ -13,3 +13,7 @@
 /recruit/ /recruit/index.html 200
 /recruit/admin /recruit/admin/index.html 200
 /recruit/admin/ /recruit/admin/index.html 200
+/recruit/rsvp /recruit/rsvp/index.html 200
+/recruit/rsvp/ /recruit/rsvp/index.html 200
+/recruit/rsvp/admin /recruit/rsvp/admin/index.html 200
+/recruit/rsvp/admin/ /recruit/rsvp/admin/index.html 200

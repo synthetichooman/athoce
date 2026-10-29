@@ -1,0 +1,9 @@
+{
+  "name": "athoce-recruit-rsvp",
+  "main": "index.js",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": false,
+  "account_id": "69747156ff23948c4f93759a89736dc3",
+  "durable_objects": { "bindings": [{ "name": "RECRUIT_RSVP", "class_name": "RecruitRsvp" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RecruitRsvp"] }]
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="same-origin" />
+  <title>아토스 서울 면접 일정 확인 — athoce</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/athoce-symbol.svg" />
+  <link rel="stylesheet" href="/interlining/styles.css" />
+  <link rel="stylesheet" href="/assets/forms.css" />
+  <link rel="stylesheet" href="/interlining/form.css" />
+  <link rel="stylesheet" href="/recruit/rsvp/styles.css?v=20261029-1" />
+  <script src="/recruit/rsvp/app.js?v=20261029-1" defer></script>
+</head>
+<body>
+  <header class="site-header"><div class="site-header-inner"><a class="brand" href="/" aria-label="아토스 홈"><img src="/assets/athoce-symbol.svg" alt="" width="75" height="44" /></a></div></header>
+  <main><section class="information" aria-labelledby="pageTitle">
+    <h1 id="pageTitle">아토스 서울 면접 일정 확인</h1>
+    <div class="interview-notice">
+      <p>2026년 10월 30일 (금)<br />13:00 ~ 20:00 · 30분 단위<br />방울내로 56, 아토스 서울</p>
+      <p>참석 가능한 시간 한 개를 선택해 주세요.<br />시간대별 한 분씩 예약할 수 있습니다.</p>
+    </div>
+    <form id="rsvpForm" class="information-form athoce-form" action="/api/recruit/rsvp" method="post">
+      <div class="field"><label for="fullName">이름</label><input id="fullName" name="fullName" autocomplete="name" maxlength="100" required /></div>
+      <div class="field"><label for="phone">연락처</label><input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="24" placeholder="010-0000-0000" required /></div>
+      <fieldset class="field"><legend>면접 시간 (한국 시간)</legend>
+        <div id="slots" class="slots" aria-busy="true"></div>
+        <p id="slotStatus" class="slot-status" role="status">예약 가능한 시간을 불러오고 있습니다.</p>
+        <button id="refreshSlots" type="button">가능한 시간 새로고침</button>
+      </fieldset>
+      <p class="privacy-notice">이름과 연락처는 면접 예약 확인 및 일정 안내에 사용됩니다. 시간 변경이나 취소는 채용 담당자에게 문의해 주세요.</p>
+      <div class="honeypot" aria-hidden="true"><label for="website">website</label><input id="website" name="website" tabindex="-1" autocomplete="off" /></div>
+      <div class="form-actions athoce-form-actions"><button id="submitButton" type="submit" disabled>면접 일정 확정하기</button><p id="formStatus" class="form-status" role="status" aria-live="polite"></p></div>
+    </form>
+    <section id="confirmation" class="confirmation" hidden tabindex="-1" aria-labelledby="confirmationTitle">
+      <h2 id="confirmationTitle">면접 예약이 완료되었습니다.</h2>
+      <p id="confirmedTime"></p><p>방울내로 56, 아토스 서울<br />선택하신 시간에 방문해 주세요.</p>
+      <p>일정 변경이나 취소는 채용 담당자에게 문의해 주세요.</p>
+      <a class="athoce-form-link" href="/">athoce</a>
+    </section>
+    <noscript><p>시간 선택과 예약을 위해 JavaScript를 켜 주세요.</p></noscript>
+  </section></main>
+</body>
+</html>
