@@ -115,7 +115,7 @@ export class StaffSchedule {
         if (!['core', 'staff'].includes(role)) return fail('직원 구분을 확인해 주세요.');
         if (target) return target.credential === credential && target.name === body.name.trim() && roleOf(target) === role ? json({ ok: true }) : fail('이미 등록된 직원입니다.', 409);
         if (employees.length >= 50) return fail('직원은 최대 50명까지 등록할 수 있습니다.');
-        if (role === 'core' && employees.filter(e => e.active && roleOf(e) === 'core').length >= 3) return fail('아토스 직원은 3명까지 등록할 수 있습니다.', 409);
+        if (role === 'core' && employees.filter(e => e.active && roleOf(e) === 'core').length >= 3) return fail('운영진은 3명까지 등록할 수 있습니다.', 409);
         employees.push({ id: body.id, name: body.name.trim(), role, credential, active: true, createdAt: timestamp() });
       } else {
         if (!target?.active) return fail('직원을 찾지 못했습니다.', 404);
@@ -127,7 +127,7 @@ export class StaffSchedule {
       const target = employees.find(e => e.id === body.id && e.active);
       if (!target || !['core', 'staff'].includes(body.role)) return fail('직원 구분을 확인해 주세요.');
       if (roleOf(target) === body.role) return json({ ok: true });
-      if (body.role === 'core' && employees.filter(e => e.active && roleOf(e) === 'core').length >= 3) return fail('아토스 직원은 3명까지 등록할 수 있습니다.', 409);
+      if (body.role === 'core' && employees.filter(e => e.active && roleOf(e) === 'core').length >= 3) return fail('운영진은 3명까지 등록할 수 있습니다.', 409);
       const weeks = await db.list({ prefix: 'week:' });
       if ([...weeks.values()].some(w => addDays(w.week, 6) >= today() && (w.openedAt || w.published))) return fail('신청 중이거나 확정된 주가 있습니다. 직원 구분은 신청을 닫은 뒤 변경해 주세요.', 409);
       target.role = body.role; await db.put('employees', employees); return json({ ok: true });
@@ -136,7 +136,7 @@ export class StaffSchedule {
       const target = employees.find(e => e.id === body.id);
       if (!target) return fail('직원을 찾지 못했습니다.', 404);
       const weeks = await db.list({ prefix: 'week:' });
-      if ([...weeks.values()].some(w => w.openedAt && !w.published && Object.entries(w.coreAssignments || {}).some(([d, ids]) => d >= today() && ids.includes(body.id)))) return fail('먼저 스태프 신청을 닫고 아토스 직원 일정을 수정해 주세요.', 409);
+      if ([...weeks.values()].some(w => w.openedAt && !w.published && Object.entries(w.coreAssignments || {}).some(([d, ids]) => d >= today() && ids.includes(body.id)))) return fail('먼저 스태프 신청을 닫고 운영진 일정을 수정해 주세요.', 409);
       if ([...weeks.values()].some(w => Object.entries(w.published?.assignments || {}).some(([d, ids]) => d >= today() && ids.includes(body.id)))) return fail('먼저 앞으로의 확정 근무에서 이 직원을 해제하고 다시 확정해 주세요.', 409);
       if (body.op === 'employee.delete') {
         if ([...weeks.values()].some(w => Object.values(w.published?.assignments || {}).some(ids => ids.includes(body.id)))) return fail('확정 근무 이력이 있습니다. 삭제 대신 사용 중지해 주세요.', 409);
@@ -157,7 +157,7 @@ export class StaffSchedule {
           if (schedule.openedAt) return fail('이미 스태프 신청이 열려 있습니다.', 409);
           const availability = Object.fromEntries(await Promise.all([...new Set(datesOfWeek(body.week).map(d => d.slice(0, 7)))].map(async m => [m, await db.get(`month:${m}`) || {}])));
           const flow = progress(employees, availability, schedule);
-          if (!flow.ready) return fail('아토스 직원 3명을 등록하고 해당 주가 포함된 달의 근무 요일 입력을 먼저 완료해 주세요.', 409);
+          if (!flow.ready) return fail('운영진 3명을 등록하고 해당 주가 포함된 달의 근무 요일 입력을 먼저 완료해 주세요.', 409);
           schedule.coreAssignments = flow.coreAssignments; schedule.draft = Object.fromEntries(datesOfWeek(body.week).map(d => [d, d < today() ? schedule.draft[d] || [] : [...flow.coreAssignments[d]]]));
           for (const d of datesOfWeek(body.week)) schedule.required[d] = Math.max(schedule.required[d], schedule.coreAssignments[d].length);
           schedule.openedAt = timestamp();
@@ -170,14 +170,14 @@ export class StaffSchedule {
         const draft = {}; const required = {};
         for (let i = 0; i < 7; i++) {
           const date = addDays(body.week, i); const ids = body.assignments[date] || []; const need = body.required[date];
-          if (!Number.isInteger(need) || need < 0 || need > 10 || !Array.isArray(ids) || ids.length > 10 || ids.some(id => !employees.some(e => e.id === id && (date < today() || e.active))) || new Set(ids).size !== ids.length) return fail('날짜별 필요 인원과 직원을 확인해 주세요.');
+          if (!Number.isInteger(need) || need < 0 || need > 10 || !Array.isArray(ids) || ids.length > 10 || ids.some(id => !employees.some(e => e.id === id && (date < today() || e.active))) || new Set(ids).size !== ids.length) return fail('날짜별 근무자 배정을 확인해 주세요.');
           if (date < today() && (JSON.stringify(ids) !== JSON.stringify(schedule.draft[date] || []) || need !== schedule.required[date] || body.start !== schedule.start || body.end !== schedule.end)) return fail('이미 지난 날짜의 배정과 시간은 변경할 수 없습니다.');
           const availability = await db.get(`month:${date.slice(0, 7)}`) || {};
           if (date >= today() && ids.some(id => !availability[id]?.dates.includes(date))) return fail('근무 가능 날짜를 제출한 직원만 배정할 수 있습니다.', 409);
           if (schedule.workflow === 'staged' && date >= today()) {
             const coreIds = schedule.openedAt ? schedule.coreAssignments[date] || [] : employees.filter(e => e.active && roleOf(e) === 'core' && availability[e.id]?.dates.includes(date)).map(e => e.id);
-            if ((!schedule.published && ids.some(id => roleOf(employees.find(e => e.id === id)) === 'core' && !coreIds.includes(id))) || coreIds.some(id => !ids.includes(id))) return fail('아토스 직원 배정은 직원이 입력한 근무 요일을 따릅니다.', 409);
-            if (!schedule.openedAt && ids.some(id => !coreIds.includes(id))) return fail('아토스 직원 입력 후 스태프 신청을 먼저 열어 주세요.', 409);
+            if ((!schedule.published && ids.some(id => roleOf(employees.find(e => e.id === id)) === 'core' && !coreIds.includes(id))) || coreIds.some(id => !ids.includes(id))) return fail('운영진 배정은 본인이 입력한 근무 요일을 따릅니다.', 409);
+            if (!schedule.openedAt && ids.some(id => !coreIds.includes(id))) return fail('운영진 입력 후 스태프 신청을 먼저 열어 주세요.', 409);
             if (schedule.openedAt && coreIds.length >= need && ids.some(id => !coreIds.includes(id))) return fail('빈 슬롯이 없는 날짜에 스태프를 배정할 수 없습니다.', 409);
           }
           draft[date] = ids; required[date] = Math.max(need, schedule.workflow === 'staged' ? ids.filter(id => roleOf(employees.find(e => e.id === id)) === 'core').length : 0);
@@ -190,7 +190,7 @@ export class StaffSchedule {
           const date = addDays(body.week, i); const ids = schedule.draft[date] || [];
           if (date < today()) continue;
           const availability = await db.get(`month:${date.slice(0, 7)}`) || {};
-          if (ids.length !== schedule.required[date]) return fail('필요 인원과 배정 인원이 다른 날짜가 있습니다. 휴무일은 필요 인원을 0으로 설정해 주세요.', 409);
+          if (ids.length !== schedule.required[date]) return fail(`${date}의 근무자 배정을 확인해 주세요.`, 409);
           if (date >= today() && ids.some(id => !employees.some(e => e.id === id && e.active) || !availability[id]?.dates.includes(date))) return fail('직원의 가능 날짜가 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
         }
         schedule.published = { assignments: structuredClone(schedule.draft), start: schedule.start, end: schedule.end, confirmedAt: timestamp() };

@@ -4,8 +4,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-5" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261029-5" />
-  <script type="module" src="/staff/admin/app.js?v=20261029-5"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-6" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261029-6" />
+  <script type="module" src="/staff/admin/app.js?v=20261029-6"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
@@ -23,7 +23,7 @@
         <section class="month-panel" aria-labelledby="monthTitle">
           <div class="month-weekdays" aria-hidden="true"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
           <div id="monthCalendar" class="month-calendar" role="group" aria-label="월간 근무표"></div>
-          <div class="calendar-key"><span><i class="member-mark core"></i>아토스 직원</span><span><i class="member-mark staff"></i>스태프</span><span>점선은 확정 전</span><span class="calendar-hint">날짜를 눌러 배정</span></div>
+          <div class="calendar-key"><span><i class="member-mark core"></i>운영진</span><span><i class="member-mark staff"></i>스태프</span><span>점선은 확정 전</span><span class="calendar-hint">날짜를 눌러 배정</span></div>
         </section>
       </div>
       <div class="management-heading"><h2>근무표 관리</h2><div class="management-tools"><button id="refresh">새로고침</button><button id="print" type="button">이 달 인쇄</button></div></div>
@@ -40,11 +40,11 @@
             <div class="week-scope"><h3 id="weekTitle"></h3><span id="publishedState"></span><p id="confirmationDate" class="small"></p></div>
             <p class="small scope-notice">선택한 날짜가 속한 한 주에 적용됩니다.</p>
             <div class="workflow" aria-label="근무표 작성 순서">
-              <section class="workflow-step"><div><h3>직원 입력</h3><strong id="coreProgress"></strong><details class="core-detail"><summary>입력 내역</summary><div id="corePeople"></div></details></div></section>
+              <section class="workflow-step"><div><h3>운영진 입력</h3><strong id="coreProgress"></strong><details class="core-detail"><summary>입력 내역</summary><div id="corePeople"></div></details></div></section>
               <section class="workflow-step"><div><h3>스태프 신청</h3><strong id="slotProgress"></strong><p id="applicationProgress" class="small"></p></div></section>
               <section class="workflow-step"><div><h3>확정</h3><strong id="finalProgress"></strong></div></section>
             </div>
-            <div class="stage-panel"><p id="stageNotice"></p><div class="stage-actions"><button id="openApplications" class="primary">스태프 신청 열기</button><button id="copyRequest" hidden>요청 문구 복사</button><button id="closeApplications" hidden>직원 일정 다시 받기</button></div></div>
+            <div class="stage-panel"><p id="stageNotice"></p><div class="stage-actions"><button id="openApplications" class="primary">스태프 신청 열기</button><button id="copyRequest" hidden>요청 문구 복사</button><button id="closeApplications" hidden>운영진 일정 다시 받기</button></div></div>
             <div class="shift-hours"><label>근무 시작<input id="shiftStart" type="time" required /></label><span>~</span><label>근무 종료<input id="shiftEnd" type="time" required /></label></div>
             <button id="publish" class="primary">선택한 주 확정</button>
           </details>
@@ -52,14 +52,14 @@
       <div class="management-layout">
         <details id="peopleSection" class="management-section"><summary>구성원 관리 <span id="employeeCount"></span></summary>
       <div class="staff-panel"><p class="small section-description">직원을 등록하고 본인 전용 링크를 전달하세요.</p>
-        <form id="addEmployee"><label for="employeeRole">구분</label><select id="employeeRole"><option value="core">아토스 직원</option><option value="staff">스태프</option></select><label for="employeeName">이름</label><div class="add-row"><input id="employeeName" required maxlength="50" placeholder="이름" autocomplete="off" /><button type="submit">등록</button></div></form>
+        <form id="addEmployee"><label for="employeeRole">구분</label><select id="employeeRole"><option value="core">운영진</option><option value="staff">스태프</option></select><label for="employeeName">이름</label><div class="add-row"><input id="employeeName" required maxlength="50" placeholder="이름" autocomplete="off" /><button type="submit">등록</button></div></form>
         <div id="employees"></div><p class="small section-description">링크를 다시 발급하면 이전 링크와 접속 권한은 즉시 만료됩니다.</p>
       </div></details>
         <details id="requestsSection" class="management-section"><summary>변경 요청 <span id="requestCount"></span></summary><p class="small section-description">근무 불가 승인 시 확정 배정에서 해제됩니다. 대체 인원을 배정하고 다시 확정해 주세요.</p><div id="requests"></div></details>
       </div>
       <details class="management-section month-stats"><summary>월간 현황</summary>
         <div class="month-summary" aria-label="월간 현황">
-        <div><span>아토스 직원 입력</span><strong id="monthCore"></strong></div><div><span>스태프 신청 중</span><strong id="monthOpen"></strong></div><div><span>추가 배정 필요</span><strong id="monthUnfilled"></strong></div><div><span>확정 근무일</span><strong id="monthConfirmed"></strong></div>
+        <div><span>운영진 입력</span><strong id="monthCore"></strong></div><div><span>스태프 신청 중</span><strong id="monthOpen"></strong></div><div><span>확정 근무일</span><strong id="monthConfirmed"></strong></div>
       </div>
       </details>
     </div>

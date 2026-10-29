@@ -10,7 +10,7 @@ function renderCalendar() {
   for (let i = 0; i < offset; i++) $('#calendar').append(el('div'));
   for (const date of dates) {
     const confirmed = data.confirmed.some(s => s.date === date); const locked = data.locked.includes(date); const slot = data.slots[date];
-    const label = confirmed ? '근무 확정' : date < data.today ? '지난 날짜' : locked ? slot?.state === 'published' ? '확정된 주' : '입력 마감' : selected.has(date) ? isCore() ? '근무 예정' : '신청' : isCore() ? '선택' : slot?.state === 'open' ? `${slot.remaining || 1}자리 모집` : slot?.state === 'covered' ? '직원 배정' : '신청 전';
+    const label = confirmed ? '근무 확정' : date < data.today ? '지난 날짜' : locked ? slot?.state === 'published' ? '확정된 주' : '입력 마감' : selected.has(date) ? isCore() ? '근무 예정' : '신청' : isCore() ? '선택' : slot?.state === 'open' ? '신청 가능' : slot?.state === 'covered' ? '운영진 근무' : '신청 전';
     const button = el('button', null, 'day'); button.type = 'button'; button.dataset.date = date; button.disabled = busy || !accessible(date); button.dataset.today = String(date === data.today);
     button.setAttribute('aria-pressed', String(selected.has(date))); button.setAttribute('aria-label', `${dateLabel(date)} ${label}`);
     button.append(el('span', String(Number(date.slice(-2)))), el('span', label));
@@ -27,16 +27,16 @@ function renderCalendar() {
 function render() {
   $('#workspace').hidden = false; $('#welcome').hidden = true; $('#logout').hidden = false;
   const openDates = monthDates(data.month).filter(d => d >= data.today && data.slots[d]?.state === 'open');
-  $('#roleLabel').textContent = isCore() ? '01 / 아토스 직원' : '02 / 스태프';
+  $('#roleLabel').textContent = isCore() ? '운영진' : '스태프';
   $('#pageHeading').textContent = isCore() ? '근무 요일 입력' : '빈 날짜 근무 신청';
-  $('#introText').textContent = isCore() ? '먼저 근무할 날짜를 입력해 주세요. 아토스 직원 3명의 입력이 끝나면 관리자가 남은 날짜의 스태프 신청을 엽니다.' : '아토스 직원 배정 후 남은 날짜만 신청할 수 있습니다. 신청은 선착순 확정이 아니며, 관리자가 월요일에 다음 주 근무표를 확정합니다.';
-  $('#introHint').textContent = isCore() ? '매월 25일까지 다음 달 일정을 입력해 주세요. 스태프 신청이 열린 주는 입력이 마감됩니다.' : '신청 전·직원 배정 날짜는 선택할 수 없습니다. 신청이 열리면 본인 전용 링크에서 새로고침해 주세요.';
+  $('#introText').textContent = isCore() ? '먼저 근무할 날짜를 입력해 주세요. 운영진 3명의 입력이 끝나면 관리자가 남은 날짜의 스태프 신청을 엽니다.' : '운영진 배정 후 남은 날짜만 신청할 수 있습니다. 신청은 선착순 확정이 아니며, 관리자가 월요일에 다음 주 근무표를 확정합니다.';
+  $('#introHint').textContent = isCore() ? '매월 25일까지 다음 달 일정을 입력해 주세요. 스태프 신청이 열린 주는 입력이 마감됩니다.' : '신청 전·운영진 근무 날짜는 선택할 수 없습니다. 신청이 열리면 본인 전용 링크에서 새로고침해 주세요.';
   $('#availabilityTitle').textContent = isCore() ? '근무할 날짜 선택' : '신청 가능한 날짜';
-  $('#slotSummary').textContent = isCore() ? '반복 요일로 한 번에 선택하거나 날짜를 직접 눌러 주세요.' : openDates.length ? `신청 열린 날짜 ${openDates.length}일 · 중복 신청 후 관리자가 배정합니다.` : '현재 신청 가능한 날짜가 없습니다. 아토스 직원 입력 또는 관리자 신청 오픈을 기다려 주세요.';
+  $('#slotSummary').textContent = isCore() ? '반복 요일로 한 번에 선택하거나 날짜를 직접 눌러 주세요.' : openDates.length ? `신청 열린 날짜 ${openDates.length}일 · 중복 신청 후 관리자가 배정합니다.` : '현재 신청 가능한 날짜가 없습니다. 운영진 입력 또는 관리자 신청 오픈을 기다려 주세요.';
   $('#save').textContent = isCore() ? '근무 요일 제출' : '선택한 날짜 신청';
   $('#confirmedHint').textContent = isCore() ? '입력한 요일은 스태프 신청을 열 때 배정에 반영되며, 최종 확정 후 여기에 표시됩니다.' : '신청한 날짜 중 관리자가 배정하고 확정한 근무만 표시됩니다.';
   $('#legendSelected').textContent = isCore() ? '근무 예정' : '신청';
-  $('#legendOther').textContent = isCore() ? '선택 안 함' : '신청 전 / 직원 배정';
+  $('#legendOther').textContent = isCore() ? '선택 안 함' : '신청 전 / 운영진 근무';
   $('#employeeName').textContent = `${data.employee.name} 님`; $('#month').value = data.month;
   const current = data.today.slice(0, 7); $('#month').min = monthMove(current, -1); $('#month').max = monthMove(current, 12);
   selected = new Set(data.availability.dates); $('#note').value = data.availability.note; setDirty(false); renderCalendar();

@@ -8,7 +8,7 @@ main { max-width: 1440px; }
 .month-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .month-controls input { width: 154px; min-height: 42px; }
 .month-controls button { font-size: 12px; }
-.month-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #000; margin: 20px 0 0; }
+.month-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #000; margin: 20px 0 0; }
 .month-summary > div { display: grid; gap: 12px; padding: 20px 24px; border-right: 1px solid #000; }
 .month-summary > div:last-child { border-right: 0; }
 .month-summary span { font-size: 11px; color: #555; }
@@ -37,7 +37,6 @@ button.month-day:hover { background: #f0f0f0; color: #000; }
 .calendar-member[data-role="core"] { background: #000; color: #fff; }
 .calendar-member[data-draft="true"] { border-style: dashed; }
 .cell-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; margin-top: auto; font-size: 9px; line-height: 1.5; }
-.cell-unfilled { font-weight: 600; }
 .cell-filled, .cell-applicants { color: #555; }
 .calendar-key { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 14px 0 0; font-size: 10px; line-height: 1.7; }
 .calendar-key > span { display: flex; align-items: center; gap: 6px; }
@@ -57,8 +56,6 @@ button.month-day:hover { background: #f0f0f0; color: #000; }
 .day-title { display: grid; gap: 6px; }
 .day-heading h3 { margin: 0; font: inherit; font-size: 14px; }
 .day-state { font-size: 11px; color: #555; }
-.required-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; }
-.required-label input { width: 58px; min-height: 36px; padding: 6px; }
 .core-assignment { display: grid; gap: 8px; margin-bottom: 18px; }
 .core-assignment strong { font-size: 13px; font-weight: 400; line-height: 1.7; overflow-wrap: anywhere; }
 .staff-choices { display: flex; flex-wrap: wrap; gap: 8px; }
