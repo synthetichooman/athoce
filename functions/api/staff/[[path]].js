@@ -1,4 +1,5 @@
-import { isAdminAuthorized } from '../../_config.js';
+import { isAdminPasswordValid, createAdminSessionCookie, clearAdminSessionCookie, getAdminLoginAttemptState, recordFailedAdminLogin, resetAdminLoginAttempts } from '../../_config.js';
+import { isStaffAdminAuthorized, isStaffAdminPasswordValid, createStaffAdminCookie, clearStaffAdminCookie } from '../../_staff-admin-access.js';
 import { callSchedule, employeeToken, staffCookie, tokenHash, json, fail } from '../../_staff-schedule.js';
 
 export async function onRequest({ request, env, params }) {
@@ -14,6 +15,21 @@ export async function onRequest({ request, env, params }) {
     try { body = JSON.parse(raw); } catch { return fail('입력 내용을 확인해 주세요.'); }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return fail('입력 내용을 확인해 주세요.');
   }
+  if (path === 'admin/login' && mutation) {
+    if ((await getAdminLoginAttemptState(env, request)).blocked) return fail('로그인 시도가 너무 많습니다. 10분 뒤 다시 시도하세요.', 429);
+    const owner = isAdminPasswordValid(body.password, env);
+    if (!owner && !await isStaffAdminPasswordValid(body.password, env)) {
+      await recordFailedAdminLogin(env, request);
+      return fail('비밀번호가 올바르지 않습니다.', 401);
+    }
+    await resetAdminLoginAttempts(env, request);
+    return json({ ok: true }, 200, { 'set-cookie': owner ? await createAdminSessionCookie(env) : await createStaffAdminCookie(env) });
+  }
+  if (path === 'admin/logout' && mutation) {
+    const response = json({ ok: true }, 200, { 'set-cookie': clearStaffAdminCookie() });
+    response.headers.append('set-cookie', clearAdminSessionCookie());
+    return response;
+  }
   if (path === 'logout' && mutation) return json({ ok: true }, 200, { 'set-cookie': staffCookie('') });
   if (path === 'login' && mutation) {
     if (typeof body.token !== 'string' || !/^[0-9a-f]{64}$/.test(body.token)) return fail('직원 전용 링크를 확인해 주세요.', 401);
@@ -22,7 +38,7 @@ export async function onRequest({ request, env, params }) {
     return json(await response.json(), 200, { 'set-cookie': staffCookie(body.token) });
   }
   if (path === 'admin') {
-    if (!await isAdminAuthorized(request, env)) return fail('사이트 관리자 로그인이 필요합니다.', 401);
+    if (!await isStaffAdminAuthorized(request, env)) return fail('근무표 관리자 로그인이 필요합니다.', 401);
     return callSchedule(env, mutation ? { action: 'admin-write', body } : { action: 'admin-read', week: url.searchParams.get('week') });
   }
   if (path !== '' && path !== 'me') return fail('페이지를 찾지 못했습니다.', 404);

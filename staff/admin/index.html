@@ -5,13 +5,13 @@
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css" /><link rel="stylesheet" href="/staff/admin/styles.css" />
-  <script type="module" src="/staff/admin/app.js?v=20261029-1"></script>
+  <script type="module" src="/staff/admin/app.js?v=20261029-2"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
   <main>
     <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>직원 근무표 관리</h1></div><button id="logout" hidden>로그아웃</button></div>
-    <section id="loginPanel" class="login-panel" hidden><h2>사이트 관리자 로그인</h2><p class="small">아토스 사이트 관리자 비밀번호를 사용해 주세요.<br />외부에 전달한 채용 조회용 비밀번호로는 접근할 수 없습니다.</p><form id="loginForm"><label for="password">비밀번호</label><input id="password" type="password" autocomplete="current-password" required /><button id="loginButton" class="primary" type="submit">로그인</button></form></section>
+    <section id="loginPanel" class="login-panel" hidden><h2>근무표 관리자 로그인</h2><p class="small">근무표 전용 비밀번호 또는 사이트 관리자 비밀번호를 사용해 주세요.<br />외부에 전달한 채용 조회용 비밀번호로는 접근할 수 없습니다.</p><form id="loginForm"><label for="password">비밀번호</label><input id="password" type="password" autocomplete="current-password" required /><button id="loginButton" class="primary" type="submit">로그인</button></form></section>
     <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
     <div id="dashboard" hidden>
       <div class="workflow"><p>01 / 직원은 매월 25일까지 다음 달 가능일 제출</p><p>02 / 관리자는 월요일에 다음 주 근무표 확정</p><p>03 / 확정 후 변경은 요청 검토 후 승인</p></div>

@@ -3,9 +3,10 @@ import { test } from 'node:test';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { StaffSchedule } from '../workers/staff-schedule/index.js';
 import { onRequest } from '../functions/api/staff/[[path]].js';
-import { createAdminSessionCookie } from '../functions/_config.js';
+import { createAdminSessionCookie, isAdminAuthorized } from '../functions/_config.js';
+import { recruitAccess } from '../functions/_recruit-access.js';
 import { createRecruitViewerCookie } from '../functions/_recruit-access.js';
-import { today, weekOf, nextMonth } from '../functions/_staff-schedule.js';
+import { today, weekOf, nextMonth, tokenHash } from '../functions/_staff-schedule.js';
 
 const week = '2026-11-02'; const month = '2026-11';
 function setup(t) {
@@ -33,6 +34,48 @@ test('anonymous, recruitment viewer and employee cannot access staff management'
   const { env, call, add } = setup(t); const e = await add();
   for (const cookie of ['', e.cookie, (await createRecruitViewerCookie(env)).split(';')[0]]) assert.equal((await call('admin', undefined, cookie)).status, 401);
   assert.equal((await call('me')).status, 401);
+});
+test('dedicated admin password grants only staff management and supports logout', async t => {
+  const { env, call } = setup(t);
+  env.STAFF_ADMIN_PASSWORD_SHA256 = await tokenHash('test-staff-only-password');
+  assert.equal((await call('admin/login', { password: 'wrong-password' })).status, 401);
+  const session = await call('admin/login', { password: 'test-staff-only-password' });
+  assert.equal(session.status, 200);
+  assert.ok(session.cookie.startsWith('athoce_staff_admin_session='));
+  assert.equal((await call('admin', undefined, session.cookie)).status, 200);
+  const added = await call('admin', { op: 'employee.add', id: randomUUID(), name: '전용 관리자 검증', token: randomBytes(32).toString('hex') }, session.cookie);
+  assert.equal(added.status, 200);
+  const request = new Request('https://athoce.kr/api/admin/session', { headers: { cookie: session.cookie } });
+  assert.equal(await isAdminAuthorized(request, env), false);
+  assert.equal(await recruitAccess(request, env), null);
+  assert.equal((await call('me', undefined, session.cookie)).status, 401);
+  const logout = await call('admin/logout', {}, session.cookie);
+  assert.equal(logout.status, 200);
+  assert.ok(logout.cookie.includes('athoce_staff_admin_session='));
+  assert.equal((await call('admin', undefined, logout.cookie)).status, 401);
+  assert.equal((await call('admin/login', { password: 'local-test-password' })).status, 200);
+});
+test('dedicated sessions reject tampering, expiration and password rotation', async t => {
+  const { env, call } = setup(t);
+  env.STAFF_ADMIN_PASSWORD_SHA256 = await tokenHash('test-staff-only-password');
+  const session = await call('admin/login', { password: 'test-staff-only-password' });
+  assert.equal((await call('admin', undefined, session.cookie + 'x')).status, 401);
+  t.mock.method(Date, 'now', () => Date.parse('2026-10-31T15:00:00+09:00'));
+  assert.equal((await call('admin', undefined, session.cookie)).status, 401);
+  t.mock.method(Date, 'now', () => Date.parse('2026-10-29T15:00:00+09:00'));
+  env.STAFF_ADMIN_PASSWORD_SHA256 = await tokenHash('replacement-password');
+  assert.equal((await call('admin', undefined, session.cookie)).status, 401);
+  assert.equal((await call('admin/login', { password: 'test-staff-only-password' })).status, 401);
+});
+test('dedicated login fails closed without configuration and limits repeated failures', async t => {
+  const { env, call } = setup(t);
+  assert.equal((await call('admin/login', { password: '' })).status, 401);
+  assert.equal((await call('admin/login', { password: 'unconfigured' })).status, 401);
+  const records = new Map();
+  env.ATHOCE_KV = { get: async k => JSON.parse(records.get(k) || 'null'), put: async (k, v) => records.set(k, v), delete: async k => records.delete(k) };
+  env.STAFF_ADMIN_PASSWORD_SHA256 = await tokenHash('test-staff-only-password');
+  for (let i = 0; i < 8; i++) assert.equal((await call('admin/login', { password: 'wrong-password' })).status, 401);
+  assert.equal((await call('admin/login', { password: 'test-staff-only-password' })).status, 429);
 });
 test('employee only sees own dates, requests and assignments; no invite hashes leak', async t => {
   const { call, add, save, admin } = setup(t); const a = await add('직원 A'); const b = await add('비공개 직원 B'); await save(a); await save(b, ['2026-11-03']);

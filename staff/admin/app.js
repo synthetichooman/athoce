@@ -114,8 +114,8 @@ $('#closeInvite').onclick = () => $('#inviteDialog').close(); $('#inviteDialog')
 $('#copyInvite').onclick = async () => { try { await navigator.clipboard.writeText($('#inviteLink').value); $('#copyStatus').textContent = '복사했습니다.'; } catch { $('#inviteLink').focus(); $('#inviteLink').select(); $('#copyStatus').textContent = '주소를 선택했습니다. 직접 복사해 주세요.'; } };
 $('#loginForm').onsubmit = async event => {
   event.preventDefault(); $('#loginButton').disabled = true;
-  try { await api('/api/admin/login', { password: $('#password').value }); $('#password').value = ''; await load(); status(''); } catch (error) { status(error.message, true); } finally { $('#loginButton').disabled = false; }
+  try { await api('/api/staff/admin/login', { password: $('#password').value }); $('#password').value = ''; await load(); status(''); } catch (error) { status(error.message, true); } finally { $('#loginButton').disabled = false; }
 };
-$('#logout').onclick = async () => { if (busy || (dirty && !confirm('저장하지 않은 배정이 있습니다. 로그아웃할까요?'))) return; try { await api('/api/admin/logout', {}); login(); status('로그아웃했습니다.'); } catch (error) { status(error.message, true); } };
+$('#logout').onclick = async () => { if (busy || (dirty && !confirm('저장하지 않은 배정이 있습니다. 로그아웃할까요?'))) return; try { await api('/api/staff/admin/logout', {}); login(); status('로그아웃했습니다.'); } catch (error) { status(error.message, true); } };
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
 await load();
