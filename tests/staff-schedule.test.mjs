@@ -9,9 +9,11 @@ import { createRecruitViewerCookie } from '../functions/_recruit-access.js';
 import { today, weekOf, nextMonth, tokenHash } from '../functions/_staff-schedule.js';
 
 const week = '2026-11-02'; const month = '2026-11';
-function setup(t) {
+function setup(t, { staged = false } = {}) {
   t.mock.method(Date, 'now', () => Date.parse('2026-10-29T15:00:00+09:00'));
   const state = new Map();
+  // Existing untagged records retain the original flow; staged cases below start with empty storage.
+  if (!staged) state.set(`week:${week}`, { week, version: 0, draft: {}, published: null, start: '13:00', end: '20:00', required: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`2026-11-0${i + 2}`, 1])) });
   const storage = { get: async key => structuredClone(state.get(key)), put: async (key, value) => { state.set(key, structuredClone(value)); }, list: async ({ prefix }) => new Map([...state].filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k, structuredClone(v)])), transaction: async fn => fn(storage) };
   const object = new StaffSchedule({ storage });
   const env = { ADMIN_PASSWORD: 'local-test-password', STAFF_SCHEDULE: { idFromName: name => name, get: () => ({ fetch: (url, options) => object.fetch(new Request(url, options)) }) } };
@@ -22,7 +24,7 @@ function setup(t) {
     return { status: result.status, data: await result.json(), cookie: result.headers.get('set-cookie')?.split(';')[0] };
   }
   const admin = async body => call('admin', body, await owner);
-  async function add(name = '테스트 직원') { const id = randomUUID(); const token = randomBytes(32).toString('hex'); assert.equal((await admin({ op: 'employee.add', id, token, name })).status, 200); const session = await call('login', { token }); assert.equal(session.status, 200); return { id, token, cookie: session.cookie }; }
+  async function add(name = '테스트 직원', role = 'staff') { const id = randomUUID(); const token = randomBytes(32).toString('hex'); assert.equal((await admin({ op: 'employee.add', id, token, name, role })).status, 200); const session = await call('login', { token }); assert.equal(session.status, 200); return { id, token, cookie: session.cookie }; }
   async function save(e, dates = [week], version = 0) { return call('me', { op: 'availability.save', month, dates, note: '테스트 메모', version }, e.cookie); }
   async function draft(e, overrides = {}) { return admin({ op: 'week.save', week, version: 0, start: '13:00', end: '20:00', assignments: { [week]: [e.id] }, required: { '2026-11-02': 1, '2026-11-03': 0, '2026-11-04': 0, '2026-11-05': 0, '2026-11-06': 0, '2026-11-07': 0, '2026-11-08': 0 }, ...overrides }); }
   return { state, env, call, admin, add, save, draft };
@@ -157,4 +159,107 @@ test('obsolete pending requests can be rejected but cannot change past work', as
   state.set('requests', [{ id, employeeId: e.id, date: '2026-10-28', available: false, reason: '지난 요청', status: 'pending' }]);
   assert.equal((await admin({ op: 'request.resolve', id, decision: 'approved' })).status, 400);
   assert.equal((await admin({ op: 'request.resolve', id, decision: 'rejected' })).status, 200);
+});
+
+async function stagedSetup(t) {
+  const h = setup(t, { staged: true });
+  const core = [];
+  for (const name of ['아토스 A', '아토스 B', '아토스 C']) core.push(await h.add(name, 'core'));
+  const staff = await h.add('스태프 A');
+  const submitCore = async () => { for (let i = 0; i < 3; i++) assert.equal((await h.save(core[i], [`2026-11-0${i + 2}`])).status, 200); };
+  const open = version => h.admin({ op: 'week.open', week, version });
+  return { ...h, core, staff, submitCore, open };
+}
+test('new workflow waits for all three core employees before opening staff applications', async t => {
+  const h = await stagedSetup(t);
+  const first = await h.admin(); assert.equal(first.data.schedule.workflow, 'staged'); assert.equal(first.data.workflow.ready, false);
+  assert.equal((await h.save(h.staff, ['2026-11-05'])).status, 409);
+  assert.equal((await h.open(0)).status, 409);
+  await h.save(h.core[0]); await h.save(h.core[1], ['2026-11-03']);
+  assert.equal((await h.open(0)).status, 409);
+  await h.save(h.core[2], []);
+  assert.equal((await h.admin()).data.workflow.ready, true);
+  assert.equal((await h.open(0)).status, 200);
+  assert.equal(h.state.get(`week:${week}`).draft[week][0], h.core[0].id);
+  assert.equal((await h.admin({ op: 'employee.add', id: randomUUID(), token: randomBytes(32).toString('hex'), role: 'core', name: '네 번째 직원' })).status, 409);
+});
+test('staff only sees anonymous empty slots and cannot apply for core-covered or unopened dates', async t => {
+  const h = await stagedSetup(t); await h.submitCore(); await h.open(0);
+  const view = (await h.call('me?month=2026-11', undefined, h.staff.cookie)).data;
+  assert.equal(view.slots[week].state, 'covered'); assert.equal(view.slots['2026-11-05'].state, 'open'); assert.equal(view.slots['2026-11-09'].state, 'waiting');
+  for (const e of h.core) assert.ok(!JSON.stringify(view).includes(e.id));
+  for (const dates of [[week], ['2026-11-09']]) assert.equal((await h.save(h.staff, dates)).status, 409);
+  assert.equal((await h.save(h.staff, ['2026-11-05'])).status, 200);
+  const other = await h.add('스태프 B'); assert.equal((await h.save(other, ['2026-11-05'])).status, 200);
+  assert.deepEqual((await h.call('me?month=2026-11', undefined, h.staff.cookie)).data.confirmed, []);
+  assert.deepEqual(h.state.get(`week:${week}`).draft['2026-11-05'], []);
+});
+test('core dates freeze while staff applications are open and closing preserves applications', async t => {
+  const h = await stagedSetup(t); await h.submitCore(); await h.open(0); await h.save(h.staff, ['2026-11-05']);
+  assert.equal((await h.save(h.core[0], ['2026-11-05'], 1)).status, 409);
+  assert.equal((await h.admin({ op: 'employee.role', id: h.staff.id, role: 'core' })).status, 409);
+  assert.equal((await h.admin({ op: 'employee.archive', id: h.core[0].id })).status, 409);
+  assert.equal((await h.admin({ op: 'week.close', week, version: 0 })).status, 409);
+  assert.equal((await h.admin({ op: 'week.close', week, version: 1 })).status, 200);
+  assert.equal((await h.save(h.core[0], ['2026-11-05'], 1)).status, 200);
+  assert.deepEqual(h.state.get(`month:${month}`)[h.staff.id].dates, ['2026-11-05']);
+  assert.equal((await h.open(2)).status, 200);
+  assert.equal((await h.save(h.staff, ['2026-11-05', '2026-11-06'], 1)).status, 200);
+});
+test('staff application requires manager assignment and explicit final publication', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  assert.equal((await h.admin({ op: 'week.publish', week, version: 0 })).status, 409);
+  await h.open(0); await h.save(h.staff, ['2026-11-05']);
+  assert.equal((await h.admin({ op: 'week.publish', week, version: 1 })).status, 409);
+  const schedule = (await h.admin()).data.schedule;
+  schedule.draft['2026-11-05'] = [h.staff.id];
+  for (const day of ['2026-11-06', '2026-11-07', '2026-11-08']) schedule.required[day] = 0;
+  assert.equal((await h.admin({ op: 'week.save', week, version: 1, assignments: schedule.draft, required: schedule.required, start: '13:00', end: '20:00' })).status, 200);
+  assert.equal((await h.call('me?month=2026-11', undefined, h.staff.cookie)).data.confirmed.length, 0);
+  assert.equal((await h.admin({ op: 'week.publish', week, version: 2 })).status, 200);
+  assert.equal((await h.call('me?month=2026-11', undefined, h.staff.cookie)).data.confirmed[0].date, '2026-11-05');
+  assert.equal((await h.admin({ op: 'week.close', week, version: 3 })).status, 409);
+});
+test('core attendance stays automatic and multiple core employees can work the same day', async t => {
+  const h = await stagedSetup(t); for (const e of h.core) await h.save(e);
+  await h.open(0); const schedule = (await h.admin()).data.schedule;
+  assert.equal(schedule.required[week], 3); assert.equal(schedule.draft[week].length, 3);
+  schedule.draft[week] = [];
+  assert.equal((await h.admin({ op: 'week.save', week, version: 1, assignments: schedule.draft, required: schedule.required, start: '13:00', end: '20:00' })).status, 409);
+});
+test('opening a week across months requires submissions for both months', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  const boundary = '2026-11-30';
+  assert.equal((await h.admin({ op: 'week.open', week: boundary, version: 0 })).status, 409);
+  for (const e of h.core) assert.equal((await h.call('me', { op: 'availability.save', month: '2026-12', dates: [], version: 0 }, e.cookie)).status, 200);
+  assert.equal((await h.admin({ op: 'week.open', week: boundary, version: 0 })).status, 200);
+});
+
+test('opening and closing the current week preserves past assignments', async t => {
+  const h = await stagedSetup(t); await h.submitCore(); const currentWeek = '2026-10-26';
+  h.state.set('month:2026-10', Object.fromEntries(h.core.map(e => [e.id, {dates:['2026-10-26','2026-10-30'],version:1,submittedAt:'2026-10-20T00:00:00Z',note:''}])));
+  const before = (await h.call('admin?week=' + currentWeek, undefined, (await createAdminSessionCookie(h.env)).split(';')[0])).data.schedule;
+  assert.deepEqual(before.draft['2026-10-26'], []);
+  assert.equal((await h.admin({op:'week.open',week:currentWeek,version:0})).status,200);
+  let saved = h.state.get('week:' + currentWeek);
+  assert.deepEqual(saved.draft['2026-10-26'], []); assert.equal(saved.required['2026-10-26'],1);
+  saved.draft['2026-10-26'] = [h.staff.id]; h.state.set('week:' + currentWeek, saved);
+  assert.equal((await h.admin({op:'week.close',week:currentWeek,version:1})).status,200);
+  assert.deepEqual(h.state.get('week:' + currentWeek).draft['2026-10-26'], [h.staff.id]);
+});
+test('approved extra core availability can be assigned manually after publication', async t => {
+  const h = await stagedSetup(t); await h.submitCore(); await h.open(0);
+  const schedule = (await h.admin()).data.schedule;
+  for (const d of Object.keys(schedule.required)) schedule.required[d] = schedule.draft[d].length;
+  assert.equal((await h.admin({op:'week.save',week,version:1,assignments:schedule.draft,required:schedule.required,start:'13:00',end:'20:00'})).status,200);
+  assert.equal((await h.admin({op:'week.publish',week,version:2})).status,200);
+  const id = randomUUID();
+  assert.equal((await h.call('me',{op:'request.add',id,date:week,available:true,reason:'추가 근무 가능'},h.core[1].cookie)).status,200);
+  assert.equal((await h.admin({op:'request.resolve',id,decision:'approved'})).status,200);
+  const current = (await h.admin()).data.schedule;
+  assert.deepEqual(current.draft[week],[h.core[0].id]);
+  current.draft[week].push(h.core[1].id); current.required[week] = 2;
+  assert.equal((await h.admin({op:'week.save',week,version:3,assignments:current.draft,required:current.required,start:'13:00',end:'20:00'})).status,200);
+  assert.equal((await h.admin({op:'week.publish',week,version:4})).status,200);
+  assert.equal(h.state.get('week:'+week).published.assignments[week].length,2);
 });

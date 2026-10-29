@@ -4,8 +4,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css" /><link rel="stylesheet" href="/staff/admin/styles.css" />
-  <script type="module" src="/staff/admin/app.js?v=20261029-2"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-3" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261029-3" />
+  <script type="module" src="/staff/admin/app.js?v=20261029-3"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
@@ -14,19 +14,25 @@
     <section id="loginPanel" class="login-panel" hidden><h2>근무표 관리자 로그인</h2><p class="small">근무표 전용 비밀번호 또는 사이트 관리자 비밀번호를 사용해 주세요.<br />외부에 전달한 채용 조회용 비밀번호로는 접근할 수 없습니다.</p><form id="loginForm"><label for="password">비밀번호</label><input id="password" type="password" autocomplete="current-password" required /><button id="loginButton" class="primary" type="submit">로그인</button></form></section>
     <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
     <div id="dashboard" hidden>
-      <div class="workflow"><p>01 / 직원은 매월 25일까지 다음 달 가능일 제출</p><p>02 / 관리자는 월요일에 다음 주 근무표 확정</p><p>03 / 확정 후 변경은 요청 검토 후 승인</p></div>
+
       <div class="admin-layout"><section class="schedule-panel" aria-label="주간 근무표">
         <div class="week-nav"><button id="previous" aria-label="이전 주">←</button><label>조회할 주의 날짜<input id="week" type="date" required /></label><button id="next" aria-label="다음 주">→</button><button id="refresh">새로고침</button></div>
         <div class="section-title"><h2 id="weekTitle"></h2><span id="publishedState"></span></div>
         <p id="confirmationDate" class="small"></p>
+        <div class="workflow" aria-label="근무표 작성 순서">
+          <section class="workflow-step"><span class="step-number">01</span><h3>아토스 직원 입력</h3><strong id="coreProgress"></strong><div id="corePeople"></div></section>
+          <section class="workflow-step"><span class="step-number">02</span><h3>빈 날짜 스태프 신청</h3><strong id="slotProgress"></strong><p id="applicationProgress" class="small"></p></section>
+          <section class="workflow-step"><span class="step-number">03</span><h3>관리자 최종 확정</h3><strong id="finalProgress"></strong><p class="small">신청자를 선택해 배정한 후 확정합니다.</p></section>
+        </div>
+        <div class="stage-panel"><p id="stageNotice"></p><div class="stage-actions"><button id="openApplications" class="primary">스태프 신청 열기</button><button id="copyRequest" hidden>요청 문구 복사</button><button id="closeApplications" hidden>신청 닫고 직원 일정 수정</button></div><p class="small">요청 문구와 전용 링크를 복사해 직접 전달해 주세요.</p></div>
         <div class="shift-hours"><label>근무 시작<input id="shiftStart" type="time" required /></label><span>~</span><label>근무 종료<input id="shiftEnd" type="time" required /></label><p class="small">이 주 전체에 적용됩니다.</p></div>
-        <p class="small guide">가능일을 제출한 직원 중에서 선택하세요. 필요 인원은 하루 기본 1명이며 휴무일은 0명으로 설정합니다.</p>
+        <p class="small guide">아토스 직원이 입력한 근무일은 자동 반영됩니다. 빈 날짜의 스태프 신청자 중에서 배정해 주세요. 휴무일은 필요 인원을 0명으로 설정합니다.</p>
         <div id="weekDays" class="week-days"></div>
         <div class="schedule-actions"><p id="draftState" class="small"></p><div><button id="saveDraft">임시 저장</button><button id="publish" class="primary">근무표 확정</button><button id="print" type="button">인쇄</button></div></div>
         <section class="section"><div class="section-title"><h2>변경 요청</h2><span id="requestCount"></span></div><p class="small section-description">근무 불가 승인 시 확정 배정에서 해제됩니다. 대체 인원이 필요하면 다시 배정하고 확정해 주세요.</p><div id="requests"></div></section>
       </section>
-      <aside class="staff-panel"><h2>직원 관리</h2><p class="small section-description">직원마다 전용 링크를 발급해 전달해 주세요. 각 직원은 본인 가능일과 확정 근무만 볼 수 있습니다.</p>
-        <form id="addEmployee"><label for="employeeName">직원 이름</label><div class="add-row"><input id="employeeName" required maxlength="50" placeholder="이름" autocomplete="off" /><button type="submit">직원 추가</button></div></form>
+      <aside class="staff-panel"><h2>구성원 관리</h2><p class="small section-description">먼저 아토스 직원 3명을 등록하세요. 이후 스태프를 추가하고 각자 전용 링크를 전달해 주세요.</p>
+        <form id="addEmployee"><label for="employeeRole">구분</label><select id="employeeRole"><option value="core">아토스 직원 · 먼저 입력</option><option value="staff">스태프 · 빈 날짜 신청</option></select><label for="employeeName">이름</label><div class="add-row"><input id="employeeName" required maxlength="50" placeholder="이름" autocomplete="off" /><button type="submit">등록</button></div></form>
         <div id="employees"></div><p class="small section-description">링크를 다시 발급하면 이전 링크와 접속 권한은 즉시 만료됩니다.</p>
       </aside></div>
     </div>

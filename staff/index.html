@@ -4,28 +4,28 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>근무 가능일 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css" />
-  <script type="module" src="/staff/app.js?v=20261029-1"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-3" />
+  <script type="module" src="/staff/app.js?v=20261029-3"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/" aria-label="직원 근무표"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / AVAILABILITY</span></div></header>
   <main class="employee-main">
-    <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>근무 가능일</h1></div><button id="logout" hidden>로그아웃</button></div>
+    <div class="page-title"><div><p id="roleLabel" class="eyebrow">ATHOCE SEOUL</p><h1 id="pageHeading">근무 요일 입력</h1></div><button id="logout" hidden>로그아웃</button></div>
     <p id="status" role="status" aria-live="polite">직원 정보를 확인하고 있습니다.</p>
     <section id="welcome" class="notice" hidden><h2>직원 전용 페이지입니다.</h2><p>관리자에게 받은 본인 전용 링크로 접속해 주세요.<br />전용 링크는 다른 사람에게 공유하지 마세요.</p></section>
     <div id="workspace" hidden>
-      <section class="intro"><h2 id="employeeName"></h2><p>매월 25일까지 다음 달 근무 가능한 날짜를 알려주세요.<br />관리자가 매주 월요일에 다음 주 근무표를 확정합니다.</p><p class="small">근무 가능일을 제출한 뒤에도 확정 전까지 수정할 수 있습니다. 확정된 날짜는 아래에서 변경을 요청해 주세요.</p></section>
+      <section class="intro"><h2 id="employeeName"></h2><p id="introText">먼저 아토스 직원이 근무 요일을 입력하고, 이후 스태프가 남은 날짜에 신청합니다.</p><p id="introHint" class="small"></p><button id="refreshAvailability" type="button">신청 상태 새로고침</button></section>
       <div class="month-nav"><button id="previous" aria-label="이전 달">←</button><label class="month-label"><span class="visually-hidden">조회할 월</span><input id="month" type="month" required /></label><button id="next" aria-label="다음 달">→</button></div>
       <section class="availability-section" aria-labelledby="availabilityTitle"><div class="section-title"><h2 id="availabilityTitle">01 / 가능한 날짜 선택</h2><span id="selectedCount"></span></div>
-        <div class="weekday-tools"><span>반복 요일 선택</span><div id="weekdayButtons" class="weekday-buttons" aria-label="반복해서 선택할 요일"></div></div>
+        <p id="slotSummary" class="slot-summary" role="status"></p><div class="weekday-tools"><span>반복 요일 선택</span><div id="weekdayButtons" class="weekday-buttons" aria-label="반복해서 선택할 요일"></div></div>
         <p class="small calendar-hint">요일을 누르면 이 달의 같은 요일을 모두 선택하거나 해제합니다.</p>
         <div class="calendar-weekdays" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div id="calendar" class="calendar" aria-label="월간 근무 가능일"></div>
-        <p class="legend"><span><i class="legend-mark available"></i>근무 가능</span><span><i class="legend-mark"></i>선택 안 함</span><span>확정 · 변경 요청 필요</span></p>
+        <p class="legend"><span><i class="legend-mark available"></i><span id="legendSelected">선택</span></span><span><i class="legend-mark"></i><span id="legendOther">선택 안 함</span></span><span>입력 마감 · 확정 후 변경 요청</span></p>
         <label class="note-label" for="note">메모 <span class="small">선택 · 300자 이내</span></label><textarea id="note" rows="3" maxlength="300" placeholder="근무 가능 시간이나 일정에 관해 전달할 내용을 적어주세요."></textarea>
         <div class="save-row"><p id="saveState" class="small"></p><button id="save" class="primary">가능일 제출</button></div>
       </section>
-      <section class="section"><div class="section-title"><h2>02 / 나의 확정 근무</h2><span>13:00 ~ 20:00 기본</span></div><div id="confirmed"></div><p class="small">확정 근무만 표시됩니다. 제출한 가능 날짜가 모두 근무로 배정되는 것은 아닙니다.</p></section>
-      <section class="section"><h2>03 / 확정 후 변경 요청</h2><p class="small section-description">근무 불가 요청이 승인되면 해당 날짜의 배정에서 빠집니다. 근무 가능 요청이 승인되어도 배정은 관리자가 정합니다.</p>
+      <section class="section"><div class="section-title"><h2>나의 확정 근무</h2><span>13:00 ~ 20:00 기본</span></div><div id="confirmed"></div><p id="confirmedHint" class="small"></p></section>
+      <section class="section"><h2>확정 후 변경 요청</h2><p class="small section-description">근무 불가 요청이 승인되면 해당 날짜의 배정에서 빠집니다. 근무 가능 요청이 승인되어도 배정은 관리자가 정합니다.</p>
         <form id="requestForm" class="request-form"><label>날짜<select id="requestDate" required></select></label><label>변경 내용<select id="requestAvailable"><option value="false">근무 불가로 변경</option><option value="true">근무 가능으로 변경</option></select></label><label class="wide">사유<textarea id="requestReason" rows="2" maxlength="300" required placeholder="변경이 필요한 사유를 적어주세요."></textarea></label><button id="requestButton" type="submit">변경 요청 보내기</button></form><div id="requests" class="request-list"></div>
       </section>
     </div>
