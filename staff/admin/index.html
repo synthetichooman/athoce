@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
+  <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css" /><link rel="stylesheet" href="/staff/admin/styles.css" />
+  <script type="module" src="/staff/admin/app.js?v=20261029-1"></script>
+</head>
+<body>
+  <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>직원 근무표 관리</h1></div><button id="logout" hidden>로그아웃</button></div>
+    <section id="loginPanel" class="login-panel" hidden><h2>사이트 관리자 로그인</h2><p class="small">아토스 사이트 관리자 비밀번호를 사용해 주세요.<br />외부에 전달한 채용 조회용 비밀번호로는 접근할 수 없습니다.</p><form id="loginForm"><label for="password">비밀번호</label><input id="password" type="password" autocomplete="current-password" required /><button id="loginButton" class="primary" type="submit">로그인</button></form></section>
+    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
+    <div id="dashboard" hidden>
+      <div class="workflow"><p>01 / 직원은 매월 25일까지 다음 달 가능일 제출</p><p>02 / 관리자는 월요일에 다음 주 근무표 확정</p><p>03 / 확정 후 변경은 요청 검토 후 승인</p></div>
+      <div class="admin-layout"><section class="schedule-panel" aria-label="주간 근무표">
+        <div class="week-nav"><button id="previous" aria-label="이전 주">←</button><label>조회할 주의 날짜<input id="week" type="date" required /></label><button id="next" aria-label="다음 주">→</button><button id="refresh">새로고침</button></div>
+        <div class="section-title"><h2 id="weekTitle"></h2><span id="publishedState"></span></div>
+        <p id="confirmationDate" class="small"></p>
+        <div class="shift-hours"><label>근무 시작<input id="shiftStart" type="time" required /></label><span>~</span><label>근무 종료<input id="shiftEnd" type="time" required /></label><p class="small">이 주 전체에 적용됩니다.</p></div>
+        <p class="small guide">가능일을 제출한 직원 중에서 선택하세요. 필요 인원은 하루 기본 1명이며 휴무일은 0명으로 설정합니다.</p>
+        <div id="weekDays" class="week-days"></div>
+        <div class="schedule-actions"><p id="draftState" class="small"></p><div><button id="saveDraft">임시 저장</button><button id="publish" class="primary">근무표 확정</button><button id="print" type="button">인쇄</button></div></div>
+        <section class="section"><div class="section-title"><h2>변경 요청</h2><span id="requestCount"></span></div><p class="small section-description">근무 불가 승인 시 확정 배정에서 해제됩니다. 대체 인원이 필요하면 다시 배정하고 확정해 주세요.</p><div id="requests"></div></section>
+      </section>
+      <aside class="staff-panel"><h2>직원 관리</h2><p class="small section-description">직원마다 전용 링크를 발급해 전달해 주세요. 각 직원은 본인 가능일과 확정 근무만 볼 수 있습니다.</p>
+        <form id="addEmployee"><label for="employeeName">직원 이름</label><div class="add-row"><input id="employeeName" required maxlength="50" placeholder="이름" autocomplete="off" /><button type="submit">직원 추가</button></div></form>
+        <div id="employees"></div><p class="small section-description">링크를 다시 발급하면 이전 링크와 접속 권한은 즉시 만료됩니다.</p>
+      </aside></div>
+    </div>
+    <dialog id="inviteDialog" aria-labelledby="inviteTitle"><div class="dialog-heading"><h2 id="inviteTitle">직원 전용 링크</h2><button id="closeInvite">닫기</button></div><p class="small">이 링크로 해당 직원의 일정을 수정할 수 있습니다. 본인에게만 전달해 주세요. 닫은 뒤에는 다시 발급해야 합니다.</p><label for="inviteLink">전달할 주소</label><textarea id="inviteLink" rows="4" readonly></textarea><button id="copyInvite" class="primary">링크 복사</button><p id="copyStatus" role="status"></p></dialog>
+  </main>
+</body>
+</html>

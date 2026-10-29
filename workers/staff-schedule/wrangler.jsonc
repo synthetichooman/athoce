@@ -1,0 +1,9 @@
+{
+  "name": "athoce-staff-schedule",
+  "main": "index.js",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": false,
+  "account_id": "69747156ff23948c4f93759a89736dc3",
+  "durable_objects": { "bindings": [{ "name": "STAFF_SCHEDULE", "class_name": "StaffSchedule" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StaffSchedule"] }]
+}

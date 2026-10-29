@@ -1,0 +1,50 @@
+main { max-width: 1360px; }
+.login-panel { max-width: 360px; }
+.login-panel h2 { margin-bottom: 12px; }
+#loginForm { display: grid; gap: 12px; margin: 24px 0; }
+#loginButton { justify-self: start; }
+.workflow { display: flex; flex-wrap: wrap; gap: 12px 32px; padding: 18px 0 26px; border-bottom: 1px solid #000; line-height: 1.7; font-size: 12px; }
+.admin-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 40px; margin-top: 28px; }
+.schedule-panel, .staff-panel { min-width: 0; }
+.staff-panel { border-left: 1px solid #000; padding-left: 24px; }
+.week-nav { display: flex; align-items: end; gap: 10px; margin-bottom: 26px; }
+.week-nav label { display: grid; gap: 8px; font-size: 11px; }
+.week-nav input { min-height: 42px; }
+#confirmationDate { margin: -10px 0 24px; }
+.shift-hours { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.shift-hours label { display: grid; gap: 8px; font-size: 11px; }
+.shift-hours input { min-height: 42px; width: 130px; }
+.shift-hours > span { padding-bottom: 14px; }
+.shift-hours > p { padding-bottom: 10px; }
+.guide { margin-bottom: 20px; }
+.week-days { display: grid; gap: 12px; }
+.week-day { border: 1px solid #000; padding: 18px; }
+.day-heading { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+.day-heading h3 { margin: 0; font: inherit; }
+.required-label { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.required-label input { width: 56px; min-height: 34px; padding: 6px; }
+.staff-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.staff-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 12px; border: 1px solid #000; cursor: pointer; }
+.staff-choice:has(input:checked) { background: #000; color: #fff; }
+.staff-choice input[type="checkbox"] { display: inline-block; appearance: auto; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; accent-color: #000; }
+.staff-choice:focus-within { outline: 2px solid #000; outline-offset: 3px; }
+.day-details { display: grid; gap: 6px; margin-top: 14px; font-size: 11px; line-height: 1.7; color: #555; }
+.day-warning { color: #b3261e; }
+.schedule-actions { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; }
+.schedule-actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.add-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 10px; }
+.employee-card { border-top: 1px solid #000; margin-top: 22px; padding-top: 18px; display: grid; gap: 12px; }
+.employee-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.employee-actions button { font-size: 11px; min-height: 34px; padding: 6px 10px; }
+.employee-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.request-item { margin-bottom: 12px; }
+.request-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+dialog { width: min(540px, calc(100% - 28px)); max-height: calc(100% - 40px); border: 1px solid #000; padding: 24px; color: #000; }
+dialog::backdrop { background: #0004; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+#inviteDialog > label { display: block; margin: 24px 0 10px; }
+#inviteLink { overflow-wrap: anywhere; }
+#copyInvite { margin: 18px 0 12px; }
+@media(max-width: 960px) { .admin-layout { grid-template-columns: minmax(0, 1fr); gap: 40px; } .staff-panel { border: 0; border-top: 1px solid #000; padding: 24px 0 0; } }
+@media(max-width: 560px) { .week-nav { flex-wrap: wrap; gap: 8px; } .week-nav > button { padding: 8px 12px; } .week-day { padding: 14px; } .shift-hours input { width: 122px; } .day-heading { align-items: start; } }
+@media print { .site-header, .workflow, .staff-panel, .week-nav, .shift-hours, .guide, .schedule-actions, .schedule-panel > .section, #logout, #status, .day-details, .required-label, .staff-choice:not(:has(input:checked)) { display: none !important; } .admin-layout { display: block; } .staff-choice { border: 0; background: #fff !important; color: #000 !important; } .staff-choice input { display: none !important; } .week-day { break-inside: avoid; } .week-days { gap: 6px; } main { width: 100%; padding: 0; } }

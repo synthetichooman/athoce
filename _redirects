@@ -17,3 +17,7 @@
 /recruit/rsvp/ /recruit/rsvp/index.html 200
 /recruit/rsvp/admin /recruit/rsvp/admin/index.html 200
 /recruit/rsvp/admin/ /recruit/rsvp/admin/index.html 200
+/staff /staff/index.html 200
+/staff/ /staff/index.html 200
+/staff/admin /staff/admin/index.html 200
+/staff/admin/ /staff/admin/index.html 200
