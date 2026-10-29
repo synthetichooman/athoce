@@ -19,7 +19,7 @@ export function allowedMonth(month) {
   const current = today().slice(0, 7); const index = value => Number(value.slice(0, 4)) * 12 + Number(value.slice(5));
   return index(month) >= index(current) - 1 && index(month) <= index(current) + 12;
 }
-export function validWeek(week) { return /^20\d{2}-\d{2}-\d{2}$/.test(week || '') && monthDates(week.slice(0, 7)).includes(week) && weekOf(week) === week && allowedMonth(week.slice(0, 7)); }
+export function validWeek(week) { return /^20\d{2}-\d{2}-\d{2}$/.test(week || '') && monthDates(week.slice(0, 7)).includes(week) && weekOf(week) === week && (allowedMonth(week.slice(0, 7)) || allowedMonth(addDays(week, 6).slice(0, 7))); }
 export async function tokenHash(value) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join(''); }
 export function employeeToken(request) { return (request.headers.get('cookie') || '').split(';').map(x => x.trim()).find(x => x.startsWith(`${STAFF_COOKIE}=`))?.slice(STAFF_COOKIE.length + 1) || ''; }
 export const staffCookie = token => `${STAFF_COOKIE}=${token}; Path=/api/staff; HttpOnly; Secure; SameSite=Strict; Max-Age=${token ? 2592000 : 0}`;
