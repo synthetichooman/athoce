@@ -8,11 +8,6 @@ main { max-width: 1440px; }
 .month-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .month-controls input { width: 154px; min-height: 42px; }
 .month-controls button { font-size: 12px; }
-.month-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #000; margin: 20px 0 0; }
-.month-summary > div { display: grid; gap: 12px; padding: 20px 24px; border-right: 1px solid #000; }
-.month-summary > div:last-child { border-right: 0; }
-.month-summary span { font-size: 11px; color: #555; }
-.month-summary strong { font-size: 24px; font-weight: 400; letter-spacing: -.03em; }
 .calendar-layout { display: block; }
 .month-panel, .schedule-panel { min-width: 0; }
 .month-weekdays, .month-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -127,9 +122,6 @@ dialog::backdrop { background: #0004; }
   .month-controls { gap: 6px; }
   .month-controls input { width: 140px; }
   .month-controls button { padding: 8px 10px; }
-  .month-summary > div { padding: 14px 8px; gap: 10px; }
-  .month-summary span { font-size: 9px; line-height: 1.5; }
-  .month-summary strong { font-size: 20px; }
   .month-weekdays span { padding: 10px 0; }
   button.month-day { min-height: 100px; padding: 10px 4px; gap: 8px; }
   .cell-date { font-size: 16px; }
@@ -156,3 +148,19 @@ dialog::backdrop { background: #0004; }
   .month-weekdays { background: #fff; color: #000; }
   .month-day[data-today="true"] .cell-date { background: #fff; }
 }
+
+.assignment-hint { margin-top: 14px; }
+.payroll-heading { display: grid; gap: 8px; margin: 22px 0 18px; }
+.payroll-heading strong { font-size: 16px; font-weight: 500; }
+.payroll-scroll { overflow-x: auto; border: 1px solid #d7d9d6; border-radius: 8px; }
+.payroll-scroll:focus-visible { outline: 2px solid #647469; outline-offset: 3px; }
+.payroll-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.payroll-table th, .payroll-table td { padding: 16px 10px; text-align: center; border-bottom: 1px solid #e4e6e2; white-space: nowrap; }
+.payroll-table thead { background: #f3f4f1; color: #60665f; }
+.payroll-table th { font-weight: 500; }
+.payroll-table th:first-child { text-align: left; padding-left: 18px; white-space: normal; min-width: 90px; overflow-wrap: anywhere; }
+.payroll-table .saturday { color: #3167ae; }
+.payroll-table .sunday { color: #b54b47; }
+.payroll-table .payroll-total { font-weight: 600; background: #f6f7f4; }
+.payroll-table tbody tr:last-child > * { border-bottom: 0; }
+#payrollEmpty { margin-top: 16px; }

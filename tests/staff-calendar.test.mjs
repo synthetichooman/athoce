@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calendarDates, calendarWeeks, daySummary, monthSummary } from '../staff/admin/calendar.js';
+import { calendarDates, calendarWeeks, daySummary } from '../staff/admin/calendar.js';
 import { addDays, weekOf, monthDates, validWeek } from '../functions/_staff-schedule.js';
 
 test('month calendars show complete Monday to Sunday rows, including six-row months and leap days', () => {
@@ -51,11 +51,10 @@ test('published and edited drafts are distinct, independent of assignment order'
   record.schedule.draft[date] = ['other', 'staff']; record.schedule.end = '19:00'; assert.equal(daySummary(record, date).phase, 'changed');
 });
 
-test('monthly counts exclude adjoining month dates and past shortages, while keeping published work counts', () => {
-  const records = fixture(); const record = records.get('2026-11-02'); record.schedule.openedAt = '2026-10-29';
-  record.schedule.draft['2026-11-02'] = ['core']; record.schedule.draft['2026-11-03'] = ['staff'];
-  record.workflow.coreAssignments['2026-11-02'] = ['core'];
-  const previous = records.get(weekOf('2026-11-01')); previous.schedule.published = { assignments: { '2026-10-31': ['staff'], '2026-11-01': ['staff'] }, start: '13:00', end: '20:00' };
-  const result = monthSummary('2026-11', records);
-  assert.deepEqual(result, { submitted: 1, open: 6, unfilled: 27, confirmed: 1 });
+test('a closed week shows an assigned draft as pending confirmation', () => {
+  const record = fixture().get('2026-11-02'); const date = '2026-11-03';
+  assert.equal(daySummary(record, date).phase, 'waiting');
+  record.schedule.draft[date] = ['staff'];
+  assert.equal(daySummary(record, date).phase, 'draft');
+  assert.equal(daySummary(record, date).label, '배정 중');
 });

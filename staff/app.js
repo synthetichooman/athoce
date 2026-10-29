@@ -1,4 +1,5 @@
 import { $, el, api, status, dateLabel, monthDates, monthMove } from './shared.js';
+import { employeeLabel } from './names.js?v=20261029-8';
 let data; let selected = new Set(); let busy = false; let dirty = false; let pendingRequest;
 const days = ['일', '월', '화', '수', '목', '금', '토'];
 const isCore = () => data.employee.role === 'core';
@@ -49,7 +50,7 @@ function render() {
   $('#confirmedHint').textContent = isCore() ? '입력한 요일은 스태프 신청을 열 때 배정에 반영되며, 최종 확정 후 여기에 표시됩니다.' : '신청한 날짜 중 관리자가 배정하고 확정한 근무만 표시됩니다.';
   $('#legendSelected').textContent = '선택 · 제출';
   $('#legendOther').textContent = isCore() ? '선택 가능' : '신청 가능';
-  $('#employeeName').textContent = `${data.employee.name} 님`; $('#month').value = data.month;
+  $('#employeeName').textContent = `${employeeLabel(data.employee)} 님`; $('#month').value = data.month;
   const current = data.today.slice(0, 7); $('#month').min = monthMove(current, -1); $('#month').max = monthMove(current, 12);
   selected = new Set(data.availability.dates); $('#note').value = data.availability.note; setDirty(false); renderCalendar();
   $('#confirmed').replaceChildren();

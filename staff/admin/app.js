@@ -1,13 +1,14 @@
 import { $, el, api, status, today, weekOf, addDays, dateLabel, randomToken, monthMove } from '../shared.js';
-import { calendarDates, calendarWeeks, daySummary, monthSummary } from './calendar.js?v=20261029-4';
-let data; let busy = false; let dirty = false; let pendingEmployee;
+import { calendarDates, calendarWeeks, daySummary } from './calendar.js?v=20261029-8';
+import { employeeLabel } from '../names.js?v=20261029-8';
+let data; let payroll; let busy = false; let dirty = false; let pendingEmployee;
 let selectedDate = addDays(weekOf(today()), 7);
 let viewWeek = weekOf(selectedDate); let viewMonth = selectedDate.slice(0, 7); let records = new Map();
 const minMonth = monthMove(today().slice(0, 7), -1); const maxMonth = monthMove(today().slice(0, 7), 12);
 $('#month').min = minMonth; $('#month').max = maxMonth;
-const employeeName = id => data.employees.find(e => e.id === id)?.name || '사용 중지된 직원';
+const employeeName = id => employeeLabel(data.employees.find(e => e.id === id));
 function setDirty(value) { dirty = value; $('#draftState').textContent = value ? '저장하지 않은 변경이 있습니다.' : '저장 후 주간 확정을 눌러야 직원에게 공개됩니다.'; if (data) renderOverview(); }
-function login() { data = null; records.clear(); dirty = false; $('#dashboard').hidden = true; $('#logout').hidden = true; $('#loginPanel').hidden = false; $('#employees').replaceChildren(); $('#monthCalendar').replaceChildren(); $('#weekDays').replaceChildren(); $('#requests').replaceChildren(); $('#inviteDialog').close(); }
+function login() { data = null; payroll = null; $('#payrollRows').replaceChildren(); $('#payrollPeriod').textContent = ''; $('#payrollBasis').textContent = ''; records.clear(); dirty = false; $('#dashboard').hidden = true; $('#logout').hidden = true; $('#loginPanel').hidden = false; $('#employees').replaceChildren(); $('#monthCalendar').replaceChildren(); $('#weekDays').replaceChildren(); $('#requests').replaceChildren(); $('#inviteDialog').close(); }
 function noUnsavedChanges() { if (dirty) { status('작성 중인 배정을 먼저 임시 저장해 주세요.', true); return false; } return true; }
 async function run(action, success) {
   if (busy) return false; busy = true; $('#dashboard').inert = true;
@@ -26,17 +27,17 @@ function renderWorkflow() {
   const core = data.employees.filter(e => e.active && e.role === 'core');
   $('#corePeople').replaceChildren();
   if (core.length < 3) $('#corePeople').append(el('p', `운영진 ${3 - core.length}명을 더 등록해 주세요.`, 'small'));
-  for (const e of core) $('#corePeople').append(el('p', `${e.name} · ${data.workflow.submitted.includes(e.id) ? '입력 완료' : '입력 대기'}`, 'small'));
+  for (const e of core) $('#corePeople').append(el('p', `${employeeLabel(e)} · ${data.workflow.submitted.includes(e.id) ? '입력 완료' : '입력 대기'}`, 'small'));
   const remaining = Object.entries(data.workflow.remaining).filter(([d, n]) => d >= data.today && n > 0);
   const applications = data.employees.filter(e => e.active && e.role === 'staff' && Object.values(data.availability).some(m => m[e.id]?.dates.some(d => remaining.some(([date]) => d === date))));
-  $('#slotProgress').textContent = opened ? `${remaining.length}일 신청 중` : '공개 전';
+  $('#slotProgress').textContent = published ? '마감' : opened ? `${remaining.length}일 신청 중` : '신청 전';
   $('#applicationProgress').textContent = opened ? `스태프 ${applications.length}명 신청` : '';
   $('#finalProgress').textContent = published ? '공개 중' : '월요일에 다음 주 확정';
   $('#openApplications').hidden = !staged || opened || published;
   $('#openApplications').disabled = !data.workflow.ready || addDays(data.schedule.week, 6) < data.today;
   $('#closeApplications').hidden = !staged || !opened || published;
   $('#copyRequest').hidden = !opened || published || !remaining.length;
-  $('#stageNotice').textContent = !staged ? '기존 방식으로 작성된 주입니다.' : published ? '확정한 근무표를 직원에게 공개 중입니다.' : opened ? '날짜별 신청자를 배정하고 확정하세요.' : data.workflow.ready ? '운영진 입력 완료. 스태프 신청을 열어 주세요.' : '운영진 3명의 근무일 입력을 기다리고 있습니다.';
+  $('#stageNotice').textContent = !staged ? '기존 방식으로 작성된 주입니다.' : published ? '확정한 근무표를 직원에게 공개 중입니다.' : opened ? '날짜별 신청자를 배정하고 확정하세요.' : '스태프 신청을 열거나, 직접 배정 후 확정하세요.';
   $('#stageNotice').dataset.stage = stage;
 }
 function renderDays() {
@@ -52,19 +53,18 @@ function renderDays() {
     card.append(heading);
     if (staged && coreIds.length) { const coreLine = el('div', null, 'core-assignment'); coreLine.append(el('strong', nameList(coreIds))); card.append(coreLine); }
     const choices = el('div', null, 'staff-choices');
-    const available = data.employees.filter(e => ((e.active && all[e.id]?.dates.includes(date)) || assigned.includes(e.id)) && (!staged || e.role === 'staff' || (data.schedule.published && !coreIds.includes(e.id))));
-    if (!staged || (data.schedule.openedAt && remaining > 0)) {
+    const available = data.employees.filter(e => ((e.active && (e.role === 'staff' || all[e.id]?.dates.includes(date))) || assigned.includes(e.id)) && (!staged || e.role === 'staff' || (data.schedule.published && !coreIds.includes(e.id))));
+    if (!staged || remaining > 0) {
       for (const e of available) {
-        const choice = el('label', null, 'staff-choice'); const checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.checked = assigned.includes(e.id); checkbox.disabled = past || (!e.active && !checkbox.checked); checkbox.setAttribute('aria-label', `${dateLabel(date)} ${e.name} 배정`);
+        const choice = el('label', null, 'staff-choice'); const checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.checked = assigned.includes(e.id); checkbox.disabled = past || (!e.active && !checkbox.checked); checkbox.setAttribute('aria-label', `${dateLabel(date)} ${employeeLabel(e)} 배정`);
         checkbox.onchange = () => { data.schedule.draft[date] = checkbox.checked ? [...coreIds, e.id] : assigned.filter(id => id !== e.id); setDirty(true); renderDays(); const focus = document.querySelector(`[data-employee="${e.id}"]`); focus?.focus(); }; checkbox.dataset.employee = e.id;
-        choice.append(checkbox, el('span', `${e.name}${!all[e.id]?.dates.includes(date) ? ' · 신청 변경됨' : ''}${!e.active ? ' · 사용 중지' : ''}`)); choices.append(choice);
+        choice.append(checkbox, el('span', `${employeeLabel(e)}${!all[e.id]?.dates.includes(date) ? ' · 직접 배정' : ''}${!e.active ? ' · 사용 중지' : ''}`)); choices.append(choice);
       }
-      if (!available.length) choices.append(el('p', '아직 스태프 신청이 없습니다.', 'small'));
-    } else if (remaining > 0) choices.append(el('p', '주간 관리에서 스태프 신청을 열어 주세요.', 'small'));
-    else if (available.some(e => assigned.includes(e.id))) {
-      for (const e of available.filter(e => assigned.includes(e.id))) { const remove = el('button', `${e.name} 배정 해제`); remove.disabled = past; remove.onclick = () => { data.schedule.draft[date] = assigned.filter(id => id !== e.id); setDirty(true); renderDays(); }; choices.append(remove); }
+      if (!available.length) choices.append(el('p', '구성원 관리에서 스태프를 등록해 주세요.', 'small'));
+    } else if (available.some(e => assigned.includes(e.id))) {
+      for (const e of available.filter(e => assigned.includes(e.id))) { const remove = el('button', `${employeeLabel(e)} 배정 해제`); remove.disabled = past; remove.onclick = () => { data.schedule.draft[date] = assigned.filter(id => id !== e.id); setDirty(true); renderDays(); }; choices.append(remove); }
     }
-    card.append(choices); const detail = el('div', null, 'day-details');
+    card.append(choices); if (!data.schedule.openedAt && remaining > 0) card.append(el('p', '신청 전에도 직접 배정할 수 있습니다.', 'small assignment-hint')); const detail = el('div', null, 'day-details');
     if (data.schedule.published) detail.append(el('p', `공개 중: ${nameList(data.schedule.published.assignments[date] || [])} · ${data.schedule.published.start} ~ ${data.schedule.published.end}`));
     card.append(detail); $('#weekDays').append(card);
   }
@@ -73,23 +73,23 @@ function renderEmployees() {
   $('#employees').replaceChildren();
   if (!data.employees.length) $('#employees').append(el('p', '직원을 추가하면 전용 링크가 발급됩니다.', 'small section-description'));
   for (const employee of data.employees.slice().sort((a, b) => (a.role === 'core' ? 0 : 1) - (b.role === 'core' ? 0 : 1))) {
-    const card = el('div', null, 'employee-card'); card.append(el('span', employee.role === 'core' ? '운영진' : '스태프', 'employee-role'), el('h3', `${employee.name}${employee.active ? '' : ' · 사용 중지'}`));
+    const card = el('div', null, 'employee-card'); card.append(el('span', employee.role === 'core' ? '운영진' : '스태프', 'employee-role'), el('h3', `${employeeLabel(employee)}${employee.active ? '' : ' · 사용 중지'}`));
     for (const [month, availability] of Object.entries(data.availability)) {
       const entry = availability[employee.id]; card.append(el('p', `${month} · ${entry?.submittedAt ? `${entry.dates.length}일 · 입력 완료` : '미제출'}`, 'small'));
       if (entry?.note) card.append(el('p', entry.note, 'small employee-note'));
     }
     const actions = el('div', null, 'employee-actions');
     if (employee.active) {
-      const role = el('select'); role.setAttribute('aria-label', `${employee.name} 직원 구분`);
+      const role = el('select'); role.setAttribute('aria-label', `${employeeLabel(employee)} 직원 구분`);
       for (const [value, text] of [['core', '운영진'], ['staff', '스태프']]) { const option = el('option', text); option.value = value; role.append(option); } role.value = employee.role;
-      role.onchange = async () => { const value = role.value; role.value = employee.role; if (noUnsavedChanges() && confirm(`${employee.name} 님의 구분을 변경할까요?`)) await run(() => write({ op: 'employee.role', id: employee.id, role: value }), '직원 구분을 변경했습니다.'); }; card.append(role);
+      role.onchange = async () => { const value = role.value; role.value = employee.role; if (noUnsavedChanges() && confirm(`${employeeLabel(employee)} 님의 구분을 변경할까요?`)) await run(() => write({ op: 'employee.role', id: employee.id, role: value }), '직원 구분을 변경했습니다.'); }; card.append(role);
       const rotate = el('button', '링크 재발급'); rotate.onclick = async () => {
-        if (!noUnsavedChanges() || !confirm(`${employee.name} 님의 이전 링크와 접속 권한을 만료시키고 새 링크를 발급할까요?`)) return;
-        const token = randomToken(); if (await run(() => write({ op: 'employee.rotate', id: employee.id, token }), '새 링크를 발급했습니다.')) invitation(employee.name, token);
+        if (!noUnsavedChanges() || !confirm(`${employeeLabel(employee)} 님의 이전 링크와 접속 권한을 만료시키고 새 링크를 발급할까요?`)) return;
+        const token = randomToken(); if (await run(() => write({ op: 'employee.rotate', id: employee.id, token }), '새 링크를 발급했습니다.')) invitation(employeeLabel(employee), token);
       };
-      const archive = el('button', '사용 중지'); archive.onclick = () => { if (noUnsavedChanges() && confirm(`${employee.name} 님의 접속을 중지할까요? 기존 근무 이력은 보존됩니다.`)) run(() => write({ op: 'employee.archive', id: employee.id }), '직원 접속을 중지했습니다.'); }; actions.append(rotate, archive);
+      const archive = el('button', '사용 중지'); archive.onclick = () => { if (noUnsavedChanges() && confirm(`${employeeLabel(employee)} 님의 접속을 중지할까요? 기존 근무 이력은 보존됩니다.`)) run(() => write({ op: 'employee.archive', id: employee.id }), '직원 접속을 중지했습니다.'); }; actions.append(rotate, archive);
     }
-    const remove = el('button', '삭제'); remove.onclick = () => { if (noUnsavedChanges() && confirm(`${employee.name} 님의 직원 정보와 가능일을 삭제할까요? 확정 근무 이력이 있는 직원은 삭제할 수 없습니다.`)) run(() => write({ op: 'employee.delete', id: employee.id }), '직원 정보를 삭제했습니다.'); }; actions.append(remove); card.append(actions); $('#employees').append(card);
+    const remove = el('button', '삭제'); remove.onclick = () => { if (noUnsavedChanges() && confirm(`${employeeLabel(employee)} 님의 직원 정보와 가능일을 삭제할까요? 확정 근무 이력이 있는 직원은 삭제할 수 없습니다.`)) run(() => write({ op: 'employee.delete', id: employee.id }), '직원 정보를 삭제했습니다.'); }; actions.append(remove); card.append(actions); $('#employees').append(card);
   }
 }
 function renderRequests() {
@@ -108,14 +108,23 @@ function renderRequests() {
     card.append(actions); $('#requests').append(card);
   }
 }
+function renderPayroll() {
+  $('#payrollPeriod').textContent = `${payroll.start.replaceAll('-', '.')} — ${payroll.end.replaceAll('-', '.')}`;
+  const cutoff = payroll.asOf < payroll.end ? payroll.asOf : payroll.end;
+  $('#payrollBasis').textContent = `25일 급여 기준 · ${cutoff < payroll.start ? '집계 전' : `${cutoff.replaceAll('-', '.')}까지의 확정 근무표 집계`}`;
+  const body = $('#payrollRows'); body.replaceChildren();
+  $('#payrollEmpty').hidden = payroll.rows.length > 0;
+  for (const row of payroll.rows) {
+    const tr = el('tr'); const name = el('th', `${row.name}${row.active ? '' : ' (사용 중지)'}`); name.scope = 'row'; tr.append(name);
+    for (const count of row.weekdays) tr.append(el('td', String(count)));
+    tr.append(el('td', `${row.total}회`, 'payroll-total')); body.append(tr);
+  }
+}
 function renderOverview() {
-  const summary = monthSummary(viewMonth, records);
+  renderPayroll();
   $('#monthTitle').textContent = `${Number(viewMonth.slice(0, 4))}년 ${Number(viewMonth.slice(5))}월`;
   $('#month').value = viewMonth;
   $('#previous').disabled = viewMonth <= minMonth; $('#next').disabled = viewMonth >= maxMonth;
-  $('#monthCore').textContent = `${summary.submitted} / 3명`;
-  $('#monthOpen').textContent = `${summary.open}일`;
-  $('#monthConfirmed').textContent = `${summary.confirmed}일`;
   const calendar = $('#monthCalendar'); const focused = calendar.contains(document.activeElement);
   calendar.replaceChildren();
   for (const date of calendarDates(viewMonth)) {
@@ -126,13 +135,13 @@ function renderOverview() {
     cell.dataset.outside = String(!date.startsWith(viewMonth)); cell.dataset.today = String(date === data.today); cell.dataset.phase = day.phase;
     cell.tabIndex = date === selectedDate ? 0 : -1; cell.setAttribute('aria-pressed', String(date === selectedDate)); cell.setAttribute('aria-controls', 'dayEditor');
     if (date === data.today) cell.setAttribute('aria-current', 'date');
-    const names = day.assigned.map(id => record.employees.find(e => e.id === id)?.name || '사용 중지된 직원');
+    const names = day.assigned.map(id => employeeLabel(record.employees.find(e => e.id === id)));
     cell.setAttribute('aria-label', `${dateLabel(date)} · ${day.label} · 배정 ${names.join(', ') || '없음'} · 신청 ${day.applicants.length}명`);
     const top = el('span', null, 'cell-heading'); top.append(el('span', String(Number(date.slice(-2))), 'cell-date')); if (day.phase === 'changed') top.append(el('span', '수정 중', 'cell-state')); cell.append(top);
     const members = el('span', null, 'cell-members');
     for (const id of day.assigned.slice(0, 3)) {
       const employee = record.employees.find(e => e.id === id);
-      const member = el('span', employee?.name || '사용 중지', 'calendar-member'); member.dataset.role = employee?.role || 'staff';
+      const member = el('span', employeeLabel(employee), 'calendar-member'); member.dataset.role = employee?.role || 'staff';
       member.dataset.draft = String(!record.schedule.published?.assignments[date]?.includes(id)); members.append(member);
     }
     if (day.assigned.length > 3) members.append(el('span', `외 ${day.assigned.length - 3}명`, 'cell-extra'));
@@ -169,14 +178,15 @@ function render() {
   setDirty(false); renderWorkflow(); renderDays(); renderEmployees(); renderRequests();
   $('#employeeCount').textContent = `${data.employees.filter(e => e.active).length}명`;
   $('#saveDraft').disabled = addDays(week, 6) < data.today;
-  $('#publish').disabled = addDays(week, 6) < data.today || (data.schedule.workflow === 'staged' && !data.schedule.openedAt);
+  $('#publish').disabled = addDays(week, 6) < data.today;
   $('#employeeRole').value = data.employees.filter(e => e.active && e.role === 'core').length < 3 ? 'core' : 'staff';
 }
 async function load(date = selectedDate, month = viewMonth) {
   if (busy) return false; busy = true; $('#dashboard').inert = true;
   status('한 달 근무표를 불러오고 있습니다.');
   try {
-    const results = await Promise.all(calendarWeeks(month).map(week => api(`/api/staff/admin?week=${encodeURIComponent(week)}`)));
+    const results = await Promise.all([...calendarWeeks(month).map(week => api(`/api/staff/admin?week=${encodeURIComponent(week)}`)), api(`/api/staff/admin?payroll=${month}`)]);
+    payroll = results.pop();
     records = new Map(results.map(result => [result.schedule.week, result]));
     selectedDate = date; viewMonth = month; viewWeek = weekOf(date); data = records.get(viewWeek);
     render(); status(''); return true;
@@ -212,7 +222,7 @@ $('#openApplications').onclick = async () => {
   await run(() => write({ op: 'week.open', week: data.schedule.week, version: data.schedule.version }), '스태프 신청을 열었습니다. 요청 문구와 각자의 전용 링크를 전달해 주세요.');
 };
 $('#closeApplications').onclick = async () => {
-  if (!noUnsavedChanges() || !confirm('스태프 신청을 닫고 운영진 일정을 다시 입력받을까요? 스태프 신청 내역은 보존되지만 임시 배정은 초기화됩니다.')) return;
+  if (!noUnsavedChanges() || !confirm('스태프 신청을 닫고 운영진 일정을 다시 입력받을까요? 직접 배정은 유지되고 신청을 통한 임시 배정은 초기화됩니다.')) return;
   await run(() => write({ op: 'week.close', week: data.schedule.week, version: data.schedule.version }), '신청을 닫았습니다. 운영진 일정 수정 후 다시 열어 주세요.');
 };
 $('#copyRequest').onclick = async () => {

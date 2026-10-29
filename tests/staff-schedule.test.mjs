@@ -263,3 +263,62 @@ test('approved extra core availability can be assigned manually after publicatio
   assert.equal((await h.admin({op:'week.publish',week,version:4})).status,200);
   assert.equal(h.state.get('week:'+week).published.assignments[week].length,2);
 });
+
+test('manager can assign unsubmitted staff before opening and publish without opening applications', async t => {
+  const h = await stagedSetup(t);
+  const assignments = { [week]: [h.staff.id] };
+  const required = Object.fromEntries(Array.from({length:7},(_,i)=>[`2026-11-0${i+2}`,i===0?1:0]));
+  const save = { op:'week.save',week,version:0,start:'13:00',end:'20:00',assignments,required };
+  assert.equal((await h.admin(save)).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft[week],[h.staff.id]);
+  assert.equal((await h.admin()).data.schedule.openedAt,null);
+  assert.equal((await h.call('me?month=2026-11',undefined,h.staff.cookie)).data.confirmed.length,0);
+  assert.equal((await h.call('me',save,h.staff.cookie)).status,400);
+  assert.equal((await h.save(h.staff,[week])).status,409);
+  assert.equal((await h.admin(save)).status,409);
+  assert.equal((await h.admin({op:'week.publish',week,version:1})).status,200);
+  assert.equal((await h.call('me?month=2026-11',undefined,h.staff.cookie)).data.confirmed[0].date,week);
+  assert.equal(h.state.get(`month:${month}`)?.[h.staff.id],undefined);
+});
+
+test('manual assignments survive open-close-reload and reserve their slot from staff applications', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  const schedule = (await h.admin()).data.schedule;
+  schedule.draft['2026-11-05']=[h.staff.id];
+  assert.equal((await h.admin({op:'week.save',week,version:0,start:'13:00',end:'20:00',assignments:schedule.draft,required:schedule.required})).status,200);
+  assert.equal((await h.open(1)).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft['2026-11-05'],[h.staff.id]);
+  const other = await h.add('다른 스태프');
+  assert.equal((await h.call('me?month=2026-11',undefined,other.cookie)).data.slots['2026-11-05'].state,'covered');
+  assert.equal((await h.save(other,['2026-11-05'])).status,409);
+  assert.equal((await h.admin({op:'week.close',week,version:2})).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft['2026-11-05'],[h.staff.id]);
+  assert.equal((await h.open(3)).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft['2026-11-05'],[h.staff.id]);
+});
+
+test('manual assignment cannot bypass inactive employees, core coverage, or changed core dates before publication', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  const schedule = (await h.admin()).data.schedule;
+  const save = {op:'week.save',week,version:0,start:'13:00',end:'20:00',assignments:{...schedule.draft,[week]:[h.core[0].id,h.staff.id]},required:schedule.required};
+  assert.equal((await h.admin(save)).status,409);
+  const extra=await h.add('중지 직원'); await h.admin({op:'employee.archive',id:extra.id});
+  save.assignments={...schedule.draft,'2026-11-05':[extra.id]}; assert.equal((await h.admin(save)).status,400);
+  save.assignments={...schedule.draft,'2026-11-05':[h.staff.id]};
+  for (const d of ['2026-11-06','2026-11-07','2026-11-08']) save.required[d]=0;
+  assert.equal((await h.admin(save)).status,200);
+  assert.equal((await h.save(h.core[1],['2026-11-03','2026-11-05'],1)).status,200);
+  assert.equal((await h.admin({op:'week.publish',week,version:1})).status,409);
+  await h.admin({op:'employee.archive',id:h.staff.id});
+  assert.equal((await h.admin({op:'week.publish',week,version:1})).status,409);
+});
+
+test('payroll API is admin-only, includes previous-month boundary history, and does not expose credentials', async t => {
+  const h = setup(t); const e=await h.add('스태프'); const owner=(await createAdminSessionCookie(h.env)).split(';')[0];
+  h.state.set('week:2026-08-24',{published:{assignments:{'2026-08-26':[e.id]}}});
+  for (const cookie of ['',e.cookie,(await createRecruitViewerCookie(h.env)).split(';')[0]]) assert.equal((await h.call('admin?payroll=2026-09',undefined,cookie)).status,401);
+  const r=await h.call('admin?payroll=2026-09',undefined,owner);
+  assert.equal(r.status,200); assert.equal(r.data.start,'2026-08-26'); assert.equal(r.data.rows[0].weekdays[2],1); assert.equal(r.data.rows[0].total,1);
+  assert.ok(!JSON.stringify(r.data).includes(e.token)); assert.ok(!JSON.stringify(r.data).includes('credential'));
+  for(const month of ['2026-13','2026-08','2028-01','']) assert.equal((await h.call('admin?payroll='+month,undefined,owner)).status,400);
+});

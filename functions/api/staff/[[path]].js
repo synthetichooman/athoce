@@ -39,7 +39,7 @@ export async function onRequest({ request, env, params }) {
   }
   if (path === 'admin') {
     if (!await isStaffAdminAuthorized(request, env)) return fail('근무표 관리자 로그인이 필요합니다.', 401);
-    return callSchedule(env, mutation ? { action: 'admin-write', body } : { action: 'admin-read', week: url.searchParams.get('week') });
+    return callSchedule(env, mutation ? { action: 'admin-write', body } : url.searchParams.has('payroll') ? { action: 'admin-payroll', month: url.searchParams.get('payroll') } : { action: 'admin-read', week: url.searchParams.get('week') });
   }
   if (path !== '' && path !== 'me') return fail('페이지를 찾지 못했습니다.', 404);
   const token = employeeToken(request);

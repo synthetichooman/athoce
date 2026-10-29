@@ -4,8 +4,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-6" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261029-6" />
-  <script type="module" src="/staff/admin/app.js?v=20261029-6"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261029-8" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261029-8" />
+  <script type="module" src="/staff/admin/app.js?v=20261029-8"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
@@ -58,9 +58,11 @@
         <details id="requestsSection" class="management-section"><summary>변경 요청 <span id="requestCount"></span></summary><p class="small section-description">근무 불가 승인 시 확정 배정에서 해제됩니다. 대체 인원을 배정하고 다시 확정해 주세요.</p><div id="requests"></div></details>
       </div>
       <details class="management-section month-stats"><summary>월간 현황</summary>
-        <div class="month-summary" aria-label="월간 현황">
-        <div><span>운영진 입력</span><strong id="monthCore"></strong></div><div><span>스태프 신청 중</span><strong id="monthOpen"></strong></div><div><span>확정 근무일</span><strong id="monthConfirmed"></strong></div>
-      </div>
+        <div class="payroll-heading"><strong id="payrollPeriod"></strong><p id="payrollBasis" class="small"></p></div>
+        <div class="payroll-scroll" role="region" aria-label="요일별 스태프 근무 횟수" tabindex="0">
+          <table class="payroll-table"><caption class="visually-hidden">급여 기간 내 스태프별 요일별 확정 근무 횟수</caption><thead><tr><th scope="col">스태프</th><th scope="col">월</th><th scope="col">화</th><th scope="col">수</th><th scope="col">목</th><th scope="col">금</th><th scope="col" class="saturday">토</th><th scope="col" class="sunday">일</th><th scope="col">합계</th></tr></thead><tbody id="payrollRows"></tbody></table>
+        </div>
+        <p id="payrollEmpty" class="small">이 기간에 집계할 스태프가 없습니다.</p>
       </details>
     </div>
     <dialog id="inviteDialog" aria-labelledby="inviteTitle"><div class="dialog-heading"><h2 id="inviteTitle">직원 전용 링크</h2><button id="closeInvite">닫기</button></div><p class="small">이 링크로 해당 직원의 일정을 수정할 수 있습니다. 본인에게만 전달해 주세요. 닫은 뒤에는 다시 발급해야 합니다.</p><label for="inviteLink">전달할 주소</label><textarea id="inviteLink" rows="4" readonly></textarea><button id="copyInvite" class="primary">링크 복사</button><p id="copyStatus" role="status"></p></dialog>
