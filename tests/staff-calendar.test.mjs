@@ -58,3 +58,12 @@ test('a closed week shows an assigned draft as pending confirmation', () => {
   assert.equal(daySummary(record, date).phase, 'draft');
   assert.equal(daySummary(record, date).label, '배정 중');
 });
+
+test('manual closure immediately replaces stale automatic core coverage in the calendar', () => {
+  const record=fixture().get('2026-11-02'); const date='2026-11-02';
+  record.workflow.coreAssignments[date]=['core'];
+  record.schedule.manualAssignments={[date]:[]}; record.schedule.required[date]=0;
+  assert.equal(daySummary(record,date).label,'휴무'); assert.equal(daySummary(record,date).unfilled,0);
+  record.schedule.manualAssignments[date]=['other']; record.schedule.required[date]=1; record.schedule.draft[date]=['other'];
+  assert.deepEqual(daySummary(record,date).assigned,['other']); assert.equal(daySummary(record,date).unfilled,0);
+});

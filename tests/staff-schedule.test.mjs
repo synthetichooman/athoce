@@ -322,3 +322,76 @@ test('payroll API is admin-only, includes previous-month boundary history, and d
   assert.ok(!JSON.stringify(r.data).includes(e.token)); assert.ok(!JSON.stringify(r.data).includes('credential'));
   for(const month of ['2026-13','2026-08','2028-01','']) assert.equal((await h.call('admin?payroll='+month,undefined,owner)).status,400);
 });
+
+async function manualDay(h, date, ids, version) {
+  const schedule = (await h.admin()).data.schedule;
+  return h.admin({op:'week.save',week,version,start:schedule.start,end:schedule.end,assignments:{...schedule.draft,[date]:ids},required:{...schedule.required,[date]:ids.length},manualAssignments:{...schedule.manualAssignments,[date]:ids}});
+}
+test('administrator can replace automatic core attendance with any core, staff, or a closed day', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  assert.equal((await manualDay(h,week,[h.core[2].id],0)).status,200);
+  let read=(await h.admin()).data;
+  assert.deepEqual(read.schedule.draft[week],[h.core[2].id]);
+  assert.deepEqual(read.workflow.coreAssignments[week],[h.core[2].id]);
+  assert.deepEqual(read.schedule.draft['2026-11-03'],[h.core[1].id]);
+  assert.equal((await manualDay(h,week,[h.staff.id],1)).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft[week],[h.staff.id]);
+  assert.equal((await manualDay(h,week,[],2)).status,200);
+  read=(await h.admin()).data;
+  assert.deepEqual(read.schedule.draft[week],[]); assert.equal(read.schedule.required[week],0);
+  assert.deepEqual(read.workflow.coreAssignments[week],[]); assert.equal(read.workflow.remaining[week],0);
+  assert.deepEqual(h.state.get(`month:${month}`)[h.core[0].id].dates,[week]);
+});
+test('manual core and closure persist across opening, closing, reloading and publication', async t => {
+  const h = await stagedSetup(t); await h.submitCore();
+  assert.equal((await manualDay(h,week,[h.core[2].id],0)).status,200);
+  assert.equal((await manualDay(h,'2026-11-03',[],1)).status,200);
+  assert.equal((await h.open(2)).status,200);
+  for (const date of [week,'2026-11-03']) {
+    const slot=(await h.call('me?month=2026-11',undefined,h.staff.cookie)).data.slots[date];
+    assert.equal(slot.state,date===week?'covered':'off'); assert.equal(slot.remaining,0);
+    assert.equal((await h.save(h.staff,[date])).status,409);
+  }
+  assert.equal((await h.admin({op:'week.close',week,version:3})).status,200);
+  assert.deepEqual((await h.admin()).data.schedule.draft[week],[h.core[2].id]);
+  assert.equal((await h.open(4)).status,200);
+  const schedule=(await h.admin()).data.schedule;
+  for (const date of ['2026-11-05','2026-11-06','2026-11-07','2026-11-08']) {
+    schedule.required[date]=0; schedule.draft[date]=[]; schedule.manualAssignments[date]=[];
+  }
+  assert.equal((await h.admin({op:'week.save',week,version:5,start:schedule.start,end:schedule.end,assignments:schedule.draft,required:schedule.required,manualAssignments:schedule.manualAssignments})).status,200);
+  assert.equal((await h.admin({op:'week.publish',week,version:6})).status,200);
+  const confirmed=(await h.call('me?month=2026-11',undefined,h.core[2].cookie)).data.confirmed;
+  assert.deepEqual(confirmed.map(x=>x.date),[week,'2026-11-04']);
+  assert.deepEqual(h.state.get(`week:${week}`).published.assignments['2026-11-03'],[]);
+});
+test('unsubmitted core can be assigned before applications open and published without changing availability', async t => {
+  const h = await stagedSetup(t);
+  assert.equal((await manualDay(h,week,[h.core[0].id],0)).status,200);
+  for (let day=3;day<=8;day++) assert.equal((await manualDay(h,`2026-11-0${day}`,[],day-2)).status,200);
+  assert.equal((await h.admin({op:'week.publish',week,version:7})).status,200);
+  assert.equal(h.state.get(`month:${month}`),undefined);
+  assert.deepEqual((await h.call('me?month=2026-11',undefined,h.core[0].cookie)).data.confirmed.map(x=>x.date),[week]);
+});
+test('manual selection keeps stale-version, inactive employee, single-worker and employee-write protections', async t => {
+  const h = await stagedSetup(t);
+  assert.equal((await manualDay(h,week,[h.core[0].id,h.core[1].id],0)).status,400);
+  await h.admin({op:'employee.archive',id:h.core[0].id});
+  assert.equal((await manualDay(h,week,[h.core[0].id],0)).status,400);
+  const body={op:'week.save',week,version:0,start:'13:00',end:'20:00',assignments:{[week]:[h.core[1].id]},required:{[week]:1},manualAssignments:{[week]:[h.core[1].id]}};
+  assert.equal((await h.call('me',body,h.staff.cookie)).status,400);
+  assert.equal((await manualDay(h,week,[h.core[1].id],0)).status,200);
+  assert.equal((await manualDay(h,week,[],0)).status,409);
+});
+test('approving an unavailable manual core removes the assignment and keeps an unfilled working day', async t => {
+  const h = await stagedSetup(t);
+  for (let day=2;day<=8;day++) assert.equal((await manualDay(h,`2026-11-0${day}`,day===2?[h.core[0].id]:[],day-2)).status,200);
+  await h.admin({op:'week.publish',week,version:7});
+  const id=randomUUID();
+  assert.equal((await h.call('me',{op:'request.add',id,date:week,available:false,reason:'개인 일정'},h.core[0].cookie)).status,200);
+  assert.equal((await h.admin({op:'request.resolve',id,decision:'approved'})).status,200);
+  const current=(await h.admin()).data.schedule;
+  assert.deepEqual(current.manualAssignments[week],[]); assert.equal(current.required[week],1);
+  assert.equal((await h.admin({op:'week.publish',week,version:9})).status,409);
+  assert.equal((await manualDay(h,week,[h.core[1].id],9)).status,200);
+});

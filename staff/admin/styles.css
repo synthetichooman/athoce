@@ -57,7 +57,7 @@ button.month-day:hover { background: #f0f0f0; color: #000; }
 .staff-choices:empty { display: none; }
 .staff-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 12px; border: 1px solid #000; cursor: pointer; font-size: 12px; }
 .staff-choice:has(input:checked) { background: #000; color: #fff; }
-.staff-choice input[type="checkbox"] { display: inline-block; appearance: auto; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; accent-color: #000; }
+.staff-choice input[type="radio"] { display: inline-block; appearance: auto; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; accent-color: #000; }
 .staff-choice:focus-within { outline: 2px solid #000; outline-offset: 3px; }
 .day-details { display: grid; gap: 6px; margin-top: 18px; font-size: 11px; line-height: 1.7; color: #555; }
 .day-warning { color: #b3261e; }

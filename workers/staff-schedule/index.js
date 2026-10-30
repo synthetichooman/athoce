@@ -10,13 +10,18 @@ const datesOfWeek = week => Array.from({ length: 7 }, (_, i) => addDays(week, i)
 function coreDraft(employees, availability, week) {
   return Object.fromEntries(datesOfWeek(week).map(date => [date, employees.filter(e => e.active && roleOf(e) === 'core' && availability[date.slice(0, 7)]?.[e.id]?.dates.includes(date)).map(e => e.id)]));
 }
+const hasManual = (schedule, date) => Object.hasOwn(schedule.manualAssignments || {}, date);
+const activeManual = (schedule, date, employees) => (schedule.manualAssignments?.[date] || []).filter(id => employees.some(e => e.id === id && e.active));
+const reservedCount = (schedule, date, employees) => hasManual(schedule, date) ? activeManual(schedule, date, employees).length : (schedule.coreAssignments?.[date] || []).length + (schedule.manualStaff?.[date] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff')).length;
+const draftFor = (schedule, date, core, employees) => hasManual(schedule, date) ? activeManual(schedule, date, employees) : [...(core || []), ...(schedule.manualStaff?.[date] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff'))];
 function progress(employees, availability, schedule) {
   const months = [...new Set(datesOfWeek(schedule.week).filter(d => d >= today()).map(d => d.slice(0, 7)))];
   const core = employees.filter(e => e.active && roleOf(e) === 'core');
   const submitted = core.filter(e => months.every(m => availability[m]?.[e.id]?.submittedAt)).map(e => e.id);
-  const assignments = schedule.openedAt ? schedule.coreAssignments : coreDraft(employees, availability, schedule.week);
+  const assignments = schedule.openedAt ? structuredClone(schedule.coreAssignments) : coreDraft(employees, availability, schedule.week);
+  for (const date of datesOfWeek(schedule.week).filter(d => d >= today())) if (hasManual(schedule, date)) assignments[date] = activeManual(schedule, date, employees).filter(id => core.some(e => e.id === id));
   for (const date of datesOfWeek(schedule.week).filter(d => d < today())) assignments[date] = (schedule.coreAssignments?.[date] || schedule.draft[date] || []).filter(id => core.some(e => e.id === id));
-  const remaining = Object.fromEntries(datesOfWeek(schedule.week).map(d => [d, Math.max(0, schedule.required[d] - (assignments[d] || []).length - (schedule.manualStaff?.[d] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff')).length)]));
+  const remaining = Object.fromEntries(datesOfWeek(schedule.week).map(d => [d, Math.max(0, schedule.required[d] - (hasManual(schedule, d) ? activeManual(schedule, d, employees).length : (assignments[d] || []).length + (schedule.manualStaff?.[d] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff')).length))]));
   return { coreCount: core.length, submitted, ready: core.length === 3 && submitted.length === 3, remaining, coreAssignments: assignments };
 }
 const validId = id => typeof id === 'string' && /^[0-9a-f-]{36}$/.test(id);
@@ -52,7 +57,7 @@ export class StaffSchedule {
       const availability = Object.fromEntries(await Promise.all(months.map(async month => [month, await db.get(`month:${month}`) || {}])));
       const requests = (await db.get('requests') || []).filter(r => r.status === 'pending');
       const workflow = progress(employees, availability, schedule);
-      if (schedule.workflow === 'staged' && !schedule.openedAt && !schedule.published) schedule.draft = Object.fromEntries(datesOfWeek(week).map(d => [d, d < today() ? schedule.draft[d] || [] : [...workflow.coreAssignments[d], ...(schedule.manualStaff?.[d] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff'))]]));
+      if (schedule.workflow === 'staged' && !schedule.openedAt && !schedule.published) schedule.draft = Object.fromEntries(datesOfWeek(week).map(d => [d, d < today() ? schedule.draft[d] || [] : draftFor(schedule, d, workflow.coreAssignments[d], employees)]));
       return json({ ok: true, today: today(), settings: DEFAULT_SETTINGS, employees: employees.map(publicEmployee), schedule, availability, requests, workflow });
     }
     if (payload.action === 'employee-read') {
@@ -63,8 +68,8 @@ export class StaffSchedule {
       for (const week of weeks) {
         const record = await db.get(`week:${week}`);
         for (const date of monthDates(month).filter(d => weekOf(d) === week)) {
-          const remaining = record ? Math.max(0, record.required[date] - (record.coreAssignments?.[date] || []).length - (record.manualStaff?.[date] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff')).length) : 0;
-          slots[date] = { state: record?.published ? 'published' : record?.workflow !== 'staged' && record ? 'open' : !record?.openedAt ? 'waiting' : remaining ? 'open' : 'covered', remaining };
+          const remaining = record ? Math.max(0, record.required[date] - reservedCount(record, date, employees)) : 0;
+          slots[date] = { state: record?.published ? 'published' : record?.required[date] === 0 ? 'off' : !record || (record.workflow === 'staged' && !record.openedAt) ? 'waiting' : remaining ? 'open' : 'covered', remaining };
           if (roleOf(employee) === 'core' && record?.openedAt && !record.published) locked.push(date);
         }
         if (record?.published) {
@@ -93,7 +98,7 @@ export class StaffSchedule {
         if (record?.published || (roleOf(employee) === 'core' && record?.openedAt)) valid.filter(d => weekOf(d) === week).forEach(d => locked.add(d));
         if (roleOf(employee) === 'staff') {
           const added = dates.filter(d => weekOf(d) === week && !current.dates.includes(d));
-          if (added.some(d => !record || (record.workflow === 'staged' && (!record.openedAt || (record.coreAssignments?.[d] || []).length + (record.manualStaff?.[d] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff')).length >= record.required[d])))) return fail('스태프 신청이 열린 빈 날짜만 선택할 수 있습니다. 새로고침 후 확인해 주세요.', 409);
+          if (added.some(d => !record || record.required[d] <= reservedCount(record, d, employees) || (record.workflow === 'staged' && !record.openedAt))) return fail('스태프 신청이 열린 빈 날짜만 선택할 수 있습니다. 새로고침 후 확인해 주세요.', 409);
         }
       }
       if (valid.some(d => locked.has(d) && current.dates.includes(d) !== dates.includes(d))) return fail('확정되었거나 지난 날짜는 직접 수정할 수 없습니다. 변경 요청을 남겨 주세요.', 409);
@@ -148,7 +153,7 @@ export class StaffSchedule {
       if (body.op === 'employee.delete') {
         if ([...weeks.values()].some(w => Object.values(w.published?.assignments || {}).some(ids => ids.includes(body.id)))) return fail('확정 근무 이력이 있습니다. 삭제 대신 사용 중지해 주세요.', 409);
         for (const [key, month] of await db.list({ prefix: 'month:' })) { delete month[body.id]; await db.put(key, month); }
-        for (const [key, week] of weeks) { let changed = false; for (const [date, ids] of Object.entries(week.draft)) { if (ids.includes(body.id)) { week.draft[date] = ids.filter(id => id !== body.id); changed = true; } } if (changed) { week.version++; await db.put(key, week); } }
+        for (const [key, week] of weeks) { let changed = false; for (const [date, ids] of Object.entries(week.manualAssignments || {})) if (ids.includes(body.id)) { week.manualAssignments[date] = ids.filter(id => id !== body.id); changed = true; } for (const [date, ids] of Object.entries(week.draft)) { if (ids.includes(body.id)) { week.draft[date] = ids.filter(id => id !== body.id); changed = true; } } if (changed) { week.version++; await db.put(key, week); } }
         await db.put('requests', (await db.get('requests') || []).filter(r => r.employeeId !== body.id));
         await db.put('employees', employees.filter(e => e.id !== body.id));
       } else { target.active = false; await db.put('employees', employees); }
@@ -165,42 +170,52 @@ export class StaffSchedule {
           const availability = Object.fromEntries(await Promise.all([...new Set(datesOfWeek(body.week).map(d => d.slice(0, 7)))].map(async m => [m, await db.get(`month:${m}`) || {}])));
           const flow = progress(employees, availability, schedule);
           if (!flow.ready) return fail('운영진 3명을 등록하고 해당 주가 포함된 달의 근무 요일 입력을 먼저 완료해 주세요.', 409);
-          schedule.coreAssignments = flow.coreAssignments; schedule.draft = Object.fromEntries(datesOfWeek(body.week).map(d => [d, d < today() ? schedule.draft[d] || [] : [...flow.coreAssignments[d], ...(schedule.manualStaff?.[d] || []).filter(id => employees.some(e => e.id === id && e.active && roleOf(e) === 'staff'))]]));
+          schedule.coreAssignments = flow.coreAssignments; schedule.draft = Object.fromEntries(datesOfWeek(body.week).map(d => [d, d < today() ? schedule.draft[d] || [] : draftFor(schedule, d, flow.coreAssignments[d], employees)]));
           for (const d of datesOfWeek(body.week)) schedule.required[d] = Math.max(schedule.required[d], schedule.coreAssignments[d].length);
           schedule.openedAt = timestamp();
         } else {
           if (!schedule.openedAt) return fail('아직 스태프 신청이 열리지 않았습니다.', 409);
-          schedule.openedAt = null; schedule.coreAssignments = Object.fromEntries(Object.entries(schedule.coreAssignments).filter(([d]) => d < today())); schedule.draft = Object.fromEntries(datesOfWeek(body.week).map(d => [d, d < today() ? schedule.draft[d] || [] : schedule.manualStaff?.[d] || []]));
+          schedule.openedAt = null; schedule.coreAssignments = Object.fromEntries(Object.entries(schedule.coreAssignments).filter(([d]) => d < today())); schedule.draft = Object.fromEntries(datesOfWeek(body.week).map(d => [d, d < today() ? schedule.draft[d] || [] : hasManual(schedule, d) ? activeManual(schedule, d, employees) : schedule.manualStaff?.[d] || []]));
         }
       } else if (body.op === 'week.save') {
         if (!time(body.start) || !time(body.end) || body.end <= body.start || !body.assignments || typeof body.assignments !== 'object' || !body.required || typeof body.required !== 'object') return fail('근무 시간과 배정을 확인해 주세요.');
         const draft = {}; const required = {}; const manualStaff = {};
+        const manualAssignments = { ...schedule.manualAssignments };
+        if (body.manualAssignments !== undefined) {
+          if (!body.manualAssignments || typeof body.manualAssignments !== 'object' || Array.isArray(body.manualAssignments)) return fail('직접 배정 정보를 확인해 주세요.');
+          for (const [date, ids] of Object.entries(body.manualAssignments)) {
+            if (!datesOfWeek(body.week).includes(date) || !Array.isArray(ids) || ids.length > 1 || JSON.stringify(ids) !== JSON.stringify(body.assignments[date] || []) || (date >= today() && body.required[date] !== ids.length && !(ids.length === 0 && body.required[date] === 1 && hasManual(schedule, date) && schedule.manualAssignments[date].length === 0))) return fail('직접 배정은 한 명 또는 휴무를 선택해 주세요.');
+            if (date < today() && (!hasManual(schedule, date) || JSON.stringify(ids) !== JSON.stringify(schedule.manualAssignments[date]))) return fail('이미 지난 날짜의 배정은 변경할 수 없습니다.');
+            manualAssignments[date] = ids;
+          }
+        }
+        const manualSchedule = { manualAssignments };
         for (let i = 0; i < 7; i++) {
           const date = addDays(body.week, i); const ids = body.assignments[date] || []; const need = body.required[date];
           if (!Number.isInteger(need) || need < 0 || need > 10 || !Array.isArray(ids) || ids.length > 10 || ids.some(id => !employees.some(e => e.id === id && (date < today() || e.active))) || new Set(ids).size !== ids.length) return fail('날짜별 근무자 배정을 확인해 주세요.');
           if (date < today() && (JSON.stringify(ids) !== JSON.stringify(schedule.draft[date] || []) || need !== schedule.required[date] || body.start !== schedule.start || body.end !== schedule.end)) return fail('이미 지난 날짜의 배정과 시간은 변경할 수 없습니다.');
           const availability = await db.get(`month:${date.slice(0, 7)}`) || {};
-          if (date >= today() && ids.some(id => roleOf(employees.find(e => e.id === id)) === 'core' && !availability[id]?.dates.includes(date))) return fail('근무 가능 날짜를 제출한 직원만 배정할 수 있습니다.', 409);
-          if (schedule.workflow === 'staged' && date >= today()) {
+          if (hasManual(manualSchedule, date) && JSON.stringify(ids) !== JSON.stringify(manualAssignments[date])) return fail('직접 배정 정보를 다시 확인해 주세요.', 409);
+          if (!hasManual(manualSchedule, date) && date >= today() && ids.some(id => roleOf(employees.find(e => e.id === id)) === 'core' && !availability[id]?.dates.includes(date))) return fail('근무 가능 날짜를 제출한 직원만 배정할 수 있습니다.', 409);
+          if (!hasManual(manualSchedule, date) && schedule.workflow === 'staged' && date >= today()) {
             const coreIds = schedule.openedAt ? schedule.coreAssignments[date] || [] : employees.filter(e => e.active && roleOf(e) === 'core' && availability[e.id]?.dates.includes(date)).map(e => e.id);
             if ((!schedule.published && ids.some(id => roleOf(employees.find(e => e.id === id)) === 'core' && !coreIds.includes(id))) || coreIds.some(id => !ids.includes(id))) return fail('운영진 배정은 본인이 입력한 근무 요일을 따릅니다.', 409);
             if (coreIds.length >= need && ids.some(id => !coreIds.includes(id))) return fail('빈 슬롯이 없는 날짜에 스태프를 배정할 수 없습니다.', 409);
           }
-          // Only an authenticated administrator can reach this branch. Preserve explicit
-          // staff overrides separately so ordinary applications still revalidate on publish.
+          // Preserve older staff overrides; per-date manual assignments also support core and closure.
           manualStaff[date] = ids.filter(id => roleOf(employees.find(e => e.id === id)) === 'staff' && (schedule.manualStaff?.[date]?.includes(id) || !availability[id]?.dates.includes(date) || (schedule.workflow === 'staged' && !schedule.openedAt)));
           draft[date] = ids; required[date] = Math.max(need, schedule.workflow === 'staged' ? ids.filter(id => roleOf(employees.find(e => e.id === id)) === 'core').length : 0);
         }
-        schedule.draft = draft; schedule.manualStaff = manualStaff; schedule.required = required; schedule.start = body.start; schedule.end = body.end;
+        schedule.draft = draft; schedule.manualAssignments = manualAssignments; schedule.manualStaff = manualStaff; schedule.required = required; schedule.start = body.start; schedule.end = body.end;
       } else {
-        // Revalidate ordinary applications; administrator-approved staff overrides remain valid.
+        // Revalidate ordinary applications while preserving explicit administrator assignments.
         for (let i = 0; i < 7; i++) {
           const date = addDays(body.week, i); const ids = schedule.draft[date] || [];
           if (date < today()) continue;
           const availability = await db.get(`month:${date.slice(0, 7)}`) || {};
-          if (schedule.workflow === 'staged' && !schedule.openedAt && employees.some(e => e.active && roleOf(e) === 'core' && availability[e.id]?.dates.includes(date) && !ids.includes(e.id))) return fail('운영진의 근무 요일이 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
+          if (!hasManual(schedule, date) && schedule.workflow === 'staged' && !schedule.openedAt && employees.some(e => e.active && roleOf(e) === 'core' && availability[e.id]?.dates.includes(date) && !ids.includes(e.id))) return fail('운영진의 근무 요일이 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
           if (ids.length !== schedule.required[date]) return fail(`${date}의 근무자 배정을 확인해 주세요.`, 409);
-          if (date >= today() && ids.some(id => !employees.some(e => e.id === id && e.active) || (!availability[id]?.dates.includes(date) && !(roleOf(employees.find(e => e.id === id)) === 'staff' && schedule.manualStaff?.[date]?.includes(id))))) return fail('직원의 가능 날짜가 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
+          if (date >= today() && ids.some(id => !employees.some(e => e.id === id && e.active) || (!availability[id]?.dates.includes(date) && !schedule.manualAssignments?.[date]?.includes(id) && !(roleOf(employees.find(e => e.id === id)) === 'staff' && schedule.manualStaff?.[date]?.includes(id))))) return fail('직원의 가능 날짜가 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
         }
         schedule.published = { assignments: structuredClone(schedule.draft), start: schedule.start, end: schedule.end, confirmedAt: timestamp() };
       }
@@ -219,6 +234,7 @@ export class StaffSchedule {
         current.dates = current.dates.filter(d => d !== item.date); if (item.available) current.dates.push(item.date); current.dates.sort(); current.version++; current.submittedAt = timestamp(); all[item.employeeId] = current; await db.put(key, all);
         const week = await db.get(`week:${weekOf(item.date)}`);
         if (week && !item.available) {
+          if (hasManual(week, item.date)) week.manualAssignments[item.date] = week.manualAssignments[item.date].filter(id => id !== item.employeeId);
           if (week.manualStaff) week.manualStaff[item.date] = (week.manualStaff[item.date] || []).filter(id => id !== item.employeeId);
           if (week.coreAssignments) week.coreAssignments[item.date] = (week.coreAssignments[item.date] || []).filter(id => id !== item.employeeId);
           week.draft[item.date] = (week.draft[item.date] || []).filter(id => id !== item.employeeId);

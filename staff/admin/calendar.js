@@ -16,7 +16,7 @@ export function daySummary(record, date) {
   const staged = schedule.workflow === 'staged';
   const core = staged ? workflow.coreAssignments[date] || [] : [];
   const assigned = schedule.draft[date] || [];
-  const required = Math.max(schedule.required[date], core.length);
+  const required = Object.hasOwn(schedule.manualAssignments || {}, date) ? schedule.required[date] : Math.max(schedule.required[date], core.length);
   const applicants = employees.filter(e => e.active && (!staged || e.role === 'staff') && availability[date.slice(0, 7)]?.[e.id]?.dates.includes(date));
   const published = schedule.published;
   const changed = !!published && (JSON.stringify([...assigned].sort()) !== JSON.stringify([...(published.assignments[date] || [])].sort()) || schedule.start !== published.start || schedule.end !== published.end);

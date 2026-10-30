@@ -19,10 +19,10 @@ function renderCalendar() {
   for (let i = 0; i < offset; i++) $('#calendar').append(el('div'));
   for (const date of dates) {
     const confirmed = data.confirmed.some(s => s.date === date); const locked = data.locked.includes(date); const slot = data.slots[date];
-    const label = confirmed ? '근무 확정' : date < data.today ? '지난 날짜' : locked ? slot?.state === 'published' ? '확정된 주' : '입력 마감' : selected.has(date) ? isCore() ? '근무 예정' : '신청' : isCore() ? '선택' : slot?.state === 'open' ? '신청 가능' : slot?.state === 'covered' ? '운영진 근무' : '신청 전';
+    const label = confirmed ? '근무 확정' : date < data.today ? '지난 날짜' : locked ? slot?.state === 'published' ? '확정된 주' : '입력 마감' : selected.has(date) ? isCore() ? '근무 예정' : '신청' : isCore() ? '선택' : slot?.state === 'open' ? '신청 가능' : slot?.state === 'off' ? '휴무' : slot?.state === 'covered' ? '배정 완료' : '신청 전';
     const chosen = selected.has(date); const submitted = chosen && data.availability.dates.includes(date) && Boolean(data.availability.submittedAt);
     const state = confirmed ? 'confirmed' : chosen ? submitted ? 'submitted' : 'selected' : accessible(date) ? 'available' : 'unavailable';
-    const shortLabel = confirmed ? '확정' : date < data.today ? '' : chosen ? submitted ? '제출' : '선택' : locked ? '마감' : accessible(date) ? isCore() ? '' : '가능' : slot?.state === 'covered' ? '운영진' : '대기';
+    const shortLabel = confirmed ? '확정' : date < data.today ? '' : chosen ? submitted ? '제출' : '선택' : locked ? '마감' : accessible(date) ? isCore() ? '' : '가능' : slot?.state === 'off' ? '휴무' : slot?.state === 'covered' ? '마감' : '대기';
     const button = el('button', null, 'day'); button.type = 'button'; button.dataset.date = date; button.disabled = busy || !accessible(date); button.dataset.today = String(date === data.today);
     button.dataset.state = state; button.dataset.weekday = String(new Date(`${date}T00:00:00Z`).getUTCDay());
     button.setAttribute('aria-pressed', String(chosen)); button.setAttribute('aria-label', `${dateLabel(date)} ${submitted && !confirmed ? `${label} · 제출 완료` : label}`);

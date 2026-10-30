@@ -1,6 +1,6 @@
 import { $, el, api, status, today, weekOf, addDays, dateLabel, randomToken, monthMove } from '../shared.js';
-import { calendarDates, calendarWeeks, daySummary } from './calendar.js?v=20261029-8';
-import { employeeLabel } from '../names.js?v=20261029-8';
+import { calendarDates, calendarWeeks, daySummary } from './calendar.js?v=20261030-1';
+import { employeeLabel } from '../names.js?v=20261030-1';
 let data; let payroll; let busy = false; let dirty = false; let pendingEmployee;
 let selectedDate = addDays(weekOf(today()), 7);
 let viewWeek = weekOf(selectedDate); let viewMonth = selectedDate.slice(0, 7); let records = new Map();
@@ -42,32 +42,30 @@ function renderWorkflow() {
 }
 function renderDays() {
   $('#weekDays').replaceChildren();
-  const staged = data.schedule.workflow === 'staged';
-  {
-    const date = selectedDate; const all = data.availability[date.slice(0, 7)] || {}; const past = date < data.today;
-    const assigned = data.schedule.draft[date] || []; const coreIds = staged ? (data.workflow.coreAssignments[date] || []) : [];
-    const required = Math.max(data.schedule.required[date], coreIds.length); data.schedule.required[date] = required;
-    const remaining = Math.max(0, required - coreIds.length);
-    const card = el('article', null, 'week-day'); const heading = el('div', null, 'day-heading');
-    const title = el('div', null, 'day-title'); title.append(el('h3', '근무자 선택')); heading.append(title);
-    card.append(heading);
-    if (staged && coreIds.length) { const coreLine = el('div', null, 'core-assignment'); coreLine.append(el('strong', nameList(coreIds))); card.append(coreLine); }
-    const choices = el('div', null, 'staff-choices');
-    const available = data.employees.filter(e => ((e.active && (e.role === 'staff' || all[e.id]?.dates.includes(date))) || assigned.includes(e.id)) && (!staged || e.role === 'staff' || (data.schedule.published && !coreIds.includes(e.id))));
-    if (!staged || remaining > 0) {
-      for (const e of available) {
-        const choice = el('label', null, 'staff-choice'); const checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.checked = assigned.includes(e.id); checkbox.disabled = past || (!e.active && !checkbox.checked); checkbox.setAttribute('aria-label', `${dateLabel(date)} ${employeeLabel(e)} 배정`);
-        checkbox.onchange = () => { data.schedule.draft[date] = checkbox.checked ? [...coreIds, e.id] : assigned.filter(id => id !== e.id); setDirty(true); renderDays(); const focus = document.querySelector(`[data-employee="${e.id}"]`); focus?.focus(); }; checkbox.dataset.employee = e.id;
-        choice.append(checkbox, el('span', `${employeeLabel(e)}${!all[e.id]?.dates.includes(date) ? ' · 직접 배정' : ''}${!e.active ? ' · 사용 중지' : ''}`)); choices.append(choice);
-      }
-      if (!available.length) choices.append(el('p', '구성원 관리에서 스태프를 등록해 주세요.', 'small'));
-    } else if (available.some(e => assigned.includes(e.id))) {
-      for (const e of available.filter(e => assigned.includes(e.id))) { const remove = el('button', `${employeeLabel(e)} 배정 해제`); remove.disabled = past; remove.onclick = () => { data.schedule.draft[date] = assigned.filter(id => id !== e.id); setDirty(true); renderDays(); }; choices.append(remove); }
-    }
-    card.append(choices); if (!data.schedule.openedAt && remaining > 0) card.append(el('p', '신청 전에도 직접 배정할 수 있습니다.', 'small assignment-hint')); const detail = el('div', null, 'day-details');
-    if (data.schedule.published) detail.append(el('p', `공개 중: ${nameList(data.schedule.published.assignments[date] || [])} · ${data.schedule.published.start} ~ ${data.schedule.published.end}`));
-    card.append(detail); $('#weekDays').append(card);
+  const date = selectedDate; const past = date < data.today;
+  const assigned = data.schedule.draft[date] || [];
+  const card = el('article', null, 'week-day'); card.append(el('h3', '근무자 선택'));
+  if (assigned.length > 1) card.append(el('p', `현재 배정: ${nameList(assigned)}`, 'small'));
+  const choices = el('div', null, 'staff-choices'); choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', '근무자 선택');
+  const available = data.employees.filter(e => e.active || assigned.includes(e.id)).sort((a, b) => (a.role === 'core' ? 0 : 1) - (b.role === 'core' ? 0 : 1));
+  for (const e of [...available, null]) {
+    const ids = e ? [e.id] : []; const key = e?.id || 'off'; const label = e ? employeeLabel(e) : '휴무';
+    const choice = el('label', null, 'staff-choice'); const radio = el('input'); radio.type = 'radio'; radio.name = 'day-assignment'; radio.value = key;
+    radio.checked = e ? assigned.length === 1 && assigned[0] === e.id : data.schedule.required[date] === 0 && !assigned.length;
+    radio.disabled = past || (e && !e.active); radio.setAttribute('aria-label', `${dateLabel(date)} ${label}${e ? ' 배정' : ''}`); radio.dataset.employee = key;
+    radio.onchange = () => {
+      data.schedule.draft[date] = ids; data.schedule.required[date] = ids.length;
+      data.schedule.manualAssignments ||= {}; data.schedule.manualAssignments[date] = ids;
+      setDirty(true); renderDays(); document.querySelector(`[data-employee="${key}"]`)?.focus();
+    };
+    choice.append(radio, el('span', `${label}${e && !e.active ? ' · 사용 중지' : ''}`)); choices.append(choice);
   }
+  card.append(choices);
+  if (data.schedule.published) {
+    const published = data.schedule.published;
+    card.append(el('p', `공개 중: ${nameList(published.assignments[date] || [])} · ${published.start} ~ ${published.end}`, 'small day-details'));
+  }
+  $('#weekDays').append(card);
 }
 function renderEmployees() {
   $('#employees').replaceChildren();
@@ -213,7 +211,7 @@ $('#today').onclick = () => navigate(today(), today().slice(0, 7));
 $('#refresh').onclick = () => navigate(selectedDate, viewMonth, true);
 for (const id of ['shiftStart', 'shiftEnd']) $(`#${id}`).onchange = () => { data.schedule.start = $('#shiftStart').value; data.schedule.end = $('#shiftEnd').value; setDirty(true); };
 async function saveDraft() {
-  return run(() => write({ op: 'week.save', week: data.schedule.week, version: data.schedule.version, assignments: data.schedule.draft, required: data.schedule.required, start: data.schedule.start, end: data.schedule.end }), '배정을 임시 저장했습니다. 직원에게는 확정 후 표시됩니다.');
+  return run(() => write({ op: 'week.save', week: data.schedule.week, version: data.schedule.version, assignments: data.schedule.draft, manualAssignments: data.schedule.manualAssignments, required: data.schedule.required, start: data.schedule.start, end: data.schedule.end }), '배정을 임시 저장했습니다. 직원에게는 확정 후 표시됩니다.');
 }
 $('#saveDraft').onclick = saveDraft;
 $('#openApplications').onclick = async () => {
