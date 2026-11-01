@@ -34,3 +34,17 @@ test('operator abbreviations change display only and preserve ordinary staff nam
   assert.equal(employeeLabel({name:'hooman',role:'staff'}),'hooman');
   assert.equal(employeeLabel({name:'다른 이름',role:'core'}),'다른 이름');
 });
+
+test('payer totals classify only elapsed published shifts, retain unassigned history and follow the assigned employee', () => {
+  const employees = [{ id: 's', name: '최건', role: 'staff', active: true }, { id: 'other', name: '다른 스태프', role: 'staff', active: true }];
+  const schedule = { draft: { '2026-11-02': ['other'], '2026-11-07': ['s'] }, published: { assignments: { '2026-11-02': ['s', 's'], '2026-11-03': ['s'], '2026-11-04': ['s'], '2026-11-05': ['s'], '2026-11-06': ['s'], '2026-11-07': ['s'] } }, payers: { '2026-11-02': { s: 'at', other: 'ce' }, '2026-11-03': { s: 'ho' }, '2026-11-04': { s: 'ce' }, '2026-11-05': { s: 'athoce' }, '2026-11-07': { s: 'at' } } };
+  const schedules = new Map([['2026-11-02', schedule]]);
+  const rows = payrollSummary('2026-11', employees, schedules, '2026-11-06').rows;
+  assert.deepEqual(rows[0].payers, { at: 1, ho: 1, ce: 1, athoce: 1, unassigned: 1 });
+  assert.equal(rows[0].total, 5); assert.equal(rows[1].total, 0);
+  schedule.payers['2026-11-02'].s = 'ce';
+  assert.equal(payrollSummary('2026-11', employees, schedules, '2026-11-06').rows[0].payers.ce, 2);
+  delete schedule.payers;
+  const legacy = payrollSummary('2026-11', employees, schedules, '2026-11-06').rows[0];
+  assert.equal(legacy.payers.unassigned, legacy.total);
+});

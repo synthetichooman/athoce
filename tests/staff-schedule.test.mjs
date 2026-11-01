@@ -395,3 +395,51 @@ test('approving an unavailable manual core removes the assignment and keeps an u
   assert.equal((await h.admin({op:'week.publish',week,version:9})).status,409);
   assert.equal((await manualDay(h,week,[h.core[1].id],9)).status,200);
 });
+
+test('employee rename preserves ID, credential, availability and shifts and rejects stale names', async t => {
+  const h = setup(t); const e = await h.add('스태프 A(가)'); await h.save(e); await h.draft(e);
+  const before = structuredClone(h.state.get('employees')[0]);
+  const entries = structuredClone([...h.state].filter(([key]) => key !== 'employees'));
+  const body = { op: 'employee.rename', id: e.id, expectedName: '스태프 A(가)', name: '최건' };
+  assert.equal((await h.call('me', body, e.cookie)).status, 400);
+  assert.equal((await h.admin(body)).status, 200);
+  assert.equal((await h.call('login', { token: e.token })).data.employee.name, '최건');
+  const after = h.state.get('employees')[0];
+  assert.equal(after.id, before.id); assert.equal(after.credential, before.credential);
+  assert.deepEqual([...h.state].filter(([key]) => key !== 'employees'), entries);
+  assert.equal((await h.admin(body)).status, 409);
+  for (const name of ['', 'x'.repeat(51), '이름\n']) assert.equal((await h.admin({ ...body, expectedName: '최건', name })).status, 400);
+});
+
+test('payer edits support all payers, clearing, past confirmed shifts and inactive staff without changing publication', async t => {
+  const h = setup(t); const e = await h.add();
+  const past = '2026-10-12'; const schedule = { week: past, version: 3, draft: { [past]: [e.id] }, published: { assignments: { [past]: [e.id] }, start: '13:00', end: '20:00' }, required: { [past]: 1 } };
+  h.state.set(`week:${past}`, structuredClone(schedule));
+  assert.equal((await h.admin({ op: 'employee.archive', id: e.id })).status, 200);
+  let version = 3;
+  for (const payer of ['at', 'ho', 'ce', 'athoce', '']) {
+    assert.equal((await h.admin({ op: 'payroll.save', week: past, date: past, employeeId: e.id, payer, version: version++ })).status, 200);
+    const saved = h.state.get(`week:${past}`);
+    assert.equal(saved.payers[past][e.id], payer || undefined);
+    assert.deepEqual(saved.published, schedule.published); assert.deepEqual(saved.draft, schedule.draft);
+  }
+});
+
+test('payer edits require admin, matching version and an assigned staff member on the matching date', async t => {
+  const h = setup(t); const e = await h.add(); const other = await h.add('미배정'); const core = await h.add('aategois', 'core');
+  await h.save(e); await h.draft(e);
+  const body = { op: 'payroll.save', week, date: week, employeeId: e.id, payer: 'at', version: 1 };
+  assert.equal((await h.call('admin', body)).status, 401);
+  assert.equal((await h.call('me', body, e.cookie)).status, 400);
+  for (const change of [{ payer: 'other' }, { payer: null }, { date: '2026-11-09' }, { week: 'bad' }]) assert.equal((await h.admin({ ...body, ...change })).status, 400);
+  for (const change of [{ employeeId: other.id }, { employeeId: core.id }, { version: 0 }]) assert.equal((await h.admin({ ...body, ...change })).status, 409);
+  assert.equal((await h.admin(body)).status, 200);
+  assert.equal((await h.admin(body)).status, 409);
+  const employee = await h.call('me?month=2026-11', undefined, e.cookie);
+  assert.ok(!JSON.stringify(employee.data).includes('payers'));
+  const current = (await h.admin()).data.schedule;
+  assert.equal(current.payers[week][e.id], 'at');
+  assert.equal((await h.admin({ op: 'week.save', week, version: 2, assignments: current.draft, required: current.required, start: current.start, end: current.end })).status, 200);
+  assert.equal((await h.admin({ op: 'week.publish', week, version: 3 })).status, 200);
+  assert.equal(h.state.get(`week:${week}`).payers[week][e.id], 'at');
+});

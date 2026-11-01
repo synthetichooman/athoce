@@ -154,7 +154,7 @@ dialog::backdrop { background: #0004; }
 .payroll-heading strong { font-size: 16px; font-weight: 500; }
 .payroll-scroll { overflow-x: auto; border: 1px solid #d7d9d6; border-radius: 8px; }
 .payroll-scroll:focus-visible { outline: 2px solid #647469; outline-offset: 3px; }
-.payroll-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.payroll-table { width: 100%; min-width: 740px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .payroll-table th, .payroll-table td { padding: 16px 10px; text-align: center; border-bottom: 1px solid #e4e6e2; white-space: nowrap; }
 .payroll-table thead { background: #f3f4f1; color: #60665f; }
 .payroll-table th { font-weight: 500; }
@@ -164,3 +164,9 @@ dialog::backdrop { background: #0004; }
 .payroll-table .payroll-total { font-weight: 600; background: #f6f7f4; }
 .payroll-table tbody tr:last-child > * { border-bottom: 0; }
 #payrollEmpty { margin-top: 16px; }
+.payer-editor { margin-top: 26px; padding-top: 22px; border-top: 1px solid #d7d9d6; }
+.payer-editor h3 { margin: 0 0 10px; font-size: 15px; font-weight: 500; }
+.payer-editor > p { margin-bottom: 16px; }
+.payer-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 160px); gap: 14px; align-items: center; margin-top: 12px; font-size: 13px; }
+.payer-field select { margin: 0; width: 100%; background: #f3f4f1; color: #303b34; border: 1px solid #cbd1c9; border-radius: 6px; }
+.payroll-table .payer-unassigned { color: #8a622e; background: #faf6ed; }

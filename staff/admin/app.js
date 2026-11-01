@@ -66,6 +66,32 @@ function renderDays() {
     card.append(el('p', `공개 중: ${nameList(published.assignments[date] || [])} · ${published.start} ~ ${published.end}`, 'small day-details'));
   }
   $('#weekDays').append(card);
+  renderPayers();
+}
+function renderPayers() {
+  const panel = $('#payerEditor'); panel.replaceChildren();
+  const date = selectedDate;
+  const draft = data.schedule.draft[date] || [];
+  const published = data.schedule.published?.assignments[date] || [];
+  const staff = data.employees.filter(e => e.role === 'staff' && (draft.includes(e.id) || published.includes(e.id)));
+  panel.hidden = !staff.length;
+  if (!staff.length) return;
+  panel.append(el('h3', '급여 지급'), el('p', dirty ? '배정을 임시 저장한 뒤 설정해 주세요.' : '선택하면 바로 저장됩니다. 지난 근무도 수정할 수 있습니다.', 'small'));
+  for (const employee of staff) {
+    const label = el('label', null, 'payer-field');
+    const scope = draft.join() === published.join() ? '' : published.includes(employee.id) ? ' · 확정 근무' : ' · 임시 배정';
+    label.append(el('span', `${employeeLabel(employee)}${scope}`));
+    const select = el('select'); select.setAttribute('aria-label', `${employeeLabel(employee)} 급여 지급 주체`); select.disabled = dirty;
+    for (const [value, text] of [['', '미지정'], ['at', 'at'], ['ho', 'ho'], ['ce', 'ce'], ['athoce', 'athoce']]) {
+      const option = el('option', text); option.value = value; select.append(option);
+    }
+    select.value = data.schedule.payers?.[date]?.[employee.id] || '';
+    select.onchange = async () => {
+      const payer = select.value; select.value = data.schedule.payers?.[date]?.[employee.id] || '';
+      if (noUnsavedChanges()) await run(() => write({ op: 'payroll.save', week: data.schedule.week, version: data.schedule.version, date, employeeId: employee.id, payer }), '급여 지급 주체를 저장했습니다.');
+    };
+    label.append(select); panel.append(label);
+  }
 }
 function renderEmployees() {
   $('#employees').replaceChildren();
@@ -115,7 +141,9 @@ function renderPayroll() {
   for (const row of payroll.rows) {
     const tr = el('tr'); const name = el('th', `${row.name}${row.active ? '' : ' (사용 중지)'}`); name.scope = 'row'; tr.append(name);
     for (const count of row.weekdays) tr.append(el('td', String(count)));
-    tr.append(el('td', `${row.total}회`, 'payroll-total')); body.append(tr);
+    tr.append(el('td', `${row.total}회`, 'payroll-total'));
+    for (const payer of ['at', 'ho', 'ce', 'athoce', 'unassigned']) tr.append(el('td', String(row.payers[payer]), payer === 'unassigned' && row.payers[payer] ? 'payer-unassigned' : ''));
+    body.append(tr);
   }
 }
 function renderOverview() {
@@ -209,7 +237,7 @@ $('#previous').onclick = () => changeMonth(monthMove(viewMonth, -1));
 $('#next').onclick = () => changeMonth(monthMove(viewMonth, 1));
 $('#today').onclick = () => navigate(today(), today().slice(0, 7));
 $('#refresh').onclick = () => navigate(selectedDate, viewMonth, true);
-for (const id of ['shiftStart', 'shiftEnd']) $(`#${id}`).onchange = () => { data.schedule.start = $('#shiftStart').value; data.schedule.end = $('#shiftEnd').value; setDirty(true); };
+for (const id of ['shiftStart', 'shiftEnd']) $(`#${id}`).onchange = () => { data.schedule.start = $('#shiftStart').value; data.schedule.end = $('#shiftEnd').value; setDirty(true); renderPayers(); };
 async function saveDraft() {
   return run(() => write({ op: 'week.save', week: data.schedule.week, version: data.schedule.version, assignments: data.schedule.draft, manualAssignments: data.schedule.manualAssignments, required: data.schedule.required, start: data.schedule.start, end: data.schedule.end }), '배정을 임시 저장했습니다. 직원에게는 확정 후 표시됩니다.');
 }

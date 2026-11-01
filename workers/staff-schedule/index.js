@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, json, fail, today, addDays, weekOf, monthDates, allowedMonth, validWeek, tokenHash, nextMonth } from '../../functions/_staff-schedule.js';
 
-import { payrollPeriod, payrollSummary } from '../../functions/_staff-payroll.js';
+import { PAYROLL_PAYERS, payrollPeriod, payrollSummary } from '../../functions/_staff-payroll.js';
 
 const freshWeek = week => ({ week, version: 0, workflow: 'staged', openedAt: null, coreAssignments: {}, draft: {}, published: null, start: DEFAULT_SETTINGS.shiftStart, end: DEFAULT_SETTINGS.shiftEnd, required: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [addDays(week, i), 1])) });
 const timestamp = () => new Date(Date.now()).toISOString();
@@ -134,6 +134,28 @@ export class StaffSchedule {
         target.credential = credential;
       }
       await db.put('employees', employees); return json({ ok: true });
+    }
+    if (body.op === 'employee.rename') {
+      const target = employees.find(e => e.id === body.id);
+      if (!target) return fail('직원을 찾지 못했습니다.', 404);
+      if (typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 50 || /[\u0000-\u001f\u007f]/.test(body.name)) return fail('직원 이름을 확인해 주세요.');
+      if (target.name !== body.expectedName) return fail('직원 이름이 변경되었습니다. 새로고침 후 확인해 주세요.', 409);
+      target.name = body.name.trim(); target.updatedAt = timestamp();
+      await db.put('employees', employees); return json({ ok: true });
+    }
+    if (body.op === 'payroll.save') {
+      // Accounting metadata is independent of publication; past confirmed shifts remain editable.
+      if (!validWeek(body.week) || !datesOfWeek(body.week).includes(body.date) || typeof body.payer !== 'string' || (body.payer !== '' && !PAYROLL_PAYERS.includes(body.payer))) return fail('근무 날짜와 급여 지급 주체를 확인해 주세요.');
+      const schedule = await db.get(`week:${body.week}`);
+      if (!schedule || schedule.version !== body.version) return fail('근무표가 변경되었습니다. 새로고침 후 다시 확인해 주세요.', 409);
+      const target = employees.find(e => e.id === body.employeeId && roleOf(e) === 'staff');
+      if (!target || ![...(schedule.draft[body.date] || []), ...(schedule.published?.assignments[body.date] || [])].includes(target.id)) return fail('저장된 스태프 근무를 선택해 주세요.', 409);
+      schedule.payers ||= {}; schedule.payers[body.date] ||= {};
+      if (body.payer) schedule.payers[body.date][target.id] = body.payer;
+      else delete schedule.payers[body.date][target.id];
+      schedule.version++; schedule.updatedAt = timestamp();
+      await db.put(`week:${body.week}`, schedule);
+      return json({ ok: true, version: schedule.version });
     }
     if (body.op === 'employee.role') {
       const target = employees.find(e => e.id === body.id && e.active);

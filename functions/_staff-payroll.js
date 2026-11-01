@@ -1,5 +1,7 @@
 import { addDays, weekOf } from './_staff-schedule.js';
 
+export const PAYROLL_PAYERS = ['at', 'ho', 'ce', 'athoce'];
+
 // A payday on the 25th covers the previous month's 26th through this month's 25th.
 export function payrollPeriod(month) {
   const previous = new Date(`${month}-01T00:00:00Z`);
@@ -13,7 +15,7 @@ export function payrollPeriod(month) {
 
 export function payrollSummary(month, employees, schedules, asOf) {
   const { start, end } = payrollPeriod(month);
-  const rows = employees.filter(e => e.role !== 'core').map(e => ({ id: e.id, name: e.name, active: e.active, weekdays: [0, 0, 0, 0, 0, 0, 0], total: 0 }));
+  const rows = employees.filter(e => e.role !== 'core').map(e => ({ id: e.id, name: e.name, active: e.active, weekdays: [0, 0, 0, 0, 0, 0, 0], total: 0, payers: Object.fromEntries([...PAYROLL_PAYERS, 'unassigned'].map(payer => [payer, 0])) }));
   const byId = new Map(rows.map(row => [row.id, row]));
   for (let date = start; date <= end && date <= asOf; date = addDays(date, 1)) {
     const schedule = schedules.get(weekOf(date));
@@ -22,6 +24,8 @@ export function payrollSummary(month, employees, schedules, asOf) {
       if (!row) continue;
       row.weekdays[(new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7]++;
       row.total++;
+      const payer = schedule.payers?.[date]?.[id];
+      row.payers[PAYROLL_PAYERS.includes(payer) ? payer : 'unassigned']++;
     }
   }
   return { start, end, asOf, rows: rows.filter(row => row.active || row.total) };

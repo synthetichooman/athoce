@@ -4,8 +4,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>직원 근무표 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261030-1" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261030-1" />
-  <script type="module" src="/staff/admin/app.js?v=20261030-1"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261030-1" /><link rel="stylesheet" href="/staff/admin/styles.css?v=20261101-1" />
+  <script type="module" src="/staff/admin/app.js?v=20261101-1"></script>
 </head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / MANAGEMENT</span></div></header>
@@ -34,6 +34,7 @@
           <div id="weekDays" class="week-days"></div>
           <p id="draftState" class="small draft-state"></p>
           <button id="saveDraft">배정 임시 저장</button>
+          <section id="payerEditor" class="payer-editor" aria-label="근무별 급여 지급 설정" hidden></section>
         </details>
           <details class="management-section week-management" id="weekManagement">
             <summary>스태프 신청 · 주간 확정</summary>
@@ -59,8 +60,8 @@
       </div>
       <details class="management-section month-stats"><summary>월간 현황</summary>
         <div class="payroll-heading"><strong id="payrollPeriod"></strong><p id="payrollBasis" class="small"></p></div>
-        <div class="payroll-scroll" role="region" aria-label="요일별 스태프 근무 횟수" tabindex="0">
-          <table class="payroll-table"><caption class="visually-hidden">급여 기간 내 스태프별 요일별 확정 근무 횟수</caption><thead><tr><th scope="col">스태프</th><th scope="col">월</th><th scope="col">화</th><th scope="col">수</th><th scope="col">목</th><th scope="col">금</th><th scope="col" class="saturday">토</th><th scope="col" class="sunday">일</th><th scope="col">합계</th></tr></thead><tbody id="payrollRows"></tbody></table>
+        <div class="payroll-scroll" role="region" aria-label="요일 및 급여 지급 주체별 스태프 근무 횟수" tabindex="0">
+          <table class="payroll-table"><caption class="visually-hidden">급여 기간 내 스태프별 요일 및 지급 주체별 확정 근무 횟수</caption><thead><tr><th scope="col">스태프</th><th scope="col">월</th><th scope="col">화</th><th scope="col">수</th><th scope="col">목</th><th scope="col">금</th><th scope="col" class="saturday">토</th><th scope="col" class="sunday">일</th><th scope="col">합계</th><th scope="col">at</th><th scope="col">ho</th><th scope="col">ce</th><th scope="col">athoce</th><th scope="col">미지정</th></tr></thead><tbody id="payrollRows"></tbody></table>
         </div>
         <p id="payrollEmpty" class="small">이 기간에 집계할 스태프가 없습니다.</p>
       </details>
