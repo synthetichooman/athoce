@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>근로계약 확인·서명 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/interlining/styles.css"><link rel="stylesheet" href="/staff/styles.css"><link rel="stylesheet" href="/staff/payroll/styles.css"><link rel="stylesheet" href="/staff/contracts/styles.css?v=20261101-1">
+  <script type="module" src="/staff/contract/app.js?v=20261101-1"></script>
+</head><body>
+  <header class="site-header"><div class="site-header-inner"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44"><span>STAFF / CONTRACT</span></div></header>
+  <main class="recipient-main">
+    <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>근로계약 확인·서명</h1></div><button id="logout" hidden>접속 종료</button></div>
+    <p id="status" role="status" aria-live="polite">계약서를 확인하고 있습니다.</p>
+    <section id="accessPanel" class="panel" hidden><h2>계약서 열기</h2><p class="small">관리자에게 받은 링크와 별도로 전달된 확인코드를 입력하세요.</p><form id="accessForm"><label>계약서 링크<input id="accessLink" type="text" autocomplete="off" spellcheck="false" required></label><label>확인코드<input id="accessCode" autocomplete="off" spellcheck="false" maxlength="64" required></label><button class="primary">계약서 확인</button></form></section>
+    <div id="content" hidden>
+      <div class="recipient-intro"><span id="state" class="badge"></span><p id="intro" class="small"></p></div>
+      <div id="recipientTools" class="tools"><button id="print">인쇄 / PDF 저장</button><button id="download">사본 내려받기</button></div>
+      <article id="document"></article>
+      <section id="signPanel" class="panel" hidden><h2>내용 확인 후 서명</h2><p class="small">내용이 다르면 서명 전에 관리자에게 수정을 요청해 주세요.</p><form id="signForm"><label>계약자 성명<input id="signName" autocomplete="name" maxlength="80" required></label><label>서명된 사본을 받을 이메일<input id="receiptEmail" type="email" autocomplete="email" maxlength="254" required></label><div id="workerPad" class="signature-pad"></div><label class="check"><input id="workerConsent" type="checkbox" required><span id="workerConsentText"></span></label><button id="sign" class="primary">동의하고 서명 완료</button></form></section>
+      <section id="signedPanel" class="panel" hidden><h2>서명을 완료했습니다</h2><p id="signedInfo" class="small"></p><p class="small">아래에서 서명된 사본을 보관하세요. 지정한 이메일로 사본을 전달하도록 관리자에게 표시됩니다.</p><div class="tools"><button id="signedDownload" class="primary">서명된 사본 내려받기</button><button id="signedPrint">인쇄 / PDF 저장</button></div></section>
+    </div>
+  </main>
+</body></html>

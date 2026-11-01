@@ -1,6 +1,7 @@
 import { isAdminPasswordValid, createAdminSessionCookie, clearAdminSessionCookie, getAdminLoginAttemptState, recordFailedAdminLogin, resetAdminLoginAttempts } from '../../_config.js';
 import { isStaffAdminAuthorized, isStaffAdminPasswordValid, createStaffAdminCookie, clearStaffAdminCookie } from '../../_staff-admin-access.js';
 import { callSchedule, employeeToken, staffCookie, tokenHash, json, fail } from '../../_staff-schedule.js';
+import { contractCookie, contractSession } from '../../_staff-contracts.js';
 
 export async function onRequest({ request, env, params }) {
   const path = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
@@ -36,6 +37,18 @@ export async function onRequest({ request, env, params }) {
     const response = await callSchedule(env, { action: 'identity', credential: await tokenHash(body.token) });
     if (!response.ok) return response;
     return json(await response.json(), 200, { 'set-cookie': staffCookie(body.token) });
+  }
+  if (path === 'contract/login' && mutation) {
+    const response=await callSchedule(env,{action:'contract-login',body});
+    if(!response.ok)return response;
+    const data=await response.json();
+    return json({ok:true},200,{'set-cookie':contractCookie(data.session)});
+  }
+  if(path === 'contract/logout' && mutation)return json({ok:true},200,{'set-cookie':contractCookie('')});
+  if(path === 'contract')return callSchedule(env,{action:mutation?'contract-sign':'contract-read',session:contractSession(request),body});
+  if(path === 'admin/contracts') {
+    if(!await isStaffAdminAuthorized(request,env))return fail('근무표 관리자 로그인이 필요합니다.',401);
+    return callSchedule(env,mutation?{action:'admin-write',body}:{action:'admin-contracts',id:url.searchParams.get('id')||''});
   }
   if (path === 'admin') {
     if (!await isStaffAdminAuthorized(request, env)) return fail('근무표 관리자 로그인이 필요합니다.', 401);

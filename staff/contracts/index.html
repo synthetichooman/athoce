@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <title>근로계약 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/interlining/styles.css"><link rel="stylesheet" href="/staff/styles.css"><link rel="stylesheet" href="/staff/payroll/styles.css"><link rel="stylesheet" href="/staff/contracts/styles.css?v=20261101-1">
+  <script type="module" src="/staff/contracts/app.js?v=20261101-1"></script>
+</head><body>
+  <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44"></a><span>STAFF / CONTRACTS</span></div></header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>근로계약 관리</h1></div><nav aria-label="관리 메뉴"><a href="/staff/admin/">근무표</a><a href="/staff/payroll/">급여 관리</a><button id="logout" hidden>로그아웃</button></nav></div>
+    <section id="loginPanel" class="panel" hidden><h2>관리자 로그인</h2><p class="small">근무표 관리자 비밀번호로 접속하세요.</p><form id="loginForm"><label>비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="primary">로그인</button></form></section>
+    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
+    <div id="dashboard" hidden>
+      <section id="listPanel">
+        <div class="contract-toolbar"><div><h2>스태프별 계약서</h2><p id="counts" class="small"></p></div><div class="tools"><label>직원<select id="employeeFilter"><option value="">전체 직원</option></select></label><button id="refresh">새로고침</button><button id="newContract" class="primary">새 계약서</button></div></div>
+        <p id="empty" class="empty-state" hidden>아직 작성한 계약서가 없습니다.<br>직원을 선택하고 새 계약서를 작성하세요.</p>
+        <div id="contracts"></div>
+        <p class="small footer-note">작성 → 고용주 서명 및 링크 전달 → 스태프 서명 → 사본 전달 기록</p>
+      </section>
+      <section id="editor" hidden>
+        <div class="section-heading"><div><button id="back" class="text-button">← 계약서 목록</button><h2 id="editorTitle"></h2><p id="editorMeta" class="small"></p></div><span id="contractState" class="badge"></span></div>
+        <section id="sharePanel" class="share-panel" hidden><h3>서명·열람 링크가 발급되었습니다</h3><p class="small">링크와 확인코드는 지금만 표시됩니다. 본인에게만 전달하고, 확인코드는 별도로 알려주세요. 자동 발송되지 않습니다.</p><label>전달할 링크<input id="shareLink" readonly></label><div class="tools"><button id="copyLink">링크 복사</button></div><label>별도로 전달할 확인코드<input id="shareCode" readonly></label><div class="tools"><button id="copyCode">확인코드 복사</button><button id="hideShare">닫기</button></div></section>
+        <form id="contractForm"><label class="employee-label">계약할 직원<select id="employee" required></select></label><p class="small">급여 부담 표시(at·ho·ce·athoce)와 실제 고용주 정보는 별개입니다.</p><div id="fields"></div><div class="tools form-actions"><button id="save" class="primary">초안 저장</button><button id="request" type="button">저장한 계약서 서명 요청</button><span id="dirtyState" class="small"></span></div></form>
+        <div id="recordActions" class="tools" hidden><button id="rotate">새 링크·확인코드 발급</button><button id="clone">이 내용으로 새 계약</button><button id="withdraw">요청 취소</button></div>
+        <section id="deliveryPanel" class="panel" hidden><h3 id="deliveryTitle">서명 완료 · 사본 전달 대기</h3><p id="deliveryInfo" class="small"></p><p id="deliveryHelp" class="small">사본을 내려받아 지정된 이메일로 직접 보내주세요. 전달을 마친 뒤 아래에 기록하세요.</p><form id="deliveryForm"><label>전달 방법·일시 메모<input id="deliveryNote" maxlength="500" required placeholder="예: 서명된 HTML 사본을 수령 이메일로 발송"></label><label class="check"><input id="deliveryConfirm" type="checkbox" required>계약서 사본을 실제로 전달했습니다.</label><button>사본 전달 완료 기록</button></form></section>
+        <div class="preview-heading"><h2>계약서 원문</h2><div class="tools"><button id="download">사본 내려받기</button><button id="print">인쇄 / PDF 저장</button><button id="evidence">서명 기록 JSON</button></div></div>
+        <article id="document"></article>
+        <details id="auditPanel" class="history"><summary>진행 이력</summary><div id="audit"></div></details>
+      </section>
+    </div>
+    <dialog id="issueDialog" aria-labelledby="issueTitle"><h2 id="issueTitle">고용주 서명 후 요청</h2><p id="issuerName" class="small"></p><div id="employerPad" class="signature-pad"></div><label class="check"><input id="employerConsent" type="checkbox"><span id="employerConsentText"></span></label><p id="issueError" role="alert" class="error"></p><div class="tools"><button id="cancelIssue">돌아가기</button><button id="confirmIssue" class="primary">서명하고 링크 발급</button></div></dialog>
+  </main>
+</body></html>
