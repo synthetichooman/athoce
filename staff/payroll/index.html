@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
+  <title>급여 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261030-1" /><link rel="stylesheet" href="/staff/payroll/styles.css?v=20261101-1" />
+  <script type="module" src="/staff/payroll/app.js?v=20261101-1"></script>
+</head>
+<body>
+  <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / PAYROLL</span></div></header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>급여 관리</h1></div><nav aria-label="관리 메뉴"><a href="/staff/admin/">근무표</a><button id="logout" hidden>로그아웃</button></nav></div>
+    <section id="loginPanel" class="panel" hidden><h2>관리자 로그인</h2><p class="small">근무표 관리자 비밀번호로 접속하세요.</p><form id="loginForm"><label>비밀번호<input id="password" type="password" autocomplete="current-password" required /></label><button class="primary" type="submit">로그인</button></form></section>
+    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
+    <div id="dashboard" hidden>
+      <div class="month-toolbar"><div><h2 id="monthTitle"></h2><p id="period" class="small"></p></div><div class="month-controls"><button id="previous" aria-label="이전 급여 월">←</button><label class="visually-hidden" for="month">급여 지급 월</label><input id="month" type="month" required /><button id="next" aria-label="다음 급여 월">→</button><button id="refresh">새로고침</button></div></div>
+      <section class="total-panel" aria-label="급여 합계"><div><span id="state" class="badge"></span><p id="totalLabel" class="small">예상 지급액</p><strong id="total"></strong><p id="totalMeta" class="small"></p></div><div id="payerTotals" class="payer-totals"></div></section>
+      <p id="sourceWarning" class="notice" hidden>급여 확정 이후 근무표 또는 구성원 정보가 바뀌었습니다. 현재 금액은 확정 당시 기록입니다. 반영하려면 확정을 취소하고 다시 검토하세요.</p>
+      <div class="section-heading"><h2>스태프별 급여</h2><div class="tools"><button id="copySettings">이전 달 시급 불러오기</button><button id="export">CSV 내려받기</button></div></div>
+      <p class="small basis">확정 근무표 기준 · 오늘까지 집계 · 실제 근무시간은 날짜별 수정 가능</p>
+      <div id="employees"></div>
+      <p id="empty" class="small" hidden>등록된 스태프가 없습니다. 근무표에서 스태프를 등록해 주세요.</p>
+      <section id="confirmation" class="panel confirmation"><div class="section-heading"><h2 id="confirmationTitle">급여 확정</h2><span id="confirmedAt" class="small"></span></div><div id="blockers"></div><p class="small">주휴수당·기타 수당과 세금·보험 공제는 자동 계산하지 않습니다. 해당 금액은 스태프별 수당·공제에 직접 반영하세요.</p><button id="finalize" class="primary">이번 급여 확정</button><form id="reopenForm" hidden><label>확정 취소 사유<input id="reopenReason" maxlength="300" required placeholder="수정이 필요한 내용을 입력하세요" /></label><button type="submit">확정 취소 후 수정</button></form></section>
+      <details id="historyPanel" class="history" hidden><summary>확정 변경 이력</summary><div id="history"></div></details>
+    </div>
+    <dialog id="confirmDialog" aria-labelledby="confirmTitle"><h2 id="confirmTitle">급여를 확정할까요?</h2><p id="confirmDescription"></p><p class="small">확정 당시의 근무·시급·지급액을 보관합니다.</p><div class="tools"><button id="cancelConfirm">돌아가기</button><button id="submitConfirm" class="primary">최종 확정</button></div></dialog>
+  </main>
+</body>
+</html>

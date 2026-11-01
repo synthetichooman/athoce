@@ -1,5 +1,7 @@
 import { DEFAULT_SETTINGS, json, fail, today, addDays, weekOf, monthDates, allowedMonth, validWeek, tokenHash, nextMonth } from '../../functions/_staff-schedule.js';
 
+import { readPayrun, writePayrun } from '../../functions/_staff-payrun.js';
+
 import { PAYROLL_PAYERS, payrollPeriod, payrollSummary } from '../../functions/_staff-payroll.js';
 
 const freshWeek = week => ({ week, version: 0, workflow: 'staged', openedAt: null, coreAssignments: {}, draft: {}, published: null, start: DEFAULT_SETTINGS.shiftStart, end: DEFAULT_SETTINGS.shiftEnd, required: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [addDays(week, i), 1])) });
@@ -40,10 +42,11 @@ export class StaffSchedule {
     const payload = await request.json().catch(() => null);
     if (!payload) return fail('잘못된 요청입니다.');
     const employees = await db.get('employees') || [];
-    const admin = ['admin-read', 'admin-payroll', 'admin-write'].includes(payload.action);
+    const admin = ['admin-read', 'admin-payroll', 'admin-payrun', 'admin-write'].includes(payload.action);
     const employee = !admin && employees.find(e => e.active && e.credential === payload.credential);
     if (!admin && !employee) return fail('직원 링크가 만료되었거나 사용 중지되었습니다. 관리자에게 새 링크를 요청해 주세요.', 401);
     if (payload.action === 'identity') return json({ ok: true, employee: publicEmployee(employee) });
+    if (payload.action === 'admin-payrun') return readPayrun(db, payload.month, employees);
     if (payload.action === 'admin-payroll') {
       if (!allowedMonth(payload.month)) return fail('조회 가능한 월을 선택해 주세요.');
       const schedules = new Map(await Promise.all(payrollPeriod(payload.month).weeks.map(async week => [week, await db.get(`week:${week}`)])));
@@ -117,6 +120,7 @@ export class StaffSchedule {
       return json({ ok: true });
     }
     if (!admin || payload.action !== 'admin-write') return fail('잘못된 요청입니다.');
+    if (typeof body.op === 'string' && body.op.startsWith('payrun.')) return writePayrun(db, body, employees);
     if (body.op === 'employee.add' || body.op === 'employee.rotate') {
       if (!validId(body.id) || typeof body.token !== 'string' || !/^[0-9a-f]{64}$/.test(body.token)) return fail('직원 정보를 확인해 주세요.');
       const credential = await tokenHash(body.token);
@@ -146,6 +150,8 @@ export class StaffSchedule {
     if (body.op === 'payroll.save') {
       // Accounting metadata is independent of publication; past confirmed shifts remain editable.
       if (!validWeek(body.week) || !datesOfWeek(body.week).includes(body.date) || typeof body.payer !== 'string' || (body.payer !== '' && !PAYROLL_PAYERS.includes(body.payer))) return fail('근무 날짜와 급여 지급 주체를 확인해 주세요.');
+      const paydayMonth = Number(body.date.slice(8)) <= 25 ? body.date.slice(0, 7) : nextMonth(body.date);
+      if ((await db.get(`payrun:${paydayMonth}`))?.snapshot) return fail('급여가 확정된 근무입니다. 급여 관리에서 확정을 취소한 뒤 수정해 주세요.', 409);
       const schedule = await db.get(`week:${body.week}`);
       if (!schedule || schedule.version !== body.version) return fail('근무표가 변경되었습니다. 새로고침 후 다시 확인해 주세요.', 409);
       const target = employees.find(e => e.id === body.employeeId && roleOf(e) === 'staff');
@@ -161,6 +167,7 @@ export class StaffSchedule {
       const target = employees.find(e => e.id === body.id && e.active);
       if (!target || !['core', 'staff'].includes(body.role)) return fail('직원 구분을 확인해 주세요.');
       if (roleOf(target) === body.role) return json({ ok: true });
+      if (body.role === 'core' && [...(await db.list({ prefix: 'payrun:' })).values()].some(r => r.settings?.[target.id] || r.adjustments?.[target.id] || Object.values(r.reconciliations || {}).some(day => day[target.id]) || r.snapshot?.report.rows.some(row => row.id === target.id) || r.history?.some(h => h.report.rows.some(row => row.id === target.id)))) return fail('급여 관리 이력이 있는 스태프입니다. 기존 직원을 사용 중지하고 운영진을 새로 등록해 주세요.', 409);
       if (body.role === 'core' && employees.filter(e => e.active && roleOf(e) === 'core').length >= 3) return fail('운영진은 3명까지 등록할 수 있습니다.', 409);
       const weeks = await db.list({ prefix: 'week:' });
       if ([...weeks.values()].some(w => addDays(w.week, 6) >= today() && (w.openedAt || w.published))) return fail('신청 중이거나 확정된 주가 있습니다. 직원 구분은 신청을 닫은 뒤 변경해 주세요.', 409);
@@ -173,6 +180,7 @@ export class StaffSchedule {
       if ([...weeks.values()].some(w => w.openedAt && !w.published && Object.entries(w.coreAssignments || {}).some(([d, ids]) => d >= today() && ids.includes(body.id)))) return fail('먼저 스태프 신청을 닫고 운영진 일정을 수정해 주세요.', 409);
       if ([...weeks.values()].some(w => Object.entries(w.published?.assignments || {}).some(([d, ids]) => d >= today() && ids.includes(body.id)))) return fail('먼저 앞으로의 확정 근무에서 이 직원을 해제하고 다시 확정해 주세요.', 409);
       if (body.op === 'employee.delete') {
+        if ([...(await db.list({ prefix: 'payrun:' })).values()].some(r => r.settings?.[target.id] || r.adjustments?.[target.id] || Object.values(r.reconciliations || {}).some(day => day[target.id]) || r.snapshot?.report.rows.some(row => row.id === target.id) || r.history?.some(h => h.report.rows.some(row => row.id === target.id)))) return fail('급여 관리 이력이 있습니다. 삭제 대신 사용 중지해 주세요.', 409);
         if ([...weeks.values()].some(w => Object.values(w.published?.assignments || {}).some(ids => ids.includes(body.id)))) return fail('확정 근무 이력이 있습니다. 삭제 대신 사용 중지해 주세요.', 409);
         for (const [key, month] of await db.list({ prefix: 'month:' })) { delete month[body.id]; await db.put(key, month); }
         for (const [key, week] of weeks) { let changed = false; for (const [date, ids] of Object.entries(week.manualAssignments || {})) if (ids.includes(body.id)) { week.manualAssignments[date] = ids.filter(id => id !== body.id); changed = true; } for (const [date, ids] of Object.entries(week.draft)) { if (ids.includes(body.id)) { week.draft[date] = ids.filter(id => id !== body.id); changed = true; } } if (changed) { week.version++; await db.put(key, week); } }

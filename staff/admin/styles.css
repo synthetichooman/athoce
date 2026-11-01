@@ -170,3 +170,6 @@ dialog::backdrop { background: #0004; }
 .payer-field { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 160px); gap: 14px; align-items: center; margin-top: 12px; font-size: 13px; }
 .payer-field select { margin: 0; width: 100%; background: #f3f4f1; color: #303b34; border: 1px solid #cbd1c9; border-radius: 6px; }
 .payroll-table .payer-unassigned { color: #8a622e; background: #faf6ed; }
+
+.admin-navigation { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: end; }
+.admin-navigation a { font-size: 13px; text-underline-offset: 4px; }
