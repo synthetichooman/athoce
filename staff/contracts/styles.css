@@ -4,51 +4,51 @@ main {max-width:1100px;}
 .contract-toolbar .tools {align-items:end;}
 .contract-toolbar .tools label {min-width:150px;}
 #counts {margin:8px 0 0;}
-.empty-state {padding:64px 24px;text-align:center;line-height:2;background:#edf1e8;color:#64735f;}
-.contract-card {display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px;background:#fafbf8;border:1px solid #d3dbd0;margin-bottom:12px;}
+.empty-state {padding:64px 24px;text-align:center;line-height:2;background:var(--ui-subtle);color:var(--ui-muted);}
+.contract-card {display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px;background:var(--ui-surface);border:1px solid var(--ui-line);margin-bottom:12px;}
 .contract-card h3 {font-size:17px;margin-bottom:8px;}
 .contract-card .small {margin-bottom:0;}
 .contract-card .badge {margin:0 0 12px;}
 .contract-card .card-end {text-align:right;flex-shrink:0;}
 .footer-note {margin-top:28px;}
-.text-button {border:0!important;background:transparent;padding:0;min-height:32px;color:#657460;font-size:12px;}
+.text-button {border:0!important;background:transparent;padding:0;min-height:32px;color:var(--ui-muted);font-size:12px;}
 #editorTitle {font-size:24px;margin:14px 0 10px;}
 #editorMeta {margin:0;}
 #contractState {margin-bottom:0;}
 #contractForm {margin:24px 0 32px;}
 .employee-label {max-width:320px;margin-bottom:12px;}
-.form-section {border:1px solid #d3dbd0;background:#fafbf8;margin:16px 0;}
+.form-section {border:1px solid var(--ui-line);background:var(--ui-surface);margin:16px 0;}
 .form-section > summary {padding:20px 24px;cursor:pointer;font-size:15px;}
 .field-grid {display:grid;grid-template-columns:1fr 1fr;gap:22px 24px;padding:8px 24px 28px;}
 .field-grid .full {grid-column:1/-1;}
 .field-grid p {margin:0;}
-.form-actions {position:sticky;bottom:0;background:#eef2e9ef;padding:18px;border:1px solid #d2ddcc;z-index:2;backdrop-filter:blur(8px);}
+.form-actions {position:sticky;bottom:0;background:var(--ui-floating);padding:18px;border:1px solid var(--ui-line);z-index:2;backdrop-filter:blur(8px);}
 #recordActions {margin:22px 0;}
 .preview-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:36px 0 20px;}
-.contract-document {background:#fdfefb;padding:40px;border:1px solid #d4ddce;line-height:1.85;font-size:13px;}
+.contract-document {background:var(--ui-surface);padding:40px;border:1px solid var(--ui-line);line-height:1.85;font-size:13px;}
 .contract-document > h2 {text-align:center;font-size:26px;letter-spacing:.12em;margin:16px 0 32px;}
 .contract-document > p {margin:0 0 24px;}
 .contract-document h3 {font-size:15px;margin:28px 0 12px;}
 .contract-document dl {display:grid;grid-template-columns:190px 1fr;margin:0;}
-.contract-document dt,.contract-document dd {margin:0;padding:10px 12px;border-bottom:1px solid #e2e8dd;white-space:pre-wrap;overflow-wrap:anywhere;}
-.contract-document dt {color:#64735f;}
-.document-eyebrow {font-size:10px;letter-spacing:.1em;color:#64735f;}
-.document-signatures {display:grid;grid-template-columns:1fr 1fr;gap:32px;border-top:1px solid #c9d5c3;margin-top:32px;}
+.contract-document dt,.contract-document dd {margin:0;padding:10px 12px;border-bottom:1px solid var(--ui-line);white-space:pre-wrap;overflow-wrap:anywhere;}
+.contract-document dt {color:var(--ui-muted);}
+.document-eyebrow {font-size:10px;letter-spacing:.1em;color:var(--ui-muted);}
+.document-signatures {display:grid;grid-template-columns:1fr 1fr;gap:32px;border-top:1px solid var(--ui-line);margin-top:32px;}
 .document-signatures svg {width:100%;height:130px;}
 .document-signatures .small {font-size:10px;}
 .typed-signature {font-family:serif;font-size:28px;padding:28px 8px;}
-.document-meta {border-top:1px solid #c9d5c3;margin-top:24px;padding-top:16px;font-size:10px;color:#6d7968;overflow-wrap:anywhere;}
+.document-meta {border-top:1px solid var(--ui-line);margin-top:24px;padding-top:16px;font-size:10px;color:var(--ui-muted);overflow-wrap:anywhere;}
 .document-meta p {margin-bottom:6px;}
-.share-panel {padding:24px;background:#e6eee0;border:1px solid #c2d4b7;margin:24px 0;display:grid;gap:16px;}
+.share-panel {padding:24px;background:var(--ui-subtle);border:1px solid var(--ui-line);margin:24px 0;display:grid;gap:16px;}
 .share-panel p,.share-panel h3 {margin:0;}
 .share-panel input {font-family:ui-monospace,monospace;}
 .check {display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.8;margin:20px 0;}
-.check input[type=checkbox] {width:18px;min-height:18px;height:18px;flex:0 0 18px;margin:2px 0 0;accent-color:#486c40;}
-.signature-pad canvas {display:block;width:100%;height:auto;aspect-ratio:500/170;touch-action:none;border:1px solid #b5c5ae;background:#f4f7ef;}
+.check input[type=checkbox] {width:18px;min-height:18px;height:18px;flex:0 0 18px;margin:2px 0 0;accent-color:var(--ui-accent);}
+.signature-pad canvas {display:block;width:100%;height:auto;aspect-ratio:500/170;touch-action:none;border:1px solid var(--ui-line);background:var(--ui-bg);}
 .signature-pad .small {margin:8px 0 12px;}
 .signature-pad .check {margin:16px 0;}
 #issueDialog {width:min(600px,calc(100% - 24px));max-height:90dvh;overflow:auto;}
-.error {color:#a24f35;font-size:12px;line-height:1.7;}
+.error {color:var(--ui-danger);font-size:12px;line-height:1.7;}
 #deliveryForm {display:grid;gap:16px;}
 #deliveryForm .check {margin:0;}
 #deliveryForm button {justify-self:start;}
@@ -60,7 +60,7 @@ main {max-width:1100px;}
 #signPanel {margin-top:28px;}
 #signForm {display:grid;gap:20px;}
 #signForm .check {margin:0;}
-#signedPanel {margin-top:28px;background:#e8efe2;}
+#signedPanel {margin-top:28px;background:var(--ui-subtle);}
 #signedPanel h2 {margin-bottom:12px;}
 #signedPanel .tools {margin-top:20px;}
 @media(max-width:680px){
@@ -75,5 +75,5 @@ main {max-width:1100px;}
 }
 @media print {
  body {background:white;}.site-header,.page-title,#status,#listPanel,#loginPanel,#editor>.section-heading,#sharePanel,#contractForm,#recordActions,#deliveryPanel,.preview-heading,#auditPanel,#accessPanel,.recipient-intro,#signPanel,#signedPanel,#recipientTools {display:none!important;}
- main,.recipient-main {max-width:none;padding:0;margin:0;}.contract-document {border:0;padding:0;color:#222;background:white;}.contract-document dl{grid-template-columns:180px 1fr;}.contract-document dt {border-bottom:1px solid #ddd;padding:10px 12px;}.contract-document dd {padding:10px 12px;}.contract-document section {break-inside:auto;}.contract-document h3 {break-after:avoid;}.document-signatures {break-inside:avoid;}button {display:none!important;}
+ main,.recipient-main {max-width:none;padding:0;margin:0;}.contract-document {border:0;padding:0;color:var(--ui-text);background:white;}.contract-document dl{grid-template-columns:180px 1fr;}.contract-document dt {border-bottom:1px solid var(--ui-line);padding:10px 12px;}.contract-document dd {padding:10px 12px;}.contract-document section {break-inside:auto;}.contract-document h3 {break-after:avoid;}.document-signatures {break-inside:avoid;}button {display:none!important;}
 }
