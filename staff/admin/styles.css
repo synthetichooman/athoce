@@ -59,6 +59,23 @@ button.month-day:hover { background: var(--ui-bg); color: var(--ui-text); }
 .staff-choice:has(input:checked) { background: var(--ui-text); color: var(--ui-surface); }
 .staff-choice input[type="radio"] { display: inline-block; appearance: auto; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; accent-color: var(--ui-accent); }
 .staff-choice:focus-within { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+/* Soft tints of Apple's blue, purple, orange, pink and green. */
+:is(.calendar-member, .staff-choice)[data-member="at"] { --member-bg: #e8f2ff; --member-line: #c6ddfb; --member-ink: #185a9d; }
+:is(.calendar-member, .staff-choice)[data-member="ho"] { --member-bg: #f3eafb; --member-line: #dfcbf2; --member-ink: #74419a; }
+:is(.calendar-member, .staff-choice)[data-member="ce"] { --member-bg: #fff1df; --member-line: #f4d6af; --member-ink: #8a501b; }
+:is(.calendar-member, .staff-choice)[data-member="유민"] { --member-bg: #fdebf0; --member-line: #f2c8d6; --member-ink: #9c3f60; }
+:is(.calendar-member, .staff-choice)[data-member="최건"] { --member-bg: #e8f4ec; --member-line: #c8e3d0; --member-ink: #2f6b42; }
+.calendar-member[data-role][data-member], .staff-choice[data-member] {
+  background: var(--member-bg, var(--ui-bg));
+  border-color: var(--member-line, var(--ui-line));
+  color: var(--member-ink, var(--ui-text));
+}
+.staff-choice[data-member]:has(input:checked) {
+  background: var(--member-bg, var(--ui-accent-soft));
+  border-color: var(--ui-accent);
+  color: var(--member-ink, var(--ui-accent-ink));
+  box-shadow: 0 0 0 1px var(--ui-accent);
+}
 .day-details { display: grid; gap: 6px; margin-top: 18px; font-size: 11px; line-height: 1.7; color: var(--ui-muted); }
 .day-warning { color: var(--ui-danger); }
 .draft-state { margin: 20px 0 12px; }
@@ -144,7 +161,7 @@ dialog::backdrop { background: var(--ui-backdrop); }
   .month-toolbar { margin: 0 0 16px; }
   button.month-day { min-height: 95px; background: var(--ui-surface) !important; color: var(--ui-text) !important; box-shadow: none !important; break-inside: avoid; }
   .month-calendar, .month-weekdays { break-inside: avoid; }
-  .calendar-member[data-role="core"] { background: var(--ui-surface); color: var(--ui-text); font-weight: 600; }
+  .calendar-member[data-role][data-member] { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .month-weekdays { background: var(--ui-surface); color: var(--ui-text); }
   .month-day[data-today="true"] .cell-date { background: var(--ui-surface); }
 }

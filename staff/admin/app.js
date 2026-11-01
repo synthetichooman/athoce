@@ -52,6 +52,7 @@ function renderDays() {
   for (const e of [...available, null]) {
     const ids = e ? [e.id] : []; const key = e?.id || 'off'; const label = e ? employeeLabel(e) : '휴무';
     const choice = el('label', null, 'staff-choice'); const radio = el('input'); radio.type = 'radio'; radio.name = 'day-assignment'; radio.value = key;
+    if (e) choice.dataset.member = label.trim().toLowerCase();
     radio.checked = e ? assigned.length === 1 && assigned[0] === e.id : data.schedule.required[date] === 0 && !assigned.length;
     radio.disabled = past || (e && !e.active); radio.setAttribute('aria-label', `${dateLabel(date)} ${label}${e ? ' 배정' : ''}`); radio.dataset.employee = key;
     radio.onchange = () => {
@@ -169,6 +170,7 @@ function renderOverview() {
     for (const id of day.assigned.slice(0, 3)) {
       const employee = record.employees.find(e => e.id === id);
       const member = el('span', employeeLabel(employee), 'calendar-member'); member.dataset.role = employee?.role || 'staff';
+      member.dataset.member = employeeLabel(employee).trim().toLowerCase();
       member.dataset.draft = String(!record.schedule.published?.assignments[date]?.includes(id)); members.append(member);
     }
     if (day.assigned.length > 3) members.append(el('span', `외 ${day.assigned.length - 3}명`, 'cell-extra'));
