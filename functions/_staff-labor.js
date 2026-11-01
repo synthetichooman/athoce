@@ -1,5 +1,6 @@
 import { json, fail, today, tokenHash } from './_staff-schedule.js';
 import { validPayMonth } from './_staff-payrun.js';
+import { readForecast } from './_staff-forecast.js';
 import { laborReport, validDate, addDays, day, agreed, holidayReport } from '../staff/labor/model.js';
 const fresh = () => ({version:0,facts:{},overrides:{},attendance:{}});
 const number = (v,max) => Number.isSafeInteger(v)&&v>=0&&v<=max;
@@ -50,7 +51,8 @@ export async function readLabor(db,month,id,employees) {
   const selected=id||staff.find(e=>e.active)?.id||staff[0]?.id||'';
   if(selected&&!staff.some(e=>e.id===selected))return fail('스태프를 찾지 못했습니다.',404);
   const c=selected?await context(db,selected,month):{profile:null,record:fresh(),report:null,source:''};
-  return json({ok:true,employees:staff,employeeId:selected,month,profile:c.profile,record:c.record,report:c.report,source:c.source});
+  const forecast=await readForecast(db,month,employees.filter(e=>e.id===selected));
+  return json({ok:true,forecast,employees:staff,employeeId:selected,month,profile:c.profile,record:c.record,report:c.report,source:c.source});
 }
 export async function writeLabor(db,body,employees) {
   const {month,employeeId:id}=body;

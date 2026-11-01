@@ -1,5 +1,6 @@
 import { $,el,api,status,today,monthMove } from '../shared.js';
 import { registerAdminPanel } from '../admin/embed.js?v=20261101-1';
+import { renderForecast } from '../payroll/forecast.js?v=20261101-1';
 import { monthEnd } from './model.js';
 const endpoint='/api/staff/admin/labor',weekdays=['월','화','수','목','금','토','일'];
 let month=today().slice(0,7),employeeId='',data,busy=false;const dirtyForms=new Set();
@@ -19,12 +20,13 @@ async function save(body,form){if(busy)return;busy=true;$('#dashboard').inert=tr
 function metric(title,value,note){const box=el('div',null,'metric');box.append(el('h2',title),el('strong',value),el('p',note));$('#metrics').append(box);}
 function renderReport(){
  const r=data.report;if(!r)return;
+ renderForecast($('#forecast'),data.forecast);
  $('#metrics').replaceChildren();
  metric('주휴수당 예상',r.holidays.length? (r.holidayPending?(r.holidayTotal?won(r.holidayTotal)+' + 확인 중':'확인 필요'):won(r.holidayTotal)):'확인 필요',`확인분 ${won(r.holidayTotal)} · ${r.holidayPending}건 확인·예정 / 조건 충족 시 합계 ${won(r.holidayPotential)}`);
  metric('월 60시간 · 주 15시간',`${r.monthly.missing?'확인 필요':r.monthly.minutes>=3600?'월 충족':'월 미달'} / ${r.recent?.met==null?'확인 필요':r.recent.met?'주 충족':'주 미달'}`,`월 약정 ${r.monthly.missing?'확인 필요':hours(r.monthly.minutes)} · 최근 4주 평균 ${r.recent?.missing?'확인 필요':hours(r.recent?.average)}`);
  const s=r.retirement;
  metric('퇴직급여 인정기간',s.ready?`${s.eligible.toLocaleString()}일`:'입사일 입력',`제외 ${s.excluded}일 · 확인 대기 ${s.unknown}일 / 365일 도달 ${s.eligible>=365?'(참고)':'전'}`);
- metric('사업주 보험료',r.insurance.total==null?'확인 필요':won(r.insurance.total),`계산 가능 합계 ${won(r.insurance.subtotal)} · ${r.insurance.pending}개 항목 확인 대기`);
+ metric('신고 기준 보험료',r.insurance.total==null?'확인 필요':won(r.insurance.total),`계산 가능 합계 ${won(r.insurance.subtotal)} · ${r.insurance.pending}개 항목 확인 대기`);
  $('#basis').textContent=`시간·보험: ${month} 1일~말일 / 근속·4주 평균: ${r.asOf} 기준 / ${data.profile?.employer||'실제 사용자 미입력'}`;
  $('#holidayBasis').textContent=`25일 급여 기준 ${r.period.start} ~ ${r.period.end}에 도래하는 주휴일`;
  $('#holidays').replaceChildren();

@@ -1,5 +1,6 @@
 import { addDays, weekOf, monthDates, today, tokenHash, json, fail } from './_staff-schedule.js';
 import { PAYROLL_PAYERS, payrollPeriod } from './_staff-payroll.js';
+import { readForecast } from './_staff-forecast.js';
 
 // Payroll history must remain accessible after the scheduling calendar moves on.
 export function validPayMonth(month) {
@@ -83,7 +84,8 @@ async function context(db, month, employees) {
 export async function readPayrun(db, month, employees) {
   if (!validPayMonth(month)) return fail('급여 월을 확인해 주세요.');
   const { record, schedules, live, source, basis } = await context(db, month, employees);
-  return json({ ok: true, version: record.version, source, scheduleVersions: Object.fromEntries([...schedules].map(([week, schedule]) => [week, schedule?.version ?? 0])), state: record.snapshot ? 'finalized' : 'draft', report: record.snapshot?.report || live, blockers: record.snapshot ? [] : live.blockers, sourceChanged: !!record.snapshot && record.snapshot.basis !== basis, confirmedAt: record.snapshot?.confirmedAt || null, revision: record.history.length + (record.snapshot ? 1 : 0), history: record.history.map(s => ({ confirmedAt:s.confirmedAt, reopenedAt:s.reopenedAt, reason:s.reason, total:s.report.totals.total })), settings: record.settings });
+  const forecast = await readForecast(db, month, employees);
+  return json({ ok: true, forecast, version: record.version, source, scheduleVersions: Object.fromEntries([...schedules].map(([week, schedule]) => [week, schedule?.version ?? 0])), state: record.snapshot ? 'finalized' : 'draft', report: record.snapshot?.report || live, blockers: record.snapshot ? [] : live.blockers, sourceChanged: !!record.snapshot && record.snapshot.basis !== basis, confirmedAt: record.snapshot?.confirmedAt || null, revision: record.history.length + (record.snapshot ? 1 : 0), history: record.history.map(s => ({ confirmedAt:s.confirmedAt, reopenedAt:s.reopenedAt, reason:s.reason, total:s.report.totals.total })), settings: record.settings });
 }
 export async function writePayrun(db, body, employees) {
   if (!validPayMonth(body.month)) return fail('급여 월을 확인해 주세요.');

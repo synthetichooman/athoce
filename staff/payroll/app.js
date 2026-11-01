@@ -1,5 +1,6 @@
 import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, today, monthMove, weekOf, dateLabel } from '../shared.js';
+import { renderForecast } from './forecast.js?v=20261101-1';
 const payers = ['at','ho','ce','athoce'];
 const won = n => `${Number(n).toLocaleString('ko-KR')}원`;
 const hours = m => `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}`;
@@ -50,7 +51,7 @@ function payerSelect(labelText, value = '') {
 function employeeCard(row) {
   const final = data.state === 'finalized'; const card = el('details',null,'employee'); card.dataset.id = row.id;
   const summary = el('summary'); const person = el('span',null,'person'); person.append(el('strong',row.name),el('span',`${row.shifts.length}회 · ${hours(row.minutes)}${row.active ? '' : ' · 사용 중지'}`,'small'));
-  summary.append(person,el('span',won(row.total),'money')); card.append(summary);
+  summary.append(person,el('span',!final && row.shifts.length && !row.hourlyRate ? '시급 설정 필요' : won(row.total),'money')); card.append(summary);
   const content = el('div',null,'employee-content'); card.append(content);
   const settings = el('form',null,'settings-form'); settings.setAttribute('aria-label',`${row.name} 시급 설정`);
   const rate = input('시급 (원)',{value:row.hourlyRate,min:1,max:1000000,placeholder:'시급 입력'});
@@ -132,11 +133,13 @@ function render() {
   $('#monthTitle').textContent = `${Number(month.slice(0,4))}년 ${Number(month.slice(5))}월 급여`;
   $('#period').textContent = `${report.start.replaceAll('-','.')} — ${report.end.replaceAll('-','.')} · 지급일 ${Number(month.slice(5))}월 25일`;
   $('#state').textContent = final ? '확정' : '검토 중'; $('#state').dataset.final = final;
-  $('#totalLabel').textContent = final ? '최종 지급액' : '예상 지급액';
-  $('#total').textContent = won(report.totals.total);
+  renderForecast($('#forecast'),data.forecast);
+  $('#totalLabel').textContent = final ? '최종 지급액' : '오늘까지 집계액';
+  const amountPending = !final && data.blockers.some(s => /시급|휴게시간|근무 시간을/.test(s));
+  $('#total').textContent = amountPending ? '정산 설정 확인 필요' : won(report.totals.total);
   $('#totalMeta').textContent = `${report.totals.shifts}회 · ${hours(report.totals.minutes)} · 수당·공제 ${won(report.totals.adjustment)}`;
   $('#payerTotals').replaceChildren();
-  for (const payer of payers) { const item = el('div'); item.append(el('span',payer),el('strong',won(report.totals.payers[payer]))); $('#payerTotals').append(item); }
+  for (const payer of payers) { const item = el('div'); item.append(el('span',payer),el('strong',amountPending ? '확인 필요' : won(report.totals.payers[payer]))); $('#payerTotals').append(item); }
   if (report.totals.payers.unassigned) { const item = el('div'); item.append(el('span','미지정'),el('strong',won(report.totals.payers.unassigned))); $('#payerTotals').append(item); }
   $('#sourceWarning').hidden = !data.sourceChanged;
   $('#employees').replaceChildren(...report.rows.map(employeeCard)); $('#empty').hidden = !!report.rows.length;
