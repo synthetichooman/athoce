@@ -92,3 +92,25 @@ dialog .tools { justify-content:end; margin-top:24px; }
 .reconcile-form > p { margin:0; font-size:12px; }
 .reconcile-form button { justify-self:start; }
 @media(max-width:680px) { .reconcile-form { grid-template-columns:minmax(0,1fr); } }
+
+/* Payslip tools share the admin surface and spacing tokens. */
+.payslip-row-button { margin-top:20px; }
+.pay-item { display:flex; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid var(--ui-line); padding:14px 0; }
+.pay-item strong { font-size:12px; font-weight:500; }
+.pay-item p { margin:8px 0 0; overflow-wrap:anywhere; }
+.pay-item .tools { flex-shrink:0; }
+.pay-item-form { display:grid; grid-template-columns:100px 100px minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:end; padding:20px; background:var(--ui-subtle); border-radius:var(--ui-radius); }
+.pay-item-form label:nth-child(5) { grid-column:1/4; }
+#payslipDialog { width:min(640px,calc(100% - 32px)); max-height:calc(100dvh - 40px); overflow-y:auto; }
+#payslipDialog h2 { margin:0; }
+#payslipDialog .section-heading { margin-bottom:24px; }
+.payslip-fields { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+#payslipPreview { background:var(--ui-subtle); border-radius:var(--ui-radius); margin:24px 0 18px; padding:22px; }
+#payslipPreview:empty { display:none; }
+.payslip-person { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#payslipPreview dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:14px; font-size:13px; margin:22px 0 0; }
+#payslipPreview dt { color:var(--ui-muted); }
+#payslipPreview dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#payslipPreview dt:nth-last-child(2), #payslipPreview dd:last-child { border-top:1px solid var(--ui-line); padding-top:16px; color:var(--ui-accent-ink); font-weight:600; }
+#payslipNote { min-height:38px; margin-bottom:0; }
+@media(max-width:680px) { .pay-item-form { grid-template-columns:1fr 1fr; padding:16px; } .pay-item-form label:nth-child(5) { grid-column:1/-1; } .pay-item { align-items:start; flex-direction:column; } #payslipDialog { padding:22px 18px; } .payslip-fields { gap:16px 12px; } .payslip-fields label:nth-child(3) { grid-column:1/-1; } #payslipPreview { padding:18px; } }

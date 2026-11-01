@@ -64,6 +64,29 @@ test('adjustments balance by payer, require a reason, replace instead of add and
  assert.equal((await f.write({...body,version:3,amount:0,note:''})).status,200);assert.equal((await f.call()).data.report.totals.total,198000);
  assert.equal((await f.write({...body,version:4,payer:'ho',amount:-5000})).status,200);assert.ok((await f.call()).data.blockers.some(s=>s.includes('음수')));
 });
+test('itemized allowances and deductions preserve both sides, replace safely and freeze in final history',async t=>{
+ const f=fixture(t);await f.settings();
+ const item={op:'payrun.item',employeeId:f.id,id:'holiday-1',payer:'at',kind:'allowance',name:'주휴수당',amount:39600,calculation:'11,000원 × 3.6시간',version:1};
+ for(const change of [{amount:-1},{amount:1.2},{calculation:''},{name:''},{name:'가'.repeat(81)},{kind:'other'},{payer:'bad'},{id:'__proto__'}])assert.equal((await f.write({...item,...change})).status,400);
+ assert.equal((await f.write(item)).status,200);
+ assert.equal((await f.write({...item,id:'tax-1',kind:'deduction',name:'소득세',amount:1000,calculation:'확인한 원천징수세액',version:2})).status,200);
+ let r=(await f.call()).data;assert.equal(r.report.rows[0].items.length,2);assert.equal(r.report.totals.total,236600);
+ assert.equal((await f.write({...item,amount:40000,version:3})).status,200);r=(await f.call()).data;assert.equal(r.report.rows[0].items.length,2);assert.equal(r.report.totals.total,237000);
+ assert.equal((await f.write({op:'payrun.finalize',version:4,source:r.source})).status,200);
+ assert.equal((await f.write({...item,version:5})).status,409);
+ assert.equal((await f.write({op:'payrun.reopen',version:5,reason:'항목 정정'})).status,200);
+ assert.equal((await f.write({op:'payrun.item-delete',employeeId:f.id,id:'tax-1',version:6})).status,200);
+ assert.equal(f.state.get('payrun:2026-11').history[0].report.rows[0].items.length,2);
+ assert.equal((await f.call()).data.report.totals.total,238000);
+ assert.equal((await f.write({op:'payrun.item-delete',employeeId:f.id,id:'absent',version:7})).status,404);
+});
+test('item-only payroll history prevents deletion and old empty records retain their report shape',async t=>{
+ const f=fixture(t);const before=(await f.call()).data.report;assert.equal(Object.hasOwn(before.rows[0],'items'),false);
+ assert.equal((await f.write({op:'payrun.item',employeeId:f.id,id:'bonus',payer:'at',kind:'allowance',name:'상여',amount:1000,calculation:'정액 상여',version:0})).status,200);
+ for(const [key] of f.state)if(key.startsWith('week:'))f.state.delete(key);
+ assert.equal((await f.write({op:'employee.delete',id:f.id})).status,409);
+ assert.equal((await f.write({op:'employee.role',id:f.id,role:'core'})).status,409);
+});
 test('finalization rejects stale schedule sources, freezes totals and records a reasoned reopen history',async t=>{
  const f=fixture(t);await f.settings();let r=(await f.call()).data;
  f.state.get('week:2026-10-26').version++;

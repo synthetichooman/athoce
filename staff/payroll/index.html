@@ -4,8 +4,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" />
   <title>급여 관리 — athoce</title><link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261101-theme1" /><link rel="stylesheet" href="/staff/payroll/styles.css?v=20261101-theme1" />
-  <script type="module" src="/staff/payroll/app.js?v=20261101-4"></script>
+  <link rel="stylesheet" href="/interlining/styles.css" /><link rel="stylesheet" href="/staff/styles.css?v=20261101-theme1" /><link rel="stylesheet" href="/staff/payroll/styles.css?v=20261101-payslip1" />
+  <script type="module" src="/staff/payroll/app.js?v=20261101-payslip1"></script>
 <link rel="stylesheet" href="/staff/admin/embed.css?v=20261101-1"><link rel="stylesheet" href="/staff/payroll/forecast.css?v=20261101-theme1"><link rel="stylesheet" href="/staff/theme.css?v=20261101-1"></head>
 <body>
   <header class="site-header"><div class="site-header-inner"><a class="brand" href="/staff/admin/" aria-label="근무표 관리"><img src="/assets/athoce-symbol.svg" alt="athoce" width="75" height="44" /></a><span>STAFF / PAYROLL</span></div></header>
@@ -18,13 +18,22 @@
       <section id="forecast" class="forecast" aria-label="근무표 기준 예상"></section>
       <section class="total-panel" aria-label="급여 합계"><div><span id="state" class="badge"></span><p id="totalLabel" class="small">예상 지급액</p><strong id="total"></strong><p id="totalMeta" class="small"></p></div><div id="payerTotals" class="payer-totals"></div></section>
       <p id="sourceWarning" class="notice" hidden>급여 확정 이후 근무표 또는 구성원 정보가 바뀌었습니다. 현재 금액은 확정 당시 기록입니다. 반영하려면 확정을 취소하고 다시 검토하세요.</p>
-      <div class="section-heading"><h2>스태프별 정산</h2><div class="tools"><button id="copySettings">이전 달 시급 불러오기</button><button id="export">CSV 내려받기</button></div></div>
+      <div class="section-heading"><h2>스태프별 정산</h2><div class="tools"><button id="copySettings">이전 달 시급 불러오기</button><button id="payslips" class="primary">급여명세서</button><button id="export">CSV 내려받기</button></div></div>
       <p class="small basis">확정 근무표 기준 · 오늘까지 집계 · 실제 근무시간은 날짜별 수정 가능</p>
       <div id="employees"></div>
       <p id="empty" class="small" hidden>등록된 스태프가 없습니다. 근무표에서 스태프를 등록해 주세요.</p>
       <section id="confirmation" class="panel confirmation"><div class="section-heading"><h2 id="confirmationTitle">급여 확정</h2><span id="confirmedAt" class="small"></span></div><div id="blockers"></div><p class="small">주휴수당·보험 예상액은 노무·보험 탭에서 검토하세요. 최종 수당·근로자 공제는 이 화면에 직접 반영합니다. 사업주 보험료는 근로자 급여에서 공제하지 않습니다.</p><button id="finalize" class="primary">이번 급여 확정</button><form id="reopenForm" hidden><label>확정 취소 사유<input id="reopenReason" maxlength="300" required placeholder="수정이 필요한 내용을 입력하세요" /></label><button type="submit">확정 취소 후 수정</button></form></section>
       <details id="historyPanel" class="history" hidden><summary>확정 변경 이력</summary><div id="history"></div></details>
     </div>
+    <dialog id="payslipDialog" aria-labelledby="payslipTitle">
+      <div class="section-heading"><h2 id="payslipTitle">급여명세서</h2><button id="closePayslip" type="button" aria-label="명세서 창 닫기">닫기</button></div>
+      <form id="payslipForm">
+        <div class="payslip-fields"><label>스태프<select id="payslipEmployee" required></select></label><label>지급 주체<select id="payslipPayer" required></select></label><label>사업자명<input id="payslipIssuer" maxlength="120" placeholder="실제 급여를 지급하는 사업자명" required /></label><label>임금 지급일<input id="payslipDate" type="date" required /></label></div>
+        <div id="payslipPreview" aria-label="급여명세서 미리보기"></div>
+        <p id="payslipNote" class="small" role="status" aria-live="polite"></p>
+        <div class="tools"><button id="downloadPayslip" class="primary" type="submit" disabled>PDF 내려받기</button></div>
+      </form>
+    </dialog>
     <dialog id="confirmDialog" aria-labelledby="confirmTitle"><h2 id="confirmTitle">급여를 확정할까요?</h2><p id="confirmDescription"></p><p class="small">확정 당시의 근무·시급·지급액을 보관합니다.</p><div class="tools"><button id="cancelConfirm">돌아가기</button><button id="submitConfirm" class="primary">최종 확정</button></div></dialog>
   </main>
 </body>

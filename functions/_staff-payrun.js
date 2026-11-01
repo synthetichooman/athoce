@@ -61,14 +61,20 @@ export function calculatePayrun(month, employees, schedules, record, asOf = toda
       const adjustment = row.adjustments[payer];
       if (adjustment) { row.adjustment += adjustment.amount; row.payers[payer] += adjustment.amount; }
     }
+    const items = Object.values(record.items?.[employee.id] || {});
+    if (items.length) row.items = structuredClone(items);
+    for (const item of items) {
+      const signed = item.kind === 'deduction' ? -item.amount : item.amount;
+      row.adjustment += signed; row.payers[item.payer] += signed;
+    }
     row.total = row.base + row.adjustment;
     if (row.total < 0 || Object.values(row.payers).some(n => n < 0)) blockers.push(`${employee.name}: 지급 주체별 금액이 음수입니다. 공제를 확인해 주세요.`);
-    if (row.active || row.shifts.length || row.issues.length || row.reconciliations.length || row.adjustment || Object.keys(row.adjustments).length) rows.push(row);
+    if (row.active || row.shifts.length || row.issues.length || row.reconciliations.length || row.adjustment || Object.keys(row.adjustments).length || items.length) rows.push(row);
   }
   const totals = { base: 0, adjustment: 0, total: 0, minutes: 0, shifts: 0, payers: payerTotals() };
   for (const row of rows) { for (const key of ['base','adjustment','total','minutes']) totals[key] += row[key]; totals.shifts += row.shifts.length; for (const payer in totals.payers) totals.payers[payer] += row.payers[payer]; }
   if (asOf < end) blockers.push(`${end} 정산 기간이 끝난 뒤 확정할 수 있습니다.`);
-  if (!totals.shifts && !rows.some(r => r.adjustment)) blockers.push('확정할 급여 내역이 없습니다.');
+  if (!totals.shifts && !rows.some(r => r.adjustment || r.items?.length)) blockers.push('확정할 급여 내역이 없습니다.');
   return { month, start, end, payday: end, asOf, rows, totals, blockers: [...new Set(blockers)] };
 }
 
@@ -139,6 +145,18 @@ export async function writePayrun(db, body, employees) {
         if (body.scheduleVersion !== schedule.version) return fail('근무표가 변경되었습니다. 새로고침 후 다시 확인해 주세요.', 409);
         schedule.payers ||= {}; schedule.payers[body.date] ||= {}; schedule.payers[body.date][employee.id] = body.payer;
         schedule.version++; schedule.updatedAt = stamp(); await db.put(`week:${week}`, schedule);
+      } else if (body.op === 'payrun.item' || body.op === 'payrun.item-delete') {
+        if (typeof body.id !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(body.id)) return fail('수당·공제 항목을 확인해 주세요.');
+        const items = record.items?.[employee.id] || {};
+        if (body.op === 'payrun.item-delete') {
+          if (!Object.hasOwn(items, body.id)) return fail('삭제할 항목이 없습니다.', 404);
+          delete items[body.id];
+        } else {
+          if (!PAYROLL_PAYERS.includes(body.payer) || !['allowance','deduction'].includes(body.kind) || !Number.isSafeInteger(body.amount) || body.amount <= 0 || body.amount > 100000000 || typeof body.name !== 'string' || !body.name.trim() || body.name.length > 80 || !noteOK(body.calculation)) return fail('지급 주체, 항목명, 금액과 계산 방법을 확인해 주세요.');
+          if (!Object.hasOwn(items, body.id) && Object.keys(items).length >= 100) return fail('스태프별 수당·공제는 100개까지 저장할 수 있습니다.');
+          items[body.id] = { id:body.id, payer:body.payer, kind:body.kind, name:body.name.trim(), amount:body.amount, calculation:body.calculation.trim() };
+        }
+        record.items ||= {}; record.items[employee.id] = items;
       } else if (body.op === 'payrun.adjustment') {
         if (!PAYROLL_PAYERS.includes(body.payer) || !Number.isSafeInteger(body.amount) || Math.abs(body.amount) > 100000000 || (body.amount !== 0 && !noteOK(body.note))) return fail('지급 주체, 조정 금액과 사유를 확인해 주세요.');
         record.adjustments[employee.id] ||= {};

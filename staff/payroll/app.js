@@ -1,6 +1,8 @@
 import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, today, monthMove, weekOf, dateLabel } from '../shared.js';
 import { renderForecast } from './forecast.js?v=20261101-1';
+import { setupPayslips } from './payslip-ui.js?v=20261101-payslip1';
+const openPayslip = setupPayslips(() => data, () => dirty || busy);
 const payers = ['at','ho','ce','athoce'];
 const won = n => `${Number(n).toLocaleString('ko-KR')}원`;
 const hours = m => `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}`;
@@ -112,18 +114,42 @@ function employeeCard(row) {
   const adjustments = el('details',null,'subsection'); adjustments.append(el('summary',`수당·공제 · ${won(row.adjustment)}`));
   const list = el('div',null,'adjustments');
   for (const payer of payers) if (row.adjustments[payer]) { const item = row.adjustments[payer]; list.append(el('p',`${payer} · ${won(item.amount)} · ${item.note}`)); }
-  if (!list.childElementCount) list.append(el('p','등록된 수당·공제가 없습니다.','small'));
+  if (!list.childElementCount && !row.items?.length) list.append(el('p','등록된 수당·공제가 없습니다.','small'));
   adjustments.append(list);
-  if (!final) {
+  if (!final && Object.keys(row.adjustments).length) {
     const form = el('form',null,'adjust-form'); form.setAttribute('aria-label',`${row.name} 수당 공제`);
     const payer = payerSelect('지급 주체'); const amount = input('조정액 (원)',{value:0,min:-100000000,max:100000000});
     const note = input('수당·공제 사유',{type:'text',required:false,placeholder:'예: 주휴수당, 세금 공제'});
     const button = el('button','조정액 저장'); button.type = 'submit'; form.append(payer.label,amount.label,note.label,button);
     payer.node.onchange = () => { amount.node.value = row.adjustments[payer.node.value]?.amount || 0; note.node.value = row.adjustments[payer.node.value]?.note || ''; };
     form.onsubmit = e => { e.preventDefault(); save({op:'payrun.adjustment',employeeId:row.id,payer:payer.node.value,amount:Number(amount.node.value),note:note.node.value},'수당·공제를 저장했습니다.',form); };
-    adjustments.append(form,el('p','수당은 양수, 공제는 음수로 입력. 주체별 합산액을 저장하며 0원으로 저장하면 삭제됩니다.','small'));
+    adjustments.append(form,el('p','기존 합산액입니다. 아래에 항목별로 나눠 입력한 뒤 기존 합산액은 0원으로 저장해 중복을 없애 주세요.','small'));
   }
+  const items = row.items || [];
+  for (const item of items) {
+    const line = el('div',null,'pay-item'); const description=el('div');
+    description.append(el('strong',`${item.payer} · ${item.kind === 'deduction' ? '공제' : '수당'} · ${item.name} · ${won(item.amount)}`),el('p',item.calculation,'small'));
+    line.append(description);
+    if (!final) {
+      const actions=el('div',null,'tools'); const edit=el('button','수정');edit.type='button';edit.setAttribute('aria-label',`${row.name} ${item.name} 수정`); edit.onclick=()=>{ if(!leave())return; itemEditor.replaceChildren(itemForm(item)); };
+      const remove=el('button','삭제');remove.type='button';remove.setAttribute('aria-label',`${row.name} ${item.name} 삭제`); remove.onclick=()=>{if(confirm(`${item.name} 항목을 삭제할까요?`))save({op:'payrun.item-delete',employeeId:row.id,id:item.id},'항목을 삭제했습니다.');};actions.append(edit,remove);line.append(actions);
+    }
+    list.append(line);
+  }
+  function itemForm(item = {}) {
+    const form=el('form',null,'pay-item-form');form.setAttribute('aria-label',`${row.name} 항목별 수당 공제`);
+    const payer=payerSelect('지급 주체',item.payer || '');const kind=el('label','구분');const select=el('select');for(const [v,t] of [['allowance','수당'],['deduction','공제']]){const o=el('option',t);o.value=v;select.append(o);}select.value=item.kind||'allowance';kind.append(select);
+    const name=input('항목명',{type:'text',value:item.name||'',placeholder:'주휴수당 / 국민연금 등'});name.node.maxLength=80;
+    const amount=input('금액 (원)',{min:1,max:100000000,value:item.amount||'',placeholder:'양수로 입력'});
+    const calculation=input('계산 방법·근거',{type:'text',value:item.calculation||'',placeholder:'예: 11,000원 × 6시간 × 4주'});
+    const button=el('button',item.id?'항목 수정 저장':'항목 추가');button.type='submit';const id=item.id||crypto.randomUUID();
+    form.append(payer.label,kind,name.label,amount.label,calculation.label,button);
+    form.onsubmit=e=>{e.preventDefault();save({op:'payrun.item',employeeId:row.id,id,payer:payer.node.value,kind:select.value,name:name.node.value,amount:Number(amount.node.value),calculation:calculation.node.value},'수당·공제 항목을 저장했습니다.',form);};return form;
+  }
+  const itemEditor=el('div'); if(!final)itemEditor.append(itemForm());
+  adjustments.append(itemEditor);
   content.append(adjustments);
+  const pdfButton=el('button','급여명세서 PDF');pdfButton.type='button';pdfButton.className='payslip-row-button';pdfButton.onclick=()=>openPayslip(row.id);content.prepend(pdfButton);
   if (final) settings.querySelectorAll('input,button').forEach(node => { node.disabled = true; });
   return card;
 }
@@ -177,12 +203,14 @@ $('#submitConfirm').onclick = async () => { $('#confirmDialog').close(); await s
 $('#reopenForm').onsubmit = event => { event.preventDefault(); save({op:'payrun.reopen',reason:$('#reopenReason').value},'확정을 취소했습니다. 수정 후 다시 확정해 주세요.',$('#reopenForm')); };
 $('#dashboard').addEventListener('input',event => { if (event.target.closest('form')) { dirty = true; dirtyForms.add(event.target.closest('form')); } });
 window.addEventListener('beforeunload',event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+$('#payslips').onclick = () => openPayslip();
 $('#export').onclick = () => {
   const report = data.report;
   const records = [['급여월',month,'정산 시작',report.start,'정산 종료',report.end,'상태',data.state === 'finalized' ? '확정' : '검토 중'],['이름','근무일','시급','유급시간(분)','지급주체','기본급','수당/공제','합계','사유']];
   for (const row of report.rows) {
     for (const shift of row.shifts) records.push([row.name,shift.date,row.hourlyRate ?? '',shift.minutes,shift.payer || '미지정',shift.amount,0,shift.amount,[shift.note,shift.reconciliation?.note].filter(Boolean).join(' / ')]);
     for (const payer of payers) if (row.adjustments[payer]) { const a = row.adjustments[payer]; records.push([row.name,'수당/공제','','',payer,0,a.amount,a.amount,a.note]); }
+    for (const item of row.items || []) { const signed=item.kind==='deduction'?-item.amount:item.amount;records.push([row.name,item.name,'','',item.payer,0,signed,signed,item.calculation]); }
     records.push([row.name,'합계','',row.minutes,'',row.base,row.adjustment,row.total,'']);
   }
   records.push(['전체 합계','','',report.totals.minutes,'',report.totals.base,report.totals.adjustment,report.totals.total,'']);
