@@ -1,4 +1,5 @@
 import { $, el, api, status, randomToken, today } from '../shared.js';
+import { employeeLabel } from '../names.js?v=20261030-1';
 import { FIELDS, defaultTerms, EMPLOYER_CONSENT } from './model.js';
 import { renderDocument, signaturePad, labelState, when, downloadContract, downloadFile } from './shared.js';
 let data, current, dirty=false, busy=false, employerPad;
@@ -29,7 +30,7 @@ function login() {
 }
 function employeeOptions(select,all=false) {
   const chosen=select.value;select.replaceChildren();if(all){const option=el('option','전체 직원');option.value='';select.append(option);}
-  for(const employee of data.employees.filter(e=>all||e.active||e.id===current?.employeeId)) {const option=el('option',`${employee.name}${employee.active?'':' (사용 중지)'}`);option.value=employee.id;select.append(option);}
+  for(const employee of data.employees.filter(e=>all||e.active||e.id===current?.employeeId)) {const option=el('option',`${employeeLabel(employee)}${employee.active?'':' (사용 중지)'}`);option.value=employee.id;select.append(option);}
   if([...select.options].some(o=>o.value===chosen))select.value=chosen;
 }
 async function list() {
