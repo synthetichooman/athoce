@@ -1,3 +1,4 @@
+import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, randomToken, today } from '../shared.js';
 import { employeeLabel } from '../names.js?v=20261030-1';
 import { FIELDS, defaultTerms, EMPLOYER_CONSENT } from './model.js';
@@ -23,7 +24,7 @@ for(const [title,start,end] of groups) {
 $('#employerConsentText').textContent=EMPLOYER_CONSENT;
 function leave(){return !dirty||confirm('저장하지 않은 초안을 버릴까요?');}
 function clearShare(){$('#shareLink').value='';$('#shareCode').value='';$('#sharePanel').hidden=true;}
-function login() {
+function login() { if(window!==window.top)return;
   data=null;current=null;dirty=false;clearShare();$('#dashboard').hidden=true;$('#logout').hidden=true;$('#loginPanel').hidden=false;
   $('#contracts').replaceChildren();$('#document').replaceChildren();$('#audit').replaceChildren();$('#issueDialog').close();
   for(const input of Object.values(inputs))input.value='';
@@ -116,3 +117,5 @@ $('#loginForm').onsubmit=event=>{event.preventDefault();run(async()=>{await api(
 $('#logout').onclick=()=>{if(!leave())return;run(async()=>{await api('/api/staff/admin/logout',{});login();status('로그아웃했습니다.');});};
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
 run(async()=>{await list();status('');});
+
+registerAdminPanel(() => dirty || busy);

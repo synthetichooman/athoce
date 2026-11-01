@@ -10,6 +10,6 @@ export function status(message, error = false) { $('#status').textContent = mess
 export async function api(path, body) {
   const response = await fetch(path, { cache: 'no-store', credentials: 'same-origin', ...(body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }) });
   const result = await response.json();
-  if (!response.ok || !result.ok) { const error = new Error(result.error?.message || '요청을 완료하지 못했습니다.'); error.status = response.status; throw error; } return result;
+  if (!response.ok || !result.ok) { if(response.status===401 && path.startsWith('/api/staff/admin'))window.dispatchEvent(new Event('staff-api-unauthorized')); const error = new Error(result.error?.message || '요청을 완료하지 못했습니다.'); error.status = response.status; throw error; } if(body!==undefined && path.startsWith('/api/staff/admin') && !/\/(login|logout)$/.test(path))window.dispatchEvent(new Event('staff-api-saved')); return result;
 }
 export function randomToken() { return Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join(''); }

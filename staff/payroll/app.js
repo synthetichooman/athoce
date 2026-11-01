@@ -1,3 +1,4 @@
+import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, today, monthMove, weekOf, dateLabel } from '../shared.js';
 const payers = ['at','ho','ce','athoce'];
 const won = n => `${Number(n).toLocaleString('ko-KR')}원`;
@@ -5,7 +6,7 @@ const hours = m => `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ''}`
 const when = value => new Date(value).toLocaleString('ko-KR', { timeZone:'Asia/Seoul', year:'numeric', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
 let month = today().slice(0,7); let data; let busy = false; let dirty = false; const dirtyForms = new Set();
 $('#month').min = '2020-01'; $('#month').max = `${Number(today().slice(0,4)) + 1}-12`;
-function login() {
+function login() { if(window!==window.top)return;
   data = null; dirty = false; dirtyForms.clear(); $('#dashboard').hidden = true; $('#logout').hidden = true; $('#loginPanel').hidden = false;
   $('#employees').replaceChildren(); $('#payerTotals').replaceChildren(); $('#total').textContent = ''; $('#history').replaceChildren(); $('#confirmDialog').close();
 }
@@ -186,4 +187,5 @@ $('#export').onclick = () => {
   const blob = new Blob(['\ufeff'+records.map(row=>row.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob); const link = el('a'); link.href = url; link.download = `athoce-payroll-${month}.csv`; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+registerAdminPanel(() => dirty || busy);
 await load();

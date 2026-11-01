@@ -46,6 +46,10 @@ export async function onRequest({ request, env, params }) {
   }
   if(path === 'contract/logout' && mutation)return json({ok:true},200,{'set-cookie':contractCookie('')});
   if(path === 'contract')return callSchedule(env,{action:mutation?'contract-sign':'contract-read',session:contractSession(request),body});
+  if(path === 'admin/labor') {
+    if(!await isStaffAdminAuthorized(request,env))return fail('근무표 관리자 로그인이 필요합니다.',401);
+    return callSchedule(env,mutation?{action:'admin-write',body}:{action:'admin-labor',month:url.searchParams.get('month'),employeeId:url.searchParams.get('employeeId')||''});
+  }
   if(path === 'admin/contracts') {
     if(!await isStaffAdminAuthorized(request,env))return fail('근무표 관리자 로그인이 필요합니다.',401);
     return callSchedule(env,mutation?{action:'admin-write',body}:{action:'admin-contracts',id:url.searchParams.get('id')||''});

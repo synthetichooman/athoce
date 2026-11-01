@@ -1,3 +1,4 @@
+import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, today, weekOf, addDays, dateLabel, randomToken, monthMove } from '../shared.js';
 import { calendarDates, calendarWeeks, daySummary } from './calendar.js?v=20261030-1';
 import { employeeLabel } from '../names.js?v=20261030-1';
@@ -8,7 +9,7 @@ const minMonth = monthMove(today().slice(0, 7), -1); const maxMonth = monthMove(
 $('#month').min = minMonth; $('#month').max = maxMonth;
 const employeeName = id => employeeLabel(data.employees.find(e => e.id === id));
 function setDirty(value) { dirty = value; $('#draftState').textContent = value ? '저장하지 않은 변경이 있습니다.' : '저장 후 주간 확정을 눌러야 직원에게 공개됩니다.'; if (data) renderOverview(); }
-function login() { data = null; payroll = null; $('#payrollRows').replaceChildren(); $('#payrollPeriod').textContent = ''; $('#payrollBasis').textContent = ''; records.clear(); dirty = false; $('#dashboard').hidden = true; $('#logout').hidden = true; $('#loginPanel').hidden = false; $('#employees').replaceChildren(); $('#monthCalendar').replaceChildren(); $('#weekDays').replaceChildren(); $('#requests').replaceChildren(); $('#inviteDialog').close(); }
+function login() { if(window!==window.top)return; data = null; payroll = null; $('#payrollRows').replaceChildren(); $('#payrollPeriod').textContent = ''; $('#payrollBasis').textContent = ''; records.clear(); dirty = false; $('#dashboard').hidden = true; $('#logout').hidden = true; $('#loginPanel').hidden = false; $('#employees').replaceChildren(); $('#monthCalendar').replaceChildren(); $('#weekDays').replaceChildren(); $('#requests').replaceChildren(); $('#inviteDialog').close(); }
 function noUnsavedChanges() { if (dirty) { status('작성 중인 배정을 먼저 임시 저장해 주세요.', true); return false; } return true; }
 async function run(action, success) {
   if (busy) return false; busy = true; $('#dashboard').inert = true;
@@ -279,4 +280,5 @@ $('#loginForm').onsubmit = async event => {
 };
 $('#logout').onclick = async () => { if (busy || (dirty && !confirm('저장하지 않은 배정이 있습니다. 로그아웃할까요?'))) return; try { await api('/api/staff/admin/logout', {}); login(); status('로그아웃했습니다.'); } catch (error) { status(error.message, true); } };
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+registerAdminPanel(() => dirty || busy);
 await load();
