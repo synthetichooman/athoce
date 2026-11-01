@@ -5,7 +5,7 @@ import { StaffSchedule } from '../workers/staff-schedule/index.js';
 import { onRequest } from '../functions/api/staff/[[path]].js';
 import { createStaffAdminCookie } from '../functions/_staff-admin-access.js';
 import { CONTRACT_COOKIE, validateSignature, validateTerms } from '../functions/_staff-contracts.js';
-import { defaultTerms, EMPLOYER_CONSENT, WORKER_CONSENT } from '../staff/contracts/model.js';
+import { defaultTerms, defaultShiftSchedule, shiftWorkDays, EMPLOYER_CONSENT, WORKER_CONSENT } from '../staff/contracts/model.js';
 import { tokenHash } from '../functions/_staff-schedule.js';
 
 async function fixture(t) {
@@ -37,6 +37,34 @@ test('drafts can be incomplete, but issue requires every material term and valid
   const f=await fixture(t);assert.equal((await f.write({op:'contract.save',employeeId:f.employeeId,terms:defaultTerms('최건')})).status,200);assert.equal((await f.issue()).status,400);
   assert.equal(validateTerms({...f.terms,startDate:'2026-02-30'}),null);assert.equal(validateTerms({...f.terms,endDate:'2026-01-01'}),null);assert.equal(validateTerms({...f.terms,hourlyRate:-1}),null);assert.equal(validateTerms({...f.terms,payDay:32}),null);
   assert.equal((await f.save()).status,200);assert.equal((await f.issue()).status,200);assert.equal(f.record().status,'requested');
+});
+test('shift drafts require agreed scope, time patterns and notice before issuance',async t=>{
+  const f=await fixture(t);const shiftSchedule=defaultShiftSchedule();
+  const save=()=>f.write({op:'contract.save',employeeId:f.employeeId,terms:{...f.terms,shiftSchedule,workDays:'임의로 바꾼 문구'}});
+  assert.equal((await save()).status,200);assert.equal((await f.issue()).status,400);
+  shiftSchedule.workload='주 1~2일, 주 6~12시간 (휴게 제외)';
+  assert.equal((await save()).status,200);assert.equal((await f.issue()).status,400);
+  shiftSchedule.patterns='13:00~20:00. 실제 근로일과 시간은 주간 근무표로 합의';
+  assert.equal((await save()).status,200);
+  assert.deepEqual(f.record().terms.shiftSchedule,shiftSchedule);
+  assert.equal(f.record().terms.workDays,shiftWorkDays(shiftSchedule));
+  assert.match(f.record().terms.workDays,/매주 동일한 근무 요일.*고정하지 않는다/);
+  assert.match(f.record().terms.workDays,/확인하고 서명/);
+  assert.equal((await f.issue()).status,200);
+  const {cookie}=await f.access();const read=await f.call('contract',undefined,cookie);
+  assert.equal(read.status,200);assert.equal(read.data.contract.terms.workDays,shiftWorkDays(shiftSchedule));
+  assert.equal((await f.sign(cookie)).status,200);
+  f.record().terms.shiftSchedule.notice='일방 변경';
+  assert.equal((await f.call('contract',undefined,cookie)).status,409);
+});
+test('shift metadata is bounded, normalized and cannot bypass required terms',async t=>{
+  const f=await fixture(t);const good={workload:'  주 6~12시간  ',patterns:'13:00~20:00',notice:'월요일 근무 전'};
+  const valid=validateTerms({...f.terms,shiftSchedule:good},true);
+  assert.equal(valid.shiftSchedule.workload,'주 6~12시간');assert.equal(valid.workDays,shiftWorkDays(valid.shiftSchedule));
+  for(const shiftSchedule of [null,[],{},'shift',{...good,workload:'x'.repeat(501)},{...good,patterns:'bad\u0000'},{...good,notice:7}])assert.equal(validateTerms({...f.terms,shiftSchedule}),null);
+  assert.equal(validateTerms({...f.terms,shiftSchedule:{...good,notice:'  '}},true),null);
+  assert.equal(validateTerms({...f.terms,shiftSchedule:good,breaks:''},true),null);
+  assert.deepEqual(validateTerms(f.terms,true),f.terms);assert.equal(Object.hasOwn(validateTerms(f.terms),'shiftSchedule'),false);
 });
 test('saving uses optimistic versions, stable employee identity and snapshots names independently',async t=>{
   const f=await fixture(t);await f.save();assert.equal((await f.write({op:'contract.save',employeeId:f.employeeId,terms:f.terms,version:0})).status,409);

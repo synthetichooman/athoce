@@ -1,5 +1,5 @@
 import { json, fail, today, monthDates, tokenHash } from './_staff-schedule.js';
-import { FIELDS, SCHEMA, EMPLOYER_CONSENT, WORKER_CONSENT } from '../staff/contracts/model.js';
+import { FIELDS, SHIFT_FIELDS, shiftWorkDays, SCHEMA, EMPLOYER_CONSENT, WORKER_CONSENT } from '../staff/contracts/model.js';
 
 const stamp = () => new Date(Date.now()).toISOString();
 const validId = id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id);
@@ -18,9 +18,19 @@ function publicRecord(record) {
 function audit(record,event,detail='') { record.events.push({event,at:stamp(),detail}); record.updatedAt=stamp(); }
 export function validateTerms(input, complete=false) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  let shift;
+  if (Object.hasOwn(input,'shiftSchedule')) {
+    if (!input.shiftSchedule || typeof input.shiftSchedule!=='object' || Array.isArray(input.shiftSchedule)) return null;
+    shift={};
+    for (const [name,,max] of SHIFT_FIELDS) {
+      const value=input.shiftSchedule[name];
+      if (!clean(value,max) || (complete && !value.trim())) return null;
+      shift[name]=value.trim();
+    }
+  }
   const terms={};
   for (const [name,,type,max,,optional] of FIELDS) {
-    let value=input[name] ?? '';
+    let value=name==='workDays' && shift ? shiftWorkDays(shift) : input[name] ?? '';
     if (type==='number') {
       if (value !== '' && (!Number.isSafeInteger(value) || value < 1 || value > max)) return null;
     } else {
@@ -32,6 +42,7 @@ export function validateTerms(input, complete=false) {
     terms[name]=value;
   }
   if (terms.startDate && terms.endDate && terms.endDate<terms.startDate) return null;
+  if (shift) terms.shiftSchedule=shift;
   return terms;
 }
 export function validateSignature(input, name) {
@@ -83,7 +94,7 @@ export async function writeContract(db, body, employees) {
     if(body.op==='contract.issue') {
       if(record.status!=='draft')return fail('작성 중인 계약서만 요청할 수 있습니다.',409);
       if(!employees.some(e=>e.id===record.employeeId&&e.active))return fail('사용 중지된 직원입니다.',409);
-      if(!validateTerms(record.terms,true))return fail('고용주·근로자 정보, 근로일별 시간, 휴게, 임금, 휴일과 사회보험을 모두 작성해 주세요.');
+      if(!validateTerms(record.terms,true))return fail('고용주·근로자 정보, 근무 조건(시프트제는 근무 범위·시간대·확정 시점), 휴게, 임금, 휴일과 사회보험을 모두 작성해 주세요.');
       const signature=validateSignature(body.signature,record.terms.representative);
       if(!signature||body.consent!==EMPLOYER_CONSENT)return fail('고용주 서명과 동의가 필요합니다.');
       record.documentHash=await documentDigest(record);

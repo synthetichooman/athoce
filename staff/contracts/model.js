@@ -28,4 +28,21 @@ export const FIELDS = [
   ['otherTerms','그 밖의 합의 사항','textarea',2500,'',true],
 ];
 export function defaultTerms(name = '') { return { ...Object.fromEntries(FIELDS.map(([key,,,,value]) => [key,value])), workerName:name }; }
+// Optional metadata on new shift contracts only. Legacy signed terms remain untouched.
+export const SHIFT_FIELDS = [
+  ['workload','합의한 근로일수·시간 범위',500,'예: 주 1~2일, 주 6~12시간 (휴게 제외). 추가 근무는 별도 합의'],
+  ['patterns','근무 가능한 시간대·시프트',700,'예: 13:00~20:00. 실제 근무일과 시작·종료 시각은 주간 근무표로 합의'],
+  ['notice','근무표 확정 시점',300,'예: 매주 월요일, 해당 주 첫 근무 시작 전'],
+];
+export function defaultShiftSchedule() { return {workload:'',patterns:'',notice:'매주 월요일, 해당 주 첫 근무 시작 전'}; }
+export function shiftWorkDays(schedule) {
+  return [
+    '시프트제 근무로, 매주 동일한 근무 요일이나 시작·종료 시각을 고정하지 않는다.',
+    `합의한 근로일수·시간 범위: ${schedule.workload || '미작성'}`,
+    `근무 가능한 시간대·시프트: ${schedule.patterns || '미작성'}`,
+    `근무표 확정 시점: ${schedule.notice || '미작성'}`,
+    '위 합의 범위에서 날짜별 근로일, 시작·종료 시각, 휴게 및 휴일을 기재한 주간 근무표를 작성한다. 근로자가 근무 시작 전에 내용을 확인하고 서명한 후 확정하며, 확정된 근무표를 근로자에게 교부하고 이 계약의 부속 문서로 보관한다.',
+    '확정 후 근로일·근로시간을 변경하거나 합의 범위를 벗어난 근무를 정할 때에도 사전에 상호 서면 합의한다.',
+  ].join('\n');
+}
 export const STATES = { draft:'작성 중', requested:'서명 대기', signed:'서명 완료', withdrawn:'요청 취소' };

@@ -22,6 +22,10 @@ main {max-width:1100px;}
 .field-grid {display:grid;grid-template-columns:1fr 1fr;gap:22px 24px;padding:8px 24px 28px;}
 .field-grid .full {grid-column:1/-1;}
 .field-grid p {margin:0;}
+.shift-settings {display:grid;gap:22px;padding:24px;border:1px solid var(--ui-line);border-radius:12px;background:var(--ui-subtle);}
+.shift-settings label {min-width:0;}
+.shift-settings textarea {background:var(--ui-surface);}
+.shift-note {padding-top:16px;border-top:1px solid var(--ui-line);line-height:1.8;}
 .form-actions {position:sticky;bottom:0;background:var(--ui-floating);padding:18px;border:1px solid var(--ui-line);z-index:2;backdrop-filter:blur(8px);}
 #recordActions {margin:22px 0;}
 .preview-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:36px 0 20px;}
@@ -68,6 +72,7 @@ main {max-width:1100px;}
  .contract-toolbar .tools {width:100%;}.contract-toolbar .tools label {flex:1;}
  .contract-card {padding:20px 16px;gap:12px;align-items:start;}.contract-card .card-end{max-width:45%;}.contract-card .badge{line-height:1.7;}
  .field-grid {grid-template-columns:1fr;padding:4px 16px 22px;gap:20px;}.form-section > summary {padding:20px 16px;}
+ .shift-settings {padding:20px 16px;}
  .form-actions {padding:12px;gap:8px;}.form-actions button {font-size:12px;}
  .contract-document {padding:24px 16px;font-size:12px;}.contract-document dl {grid-template-columns:1fr;}.contract-document dt {border:0;padding-bottom:0;}.contract-document dd {padding-top:4px;}
  .document-signatures {gap:16px;}.document-signatures h3 {font-size:13px;}.document-signatures svg {height:90px;}

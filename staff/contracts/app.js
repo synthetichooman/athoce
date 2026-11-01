@@ -1,26 +1,39 @@
 import { registerAdminPanel } from '/staff/admin/embed.js?v=20261101-1';
 import { $, el, api, status, randomToken, today } from '../shared.js';
 import { employeeLabel } from '../names.js?v=20261030-1';
-import { FIELDS, defaultTerms, EMPLOYER_CONSENT } from './model.js';
-import { renderDocument, signaturePad, labelState, when, downloadContract, downloadFile } from './shared.js';
+import { FIELDS, SHIFT_FIELDS, defaultShiftSchedule, shiftWorkDays, defaultTerms, EMPLOYER_CONSENT } from './model.js?v=20261101-shift1';
+import { renderDocument, signaturePad, labelState, when, downloadContract, downloadFile } from './shared.js?v=20261101-shift1';
 let data, current, dirty=false, busy=false, employerPad;
 const inputs={};
+const shiftInputs={};let scheduleMode,shiftPanel,workDaysLabel,workDaysHelp;
 const apiPath='/api/staff/admin/contracts';
 const groups=[['계약 당사자',0,7],['근무 조건',7,13],['임금',13,19],['휴일 및 그 밖의 조건',19,FIELDS.length]];
 for(const [title,start,end] of groups) {
   const section=el('details',null,'form-section');section.open=true;section.append(el('summary',title));const grid=el('div',null,'field-grid');
   for(const [key,text,type,max,,optional] of FIELDS.slice(start,end)) {
+    if(key==='workDays') {
+      const modeLabel=el('label','근무 방식','full');scheduleMode=el('select');scheduleMode.id='scheduleMode';
+      for(const [value,title] of [['shift','시프트제 · 주간 근무표로 합의'],['manual','요일·시간 직접 작성']]){const option=el('option',title);option.value=value;scheduleMode.append(option);}
+      modeLabel.append(scheduleMode);grid.append(modeLabel);
+      shiftPanel=el('div',null,'shift-settings full');shiftPanel.id='shiftSettings';
+      shiftPanel.append(el('p','고정 요일 없이, 합의할 근무 범위와 근무표 확정 방식을 작성하세요.','small'));
+      for(const [name,title,max,placeholder] of SHIFT_FIELDS){const label=el('label',title);const input=el('textarea');input.id=`shift-${name}`;input.rows=name==='notice'?2:3;input.maxLength=max;input.placeholder=placeholder;shiftInputs[name]=input;label.append(input);shiftPanel.append(label);}
+      shiftPanel.append(el('p','날짜별 시간·휴게·휴일은 주간 근무표에 적고, 확정 전 근로자의 확인·서명을 받아 별도 보관하세요. 이 화면은 근무표 서명을 자동 수집하지 않습니다.','small shift-note'));grid.append(shiftPanel);
+      scheduleMode.onchange=syncSchedule;
+    }
     const label=el('label',text,type==='textarea'?'full':'');const input=el(type==='textarea'?'textarea':'input');
     input.id=`field-${key}`;label.htmlFor=input.id;
     if(type==='textarea'){input.rows=key==='workDays'?4:3;input.maxLength=max;}else {input.type=type;if(type==='number'){input.min=1;input.max=max;input.step=1;}else input.maxLength=max;}
     // Drafts can be saved incomplete; the server validates completeness at issuance.
     input.dataset.required=String(!optional);input.autocomplete='off';inputs[key]=input;label.append(input);grid.append(label);
-    if(key==='workDays') { const help=el('p','각 근로일의 시작·종료 시각을 적으세요. 변동 근무도 합의한 날짜별 시간을 명시하세요.','small full');grid.append(help);input.placeholder='예: 매주 토요일 13:00~20:00\n매주 일요일 13:00~20:00'; }
-    if(key==='breaks')input.placeholder='예: 각 근무일 16:00~17:00, 무급 (자유 이용)';
+    if(key==='workDays') { workDaysLabel=label;workDaysHelp=el('p','근로일별 시작·종료 시각을 작성하세요.','small full');grid.append(workDaysHelp);input.placeholder='예: 매주 토요일 13:00~20:00\n매주 일요일 13:00~20:00'; }
+    if(key==='breaks')input.placeholder='시프트별 휴게 시간·길이와 유급/무급 여부를 작성하세요. 구체적인 시작·종료 시각을 주간 근무표에 사전 명시';
+    if(key==='holidays')input.placeholder='주휴일의 지정 방식과 유급 여부를 작성하세요. 시프트별 휴일은 근무표에 사전 명시하고 미배정일과 구분';
     if(key==='insurance')input.placeholder='적용되는 보험과 가입 여부를 구체적으로 입력';
   }
   section.append(grid);$('#fields').append(section);
 }
+function syncSchedule() {const shift=scheduleMode.value==='shift';shiftPanel.hidden=!shift;workDaysLabel.hidden=shift;workDaysHelp.hidden=shift;}
 $('#employerConsentText').textContent=EMPLOYER_CONSENT;
 function leave(){return !dirty||confirm('저장하지 않은 초안을 버릴까요?');}
 function clearShare(){$('#shareLink').value='';$('#shareCode').value='';$('#sharePanel').hidden=true;}
@@ -55,6 +68,8 @@ function showEditor() {
   $('#editorTitle').textContent=`${current.terms.workerName||data.employees.find(e=>e.id===current.employeeId)?.name||'직원'} · 근로계약`;
   $('#contractState').textContent=labelState(current);$('#editorMeta').textContent=current.version?`마지막 변경 ${when(current.updatedAt)}`:'새 초안';
   for(const [key] of FIELDS)inputs[key].value=current.terms[key]??'';
+  scheduleMode.value=current.terms.shiftSchedule?'shift':'manual';
+  const schedule=current.terms.shiftSchedule||defaultShiftSchedule();for(const [key] of SHIFT_FIELDS)shiftInputs[key].value=schedule[key]||'';syncSchedule();
   $('#save').textContent='초안 저장';$('#request').disabled=!current.version;$('#dirtyState').textContent='';
   $('#rotate').hidden=!['requested','signed'].includes(current.status);$('#withdraw').hidden=current.status!=='requested';
   $('#deliveryPanel').hidden=current.status!=='signed';
@@ -81,9 +96,14 @@ function newContract(source) {
   if(!data.employees.some(e=>e.id===target&&e.active)){status('사용 중인 직원을 선택해 주세요.',true);return;}
   const name=data.employees.find(e=>e.id===target).name;
   current={id:crypto.randomUUID(),employeeId:target,schema:'athoce-employment-v1',version:0,revision:0,status:'draft',events:[],terms:source?{...source.terms,startDate:today(),endDate:''}:defaultTerms(name)};
+  if(!source){current.terms.shiftSchedule=defaultShiftSchedule();current.terms.workDays=shiftWorkDays(current.terms.shiftSchedule);}
   showEditor();$('#employee').disabled=false;dirty=true;$('#dirtyState').textContent='저장 전';
 }
-function collect() {return Object.fromEntries(FIELDS.map(([key,,type])=>[key,type==='number'&&inputs[key].value!==''?Number(inputs[key].value):inputs[key].value]));}
+function collect() {
+  const terms=Object.fromEntries(FIELDS.map(([key,,type])=>[key,type==='number'&&inputs[key].value!==''?Number(inputs[key].value):inputs[key].value]));
+  if(scheduleMode.value==='shift'){terms.shiftSchedule=Object.fromEntries(SHIFT_FIELDS.map(([key])=>[key,shiftInputs[key].value.trim()]));terms.workDays=shiftWorkDays(terms.shiftSchedule);}
+  return terms;
+}
 $('#contractForm').oninput=()=>{dirty=true;$('#request').disabled=true;$('#dirtyState').textContent='저장하지 않은 변경';renderDocument($('#document'),{...current,terms:collect()});};
 $('#employee').onchange=()=>{current.employeeId=$('#employee').value;inputs.workerName.value=data.employees.find(e=>e.id===current.employeeId)?.name||'';renderDocument($('#document'),{...current,terms:collect()});};
 $('#contractForm').onsubmit=event=>{event.preventDefault();run(async()=>{const response=await api(apiPath,{op:'contract.save',id:current.id,employeeId:current.employeeId,version:current.version,terms:collect()});current=response.contract;showEditor();await list();status('초안을 저장했습니다. 내용을 검토하고 서명을 요청하세요.');});};

@@ -1,6 +1,6 @@
 import { $, api, status } from '../shared.js';
 import { WORKER_CONSENT } from '../contracts/model.js';
-import { renderDocument, signaturePad, labelState, when, downloadContract } from '../contracts/shared.js';
+import { renderDocument, signaturePad, labelState, when, downloadContract } from '../contracts/shared.js?v=20261101-shift1';
 let contract,busy=false,pad;
 // A fragment never reaches server access logs or the Referer header.
 const fragment=new URLSearchParams(location.hash.slice(1));const initial=fragment.get('token')||'';

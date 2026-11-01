@@ -33,6 +33,7 @@ export function renderDocument(container,contract) {
     const section=el('section');section.append(el('h3',title));const dl=el('dl');
     for(const field of fields) {
       const def=FIELDS.find(([key])=>key===field);let value=t[field];let label=def[1];
+      if(field==='workDays'&&t.shiftSchedule)label='시프트 근무·근무표 합의';
       if(field==='endDate'){label='계약 종료일';value=value||'기간의 정함 없음';}
       if(field==='hourlyRate')value=value?`${Number(value).toLocaleString('ko-KR')}원`:'';
       if(field==='payDay')value=value?`매월 ${value}일`:'';
