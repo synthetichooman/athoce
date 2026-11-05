@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, json, fail, today, addDays, weekOf, monthDates, allow
 import { readLabor, writeLabor } from '../../functions/_staff-labor.js';
 import { readPayrun, writePayrun } from '../../functions/_staff-payrun.js';
 import { readContracts, writeContract, contractRecipient } from '../../functions/_staff-contracts.js';
+import { readSharedSchedule } from '../../functions/_staff-shared-schedule.js';
 
 import { PAYROLL_PAYERS, payrollPeriod, payrollSummary } from '../../functions/_staff-payroll.js';
 
@@ -44,6 +45,7 @@ export class StaffSchedule {
     const payload = await request.json().catch(() => null);
     if (!payload) return fail('잘못된 요청입니다.');
     const employees = await db.get('employees') || [];
+    if (payload.action === 'shared-read') return readSharedSchedule(db, payload.month, employees);
     if (['contract-login','contract-read','contract-sign'].includes(payload.action)) return contractRecipient(db,payload);
     const admin = ['admin-read', 'admin-payroll', 'admin-payrun', 'admin-contracts', 'admin-labor', 'admin-write'].includes(payload.action);
     const employee = !admin && employees.find(e => e.active && e.credential === payload.credential);
@@ -257,7 +259,7 @@ export class StaffSchedule {
           if (ids.length !== schedule.required[date]) return fail(`${date}의 근무자 배정을 확인해 주세요.`, 409);
           if (date >= today() && ids.some(id => !employees.some(e => e.id === id && e.active) || (!availability[id]?.dates.includes(date) && !schedule.manualAssignments?.[date]?.includes(id) && !(roleOf(employees.find(e => e.id === id)) === 'staff' && schedule.manualStaff?.[date]?.includes(id))))) return fail('직원의 가능 날짜가 변경되었습니다. 배정을 다시 확인해 주세요.', 409);
         }
-        schedule.published = { assignments: structuredClone(schedule.draft), start: schedule.start, end: schedule.end, confirmedAt: timestamp() };
+        schedule.published = { assignments: structuredClone(schedule.draft), required: structuredClone(schedule.required), start: schedule.start, end: schedule.end, confirmedAt: timestamp() };
       }
       schedule.version++; schedule.updatedAt = timestamp(); await db.put(`week:${body.week}`, schedule);
       return json({ ok: true, version: schedule.version });

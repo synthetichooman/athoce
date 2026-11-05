@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>공유 근무표 — athoce</title>
+  <link rel="icon" href="/assets/athoce-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/staff/theme.css?v=20261101-1">
+  <link rel="stylesheet" href="/staff/schedule/styles.css?v=20261105-1">
+  <script type="module" src="/staff/schedule/app.js?v=20261105-1"></script>
+</head>
+<body>
+  <header><div class="header-inner"><img src="/assets/athoce-symbol.svg" alt="athoce" width="66" height="38"><span>공유 근무표</span></div></header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">ATHOCE SEOUL</p><h1>우리 근무표</h1><p class="description">at · ho · ce와 스태프의 확정 일정</p></div><button id="copyLink" type="button">링크 복사</button></div>
+    <div class="toolbar">
+      <div class="month-controls"><button id="previous" type="button" aria-label="이전 달">←</button><label for="month" class="visually-hidden">조회할 월</label><input id="month" type="month" required><button id="next" type="button" aria-label="다음 달">→</button><button id="thisMonth" type="button">이번 달</button></div>
+      <label class="person-filter"><span class="visually-hidden">근무자 보기</span><select id="person"><option value="">전체 근무자</option></select></label>
+    </div>
+    <div class="calendar-heading"><h2 id="monthTitle"></h2><span id="summary"></span></div>
+    <p id="status" role="status" aria-live="polite">근무표를 불러오고 있습니다.</p>
+    <section id="calendarPanel" aria-labelledby="monthTitle" aria-busy="true">
+      <div class="weekdays" aria-hidden="true"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
+      <div id="calendar" class="calendar" role="list" aria-label="월간 확정 근무표"></div>
+    </section>
+    <footer><p>확정 전 일정은 표시되지 않아요.</p><div><span id="updated"></span><button id="refresh" type="button">새로고침</button></div></footer>
+    <noscript>근무표를 보려면 브라우저의 자바스크립트를 켜 주세요.</noscript>
+  </main>
+</body>
+</html>

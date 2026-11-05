@@ -8,6 +8,10 @@ export async function onRequest({ request, env, params }) {
   const url = new URL(request.url);
   const mutation = request.method === 'POST';
   if (!mutation && request.method !== 'GET') return fail('지원하지 않는 요청입니다.', 405);
+  if (path === 'schedule') {
+    if (mutation) return fail('공유 근무표는 조회만 할 수 있습니다.', 405);
+    return callSchedule(env, { action: 'shared-read', month: url.searchParams.get('month') });
+  }
   let body = {};
   if (mutation) {
     if (request.headers.get('origin') !== url.origin) return fail('이 페이지에서 직접 요청해 주세요.', 403);

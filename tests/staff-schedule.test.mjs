@@ -86,6 +86,62 @@ test('employee only sees own dates, requests and assignments; no invite hashes l
   for (const value of [b.id, '비공개 직원 B', a.token, b.token, 'credential']) assert.ok(!JSON.stringify(result.data).includes(value));
   assert.ok(!JSON.stringify((await admin()).data).includes('credential'));
 });
+test('shared calendar exposes only published names and times, without login or HR data', async t => {
+  const { call, add, save, draft, admin, state } = setup(t);
+  const core = await add('aategois', 'core'), staff = await add('최건'), hidden = await add('비공개 지원자');
+  await save(core); await save(staff, ['2026-11-03']); await save(hidden);
+  await draft(core, { assignments: { [week]: [core.id], '2026-11-03': [staff.id] }, required: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`2026-11-0${i + 2}`, i < 2 ? 1 : 0])) });
+  let result = await call('schedule?month=2026-11');
+  assert.equal(result.status, 200);
+  assert.equal(result.data.days.length, 30);
+  assert.ok(result.data.days.every(day => day.state === 'pending' && day.members.length === 0));
+  await admin({ op: 'week.publish', week, version: 1 });
+  const stored = state.get(`week:${week}`); stored.payers = { [week]: { [core.id]: 'athoce' } }; state.set(`week:${week}`, stored);
+  result = await call('schedule?month=2026-11');
+  assert.deepEqual(result.data.days.find(day => day.date === week), { date: week, state: 'confirmed', members: [{ name: 'at', role: 'core' }], start: '13:00', end: '20:00' });
+  assert.deepEqual(result.data.days.find(day => day.date === '2026-11-03').members, [{ name: '최건', role: 'staff' }]);
+  assert.equal(result.data.days.find(day => day.date === '2026-11-04').state, 'off');
+  for (const value of [core.id, staff.id, hidden.id, core.token, hidden.token, '비공개 지원자', '테스트 메모', 'credential', 'availability', 'payers', 'hourlyRate', 'requests']) assert.ok(!JSON.stringify(result.data).includes(value), value);
+  assert.equal((await call('admin')).status, 401);
+});
+test('shared calendar keeps the published snapshot while draft assignments, time and closure change', async t => {
+  const { call, add, save, draft, admin, state } = setup(t);
+  const a = await add('유민'), b = await add('최건'); await save(a); await save(b); await draft(a);
+  await admin({ op: 'week.publish', week, version: 1 });
+  const record = state.get(`week:${week}`);
+  record.draft[week] = [b.id]; record.start = '14:00'; record.end = '19:00'; record.required['2026-11-03'] = 1; record.required[week] = 0;
+  state.set(`week:${week}`, record);
+  let result = await call('schedule?month=2026-11');
+  assert.equal(result.data.days.find(day => day.date === week).members[0].name, '유민');
+  assert.equal(result.data.days.find(day => day.date === week).start, '13:00');
+  assert.equal(result.data.days.find(day => day.date === '2026-11-03').state, 'off');
+  // Old records have no closure snapshot; an unpublished closure must stay private.
+  delete record.published.required; record.published.assignments[week] = []; state.set(`week:${week}`, record);
+  result = await call('schedule?month=2026-11');
+  assert.equal(result.data.days.find(day => day.date === week).state, 'unassigned');
+});
+test('shared calendar follows approved absence and keeps inactive historical workers visible', async t => {
+  const { call, add, save, draft, admin, state } = setup(t);
+  const a = await add('유민'); await save(a); await draft(a); await admin({ op: 'week.publish', week, version: 1 });
+  const id = randomUUID(); await call('me', { op: 'request.add', id, date: week, available: false, reason: '비공개 변경 사유' }, a.cookie);
+  await admin({ op: 'request.resolve', id, decision: 'approved' });
+  let result = await call('schedule?month=2026-11');
+  assert.deepEqual(result.data.days.find(day => day.date === week).members, []);
+  assert.equal(result.data.days.find(day => day.date === week).state, 'unassigned');
+  assert.ok(!JSON.stringify(result.data).includes('비공개 변경 사유'));
+  const record = state.get(`week:${week}`); record.published.assignments[week] = [a.id]; state.set(`week:${week}`, record);
+  const employees = state.get('employees'); employees[0].active = false; state.set('employees', employees);
+  result = await call('schedule?month=2026-11');
+  assert.equal(result.data.days.find(day => day.date === week).members[0].name, '유민');
+});
+test('shared calendar validates months and rejects all writes without mutating data', async t => {
+  const { call, state } = setup(t);
+  const before = structuredClone([...state]);
+  for (const month of ['2026-13', '2026-00', '2026-08', '2029-01', '../admin']) assert.equal((await call(`schedule?month=${month}`)).status, 400);
+  assert.equal((await call('schedule')).data.month, '2026-10');
+  assert.equal((await call('schedule?month=2026-11', { op: 'employee.delete', id: randomUUID() })).status, 405);
+  assert.deepEqual([...state], before);
+});
 test('concurrent monthly edits cannot silently overwrite each other', async t => {
   const { add, save, state } = setup(t); const e = await add();
   const results = await Promise.all([save(e, [week]), save(e, ['2026-11-03'])]);

@@ -1,0 +1,71 @@
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { border-bottom: 1px solid var(--ui-line); background: var(--ui-surface); }
+.header-inner { max-width: 1060px; margin: auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header-inner span { color: var(--ui-muted); font-size: 12px; }
+main { max-width: 1060px; margin: 0 auto; padding: 40px 0; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.eyebrow { font-size: 10px; letter-spacing: .12em; margin: 0 0 10px; }
+h1 { margin: 0; }
+.description { color: var(--ui-muted); margin: 10px 0 0; font-size: 13px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 32px 0 24px; }
+.month-controls { display: flex; align-items: center; gap: 8px; }
+.month-controls input { width: 160px; }
+.person-filter select { min-width: 140px; }
+.calendar-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+h2 { margin: 0; font-size: 22px; }
+#summary { color: var(--ui-muted); font-size: 12px; }
+#status { font-size: 13px; line-height: 1.6; }
+#status:empty { display: none; }
+#calendarPanel { border: 1px solid var(--ui-line); border-radius: 12px; overflow: hidden; background: var(--ui-surface); }
+.weekdays, .calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.weekdays { text-align: center; font-size: 12px; padding: 14px 0; border-bottom: 1px solid var(--ui-line); }
+.weekdays span:nth-child(6), .day[data-weekday="6"] .day-number { color: var(--ui-accent-ink); }
+.weekdays span:last-child, .day[data-weekday="0"] .day-number { color: var(--ui-danger); }
+.day { min-height: 134px; padding: 12px 10px; border-right: 1px solid var(--ui-line); border-bottom: 1px solid var(--ui-line); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.day:nth-child(7n) { border-right: 0; }
+.day:nth-last-child(-n+7) { border-bottom: 0; }
+.day.outside { background: var(--ui-bg); }
+.day-number { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.day[data-today="true"] .day-number { background: var(--ui-accent-ink); color: #fff; border-radius: 50%; font-weight: 600; }
+.members { display: grid; width: 100%; gap: 4px; }
+.member { display: block; padding: 5px 7px; border: 1px solid var(--ui-line); border-radius: 5px; background: var(--ui-bg); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.member[data-member="at"] { background: #e8f2ff; border-color: #c6ddfb; color: #185a9d; }
+.member[data-member="ho"] { background: #f3eafb; border-color: #dfcbf2; color: #74419a; }
+.member[data-member="ce"] { background: #fff1df; border-color: #f4d6af; color: #8a501b; }
+.member[data-member="유민"] { background: #fdebf0; border-color: #f2c8d6; color: #9c3f60; }
+.member[data-member="최건"] { background: #e8f4ec; border-color: #c8e3d0; color: #2f6b42; }
+.hours { display: flex; flex-wrap: wrap; color: var(--ui-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.day-state { font-size: 11px; color: var(--ui-muted); line-height: 1.5; }
+footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 18px; color: var(--ui-muted); font-size: 12px; }
+footer p { margin: 0; }
+footer div { display: flex; align-items: center; gap: 12px; }
+footer button { font-size: 12px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 680px) {
+  .header-inner { padding: 12px 16px; }
+  main { padding-top: 28px; }
+  .page-heading { align-items: flex-start; }
+  .page-heading button { padding-inline: 10px; font-size: 12px; }
+  .description { font-size: 12px; }
+  .toolbar { margin-top: 24px; gap: 10px; }
+  .month-controls { gap: 5px; width: 100%; }
+  .month-controls button { padding-inline: 11px; }
+  .month-controls input { min-width: 0; width: 145px; flex: 1; }
+  .person-filter, .person-filter select { width: 100%; }
+  h2 { font-size: 20px; }
+  #summary { font-size: 11px; }
+  .day { min-height: 118px; padding: 8px 4px; gap: 8px; }
+  .day-number { width: 23px; height: 23px; font-size: 12px; }
+  .member { padding: 4px 2px; font-size: 11px; text-align: center; }
+  .hours { font-size: 10px; line-height: 1.4; }
+  .day-state { font-size: 10px; }
+}
+@media print {
+  body { background: #fff; }
+  main { width: 100%; padding: 16px 0; }
+  .toolbar, #copyLink, footer button, #status { display: none; }
+  .calendar-heading { margin-top: 24px; }
+  .day { min-height: 100px; break-inside: avoid; }
+  .member { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
