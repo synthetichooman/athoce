@@ -81,10 +81,6 @@ $('#thisMonth').onclick = () => load(currentMonth);
 $('#month').onchange = () => load($('#month').value);
 $('#person').onchange = () => { if (data?.month === month) render(); };
 $('#refresh').onclick = () => load();
-$('#copyLink').onclick = async () => {
-  try { await navigator.clipboard.writeText(`${location.origin}/staff/schedule/`); message('공유 링크를 복사했어요.'); }
-  catch { message(`공유 주소: ${location.origin}/staff/schedule/`); }
-};
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !loading) load(); });
 setInterval(() => { if (!document.hidden && !loading) load(); }, 60000);
 await load();
