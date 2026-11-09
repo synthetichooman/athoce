@@ -47,7 +47,8 @@ main {max-width:1100px;}
 .share-panel p,.share-panel h3 {margin:0;}
 .share-panel input {font-family:ui-monospace,monospace;}
 .check {display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.8;margin:20px 0;}
-.check input[type=checkbox] {width:18px;min-height:18px;height:18px;flex:0 0 18px;margin:2px 0 0;accent-color:var(--ui-accent);}
+/* Keep text-input resets from hiding checkbox marks or enlarging their hit boxes. */
+.check input[type=checkbox] {appearance:auto;padding:0;width:18px;min-height:18px;height:18px;flex:0 0 18px;margin:2px 0 0;accent-color:var(--ui-accent);}
 .signature-pad canvas {display:block;width:100%;height:auto;aspect-ratio:500/170;touch-action:none;border:1px solid var(--ui-line);background:var(--ui-bg);}
 .signature-pad .small {margin:8px 0 12px;}
 .signature-pad .check {margin:16px 0;}
